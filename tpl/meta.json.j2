@@ -1,0 +1,27 @@
+{ 
+   "licenseType" : "{{ licenseType |d('Questionable') }}", 
+   "creatorName" : "{{ creatorName |d('creator') }}", 
+   "packageName" : "{{ packageName }}", 
+   "standardReferenceVersionOption" : "{{ standardReferenceVersionOption |d('Latest') }}", 
+   "scriptReferenceVersionOption" : "{{ scriptReferenceVersionOption |d('Exact') }}", 
+   "description" : "{{ description |d('') }}", 
+   "credits" : "{{ credits |d('') }}", 
+   "instructions" : "{{ instructions |d('') }}", 
+   "promotionalLink" : "{{ promotionalLink |d('converted with vamtb') }}", 
+   "programVersion" : "{{programVersion |d('1.20.1.4') }}", 
+   "contentList" : [ 
+    {% for content in contents -%}
+        "{{ content -}}"{% if not loop.last %},{% endif %}
+    {% endfor -%}
+   ], 
+   "dependencies" : {
+    {% if deps is defined %}
+        {% for dep in deps -%}
+            "{{ dep }}"
+        {% endfor %}
+    {% endif -%}
+   }, 
+   "customOptions" : { 
+      "preloadMorphs" : "{{ preloadMorphs |d('false') }}"
+   }
+}
