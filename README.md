@@ -1,6 +1,7 @@
 # vamtb
 Vam toolbox
 
+```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
   VAM Toolbox
@@ -34,3 +35,4 @@ Commands:
   sortvar    Moves vars to subdirectory named by its creator
   statsvar   Get stats on all vars
   thumb      Gen thumbs from var file(s)
+```
