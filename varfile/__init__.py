@@ -25,7 +25,11 @@ def split_varname(fname, dest_dir):
         fname.rename(newname)
     except FileExistsError:
         pass
-        Path.unlink(fname)        
+        try:
+            Path.unlink(fname)
+        except PermissionError:
+            logging.error(f"Couldnt remove {fname}")
+            pass
 
 def is_namecorrect(fname, checksuffix=True):
     """ Takes as parameter a var filename with extension """
