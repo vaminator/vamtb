@@ -8,6 +8,8 @@ from zipfile import ZipFile, BadZipFile
 from jinja2 import Environment, FileSystemLoader
 import vamex
 import traceback
+import piexif
+from PIL import Image
 
 def split_varname(fname, dest_dir):
     creator, _ = fname.name.split('.', 1)
@@ -62,6 +64,34 @@ def extract_meta_var(fname):
     except FileNotFoundError:
         return
 
+def get_exif(fname):
+    exif = piexif.load(fname)
+    return exif
+
+def test_print_exif(fname):
+    exif = get_exif(fname)
+    t = exif["0th"][piexif.ImageIFD.XPKeywords]
+    convm = bytes(t).decode('utf-16')[:-1]
+    tags = convm.split(';')
+    return tags
+
+def set_tag(fname, tags):
+    logging.debug(f"Setting tag of {fname} to {tags}")
+    try:
+        exif = get_exif(fname)
+        exif["0th"][piexif.ImageIFD.XPKeywords] = f"{';'.join(tags)} ".encode('utf-16')
+        try:
+            exif_bytes = piexif.dump(exif)
+        except piexif._exceptions.InvalidImageDataError:
+            logging.warning(f"Image {fname} has incorrect EXIF information")
+            del exif["1st"]
+            del exif["thumbnail"]
+            exif_bytes = piexif.dump(exif)
+        img = Image.open(fname)
+        img.save(fname, exif=exif_bytes)
+    except Exception as e:
+        logging.error(f"Couldnt edit tag of jpg {fname}: {e}")
+
 def find_same_jpg(listFiles, name):
     fname = Path(name).with_suffix('').name
     candidates = [ f for f in listFiles if f.lower().endswith(f"{fname.lower()}.jpg") ]
@@ -84,6 +114,7 @@ def thumb_var2(fname, outdir):
     pose=set()
     posep=set()
     appear=set()
+    tags=set()
     ref_icon=Path(os.path.dirname(os.path.realpath(__file__)), "..", "gear.jpg").resolve()
 
     Path(outdir, flatdirname).mkdir(parents=True, exist_ok=True)
@@ -163,6 +194,7 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Scene")
             if not found and save_person:
                 first_person = list(save_person)[0]
                 jpg = find_same_jpg(listOfFileNames, first_person)
@@ -171,6 +203,7 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Person")
             if not found and appear:
                 first_person = list(appear)[0]
                 jpg = find_same_jpg(listOfFileNames, first_person)
@@ -179,6 +212,7 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Person")
             if not found and clothp:
                 first_clothp = list(clothp)[0]
                 jpg = find_same_jpg(listOfFileNames, first_clothp)
@@ -187,6 +221,7 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Cloth")
             if not found and hairp:
                 first_hairp = list(hairp)[0]
                 jpg = find_same_jpg(listOfFileNames, first_hairp)
@@ -195,6 +230,25 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Hair")
+            if not found and morphp:
+                first_morphp = list(morphp)[0]
+                jpg = find_same_jpg(listOfFileNames, first_morphp)
+                if not jpg:
+                    logging.debug(f"We had a morph preset {first_morphp} but didn't find the same jpg")
+                else:
+                    logging.debug(f"Found jpg {jpg[0]}")
+                    found = True
+                    tags.add("Morph")
+            if not found and posep:
+                first_posep = list(posep)[0]
+                jpg = find_same_jpg(listOfFileNames, first_posep)
+                if not jpg:
+                    logging.debug(f"We had a pose preset {first_posep} but didn't find the same jpg")
+                else:
+                    logging.debug(f"Found jpg {jpg[0]}")
+                    found = True
+                    tags.add("Pose")
             if not found and cloth:
                 first_cloth = list(cloth)[0]
                 jpg = find_same_jpg(listOfFileNames, first_cloth)
@@ -203,6 +257,7 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Cloth")
             if not found and hair:
                 first_hair = list(hair)[0]
                 jpg = find_same_jpg(listOfFileNames, first_hair)
@@ -211,16 +266,61 @@ def thumb_var2(fname, outdir):
                 else:
                     logging.debug(f"Found jpg {jpg[0]}")
                     found = True
+                    tags.add("Hair")
+            if not found and morph:
+                first_morph = list(morph)[0]
+                jpg = find_same_jpg(listOfFileNames, first_morph)
+                if not jpg:
+                    logging.debug(f"We had a morph {first_morph} but didn't find the same jpg")
+                else:
+                    logging.debug(f"Found jpg {jpg[0]}")
+                    found = True
+                    tags.add("Morph")
+            if not found and pose:
+                first_pose = list(pose)[0]
+                jpg = find_same_jpg(listOfFileNames, first_pose)
+                if not jpg:
+                    logging.debug(f"We had a pose {first_pose} but didn't find the same jpg")
+                else:
+                    logging.debug(f"Found jpg {jpg[0]}")
+                    found = True
+                    tags.add("Pose")
             bfname = Path(fname).with_suffix('.jpg').name
             if found:
                 logging.debug(f"We found jpg {jpg}")
                 myvar.extract(jpg[0], outdir)
+                set_tag(f"{Path(outdir,jpg[0])}", list(tags))
                 logging.debug(f"Copying from {outdir}/{jpg[0]} to {flatdirname}/{bfname}")
                 shutil.copy(Path(outdir, jpg[0]), Path(outdir, flatdirname, bfname))
             else:
                 logging.debug("Didn't find a jpg")
+                if save_scene:
+                    tags.add("Scene")
+                elif save_person or appear:
+                    tags.add("Person")
+                elif clothp:
+                    tags.add("Cloth")
+                elif hairp:
+                    tags.add("Hair")
+                elif morphp:
+                    tags.add("Morph")
+                elif posep:
+                    tags.add("Morph")
+                elif cloth:
+                    tags.add("Cloth")
+                elif hair:
+                    tags.add("Hair")
+                elif morph:
+                    tags.add("Morph")
+                elif pose:
+                    tags.add("Morph")
+                elif asset:
+                    tags.add("Asset")
+                elif script:
+                    tags.add("Script")
                 if not listOfJpg:
                     shutil.copy(ref_icon, Path(outdir, flatdirname, bfname))
+                    set_tag(f"{Path(outdir, flatdirname, bfname)}", list(tags))
                 else:
                     logging.debug(f"But we found these jpg:{listOfJpg}")
                     face_jpg = [ f for f in listOfJpg if "face" in f.lower() ]
@@ -229,6 +329,7 @@ def thumb_var2(fname, outdir):
                     else:
                         jpg = listOfJpg[0]
                     myvar.extract(jpg, outdir)
+                    set_tag(f"{Path(outdir,jpg)}", list(tags))
                     shutil.copy(Path(outdir,jpg), Path(outdir, flatdirname, bfname))
 
     except BadZipFile as e:
