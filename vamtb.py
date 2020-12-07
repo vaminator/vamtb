@@ -178,6 +178,19 @@ def var_convert(ctx):
     # We might want to move/archive the input_dir to avoid duplicates now
     # TODO
 
+@cli.command('multiconvert')
+@click.pass_context
+def var_multiconvert(ctx):
+    """
+    Convert tree of tree to var
+    
+    """
+    custom=ctx.obj['custom']
+    logging.debug(f'Converting {custom} to var')
+
+    for p in Path(custom).glob('*'):
+        varfile.make_var(p, None, creatorName="creator", packageName=p.name, packageVersion=1, outdir="newvar")
+
 
 # TODO
 # Remove old versions of var
