@@ -90,11 +90,11 @@ def recurse_dep(dir, var, do_print=False, movepath=None):
             except vamex.VarNotFound as e:
                 logging.error("%sSearching dep %s: NOT FOUND"%(" "*depth, dep))
                 raise
-                if do_print:
-                    print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
-                try:
-                    recdef(dir, dep, do_print, depth + 1)
-                except RecursionError:
+            if do_print:
+                print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
+            try:
+                recdef(dir, dep, do_print, depth + 1)
+            except RecursionError:
                 # TODO: detect from which var the loop is created move that var
                 raise
     recdef(dir, var, do_print, 0)
