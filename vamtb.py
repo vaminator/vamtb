@@ -121,13 +121,14 @@ def check_deps(ctx):
     all_vars = vamdirs.list_vars(dir)
     for var in all_vars:
         try:
-            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False)
-        except vamex.VarNotFound as e:
-            logging.error(f'Cannot find {var.name}')
-            pass
+            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, movepath=movepath)
+        except (vamex.VarNotFound, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
+            logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
+            if movepath:
+                Path(var).rename(Path(movepath, var.name))
         except Exception as e:
             logging.error(f'While handing var {var.name}, caught exception {e}')
-            pass
+            raise
 
 @cli.command('thumb')
 @click.pass_context
@@ -148,10 +149,8 @@ def vars_thumb(ctx):
             varfile.thumb_var2( var, basedir)
         except vamex.VarNotFound as e:
             logging.error(f'Cannot find {var.name}')
-            pass
         except Exception as e:
             logging.error(f'While handing var {var}, caught exception {e}')
-            pass
 
 @cli.command('convert')
 @click.pass_context

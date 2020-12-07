@@ -23,18 +23,16 @@ def find_var(dir, varname):
     logging.debug("Searching for var %s in %s" % (varname, dir))
     try:
         varfile.is_namecorrect(Path("%s.foo" % varname), checksuffix=False)
-    except Exception:
-        raise vamex.VarNameNotCorrect(varname)
+    except vamex.VarNameNotCorrect:
+        raise
     creator, content, version = varname.split('.')
     numversion = True
     try:
         _=int(version)
-        pattern = "%s.var" % varname
     except ValueError:
-        pass
         if not( version == "latest" or version.startswith('min')):
             logging.error("Var %s has incorrect version (%s)" % (varname, version))
-            return None
+            raise vamex.VarVersionNotCorrect(varname)
         numversion = False
 
     if numversion:
@@ -52,10 +50,8 @@ def find_var(dir, varname):
     else:
         raise vamex.VarNotFound(varname)
 
-def recurse_dep(dir, var, do_print):
-    missing=set()  # still not shared when iterating on recurse_dep
+def recurse_dep(dir, var, do_print=False, movepath=None):
     def recdef(dir, var, do_print, depth):
-        nonlocal missing
         if do_print:
             print("%sChecking dependencies of %s" % (" "*depth, var))
         else:
@@ -63,45 +59,45 @@ def recurse_dep(dir, var, do_print):
         depth += 1
         try:
             var_file = find_var(dir, varname = var)
-        except vamex.VarNotFound as e:
-            logging.error("%sNot found - %s"%(" "*depth, e))
-            missing.add(var)
-            return
-        except vamex.VarNameNotCorrect as e:
+        except vamex.VarNotFound:
+            # This happens if file names contain weird chars for windows
+            # FIXME
+            logging.error("%sNot found - %s"%(" "*depth, var))
+            Path(var).rename(Path(movepath, var_file.name))
+            raise
+        except vamex.VarNameNotCorrect:
             if do_print:
-                logging.error("%sName not correct - %s"%(" "*depth, e))
-            return
+                logging.error("%sName not correct - %s"%(" "*depth, var))
+            raise
         except Exception as e:
             logging.error("Uncaught exc %s"%e)
+            raise
+
         try:
             meta = varfile.extract_meta_var(var_file)
-        except Exception as e:
-            logging.error(f'{" "*depth}Failed to decode var {var_file} from var {var} --> error is:{e}')
-            return
+        except vamex.VarMetaJson:
+            logging.error(f'{" "*depth}Failed to decode meta in {var_file}')
+            raise
 
         if not( "dependencies" in meta and meta['dependencies']):
             if do_print:
                 print("%sDep: None" % (" "*depth))
             return
         for dep in meta['dependencies']:
-            fpath = find_var(dir, dep)
-            if fpath:
+            try:
+                _ = find_var(dir, dep)
+                logging.debug("%sSearching dep %s: OK"%(" "*depth, dep))
+            except vamex.VarNotFound as e:
+                logging.error("%sSearching dep %s: NOT FOUND"%(" "*depth, dep))
+                raise
                 if do_print:
                     print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
                 try:
                     recdef(dir, dep, do_print, depth + 1)
                 except RecursionError:
-                    return
-                except Exception:
-                    return
-            else:
-                if dep not in missing:
-                    if do_print:
-                        print("%sDep for %s: %s -> Not found" % (" "*depth, var, dep))
-                    logging.info("Dependency %s not found" % dep)
-                    missing.add(dep)
+                # TODO: detect from which var the loop is created move that var
+                raise
     recdef(dir, var, do_print, 0)
-
 
 def create_dir(infile, newdir):
     """

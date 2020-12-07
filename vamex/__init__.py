@@ -1,18 +1,13 @@
 class OneParamException(Exception):
     """Exception having one parameter whose message is that parameter
        Exception description can be set and returned on will
-    
     """
     def __init__(self, param, exceptionDesc):
         self.message = param
-        self.exceptionDesc = exceptionDesc
 
     def __str__(self):
         return f'{self.message}'
     
-    def description(self):
-        return f'{self.exceptionDesc}'
-
 
 class VarNotFound(OneParamException):
     """Exception raised for not present VAR.
