@@ -305,7 +305,7 @@ def thumb_var2(fname, outdir):
                 elif morphp:
                     tags.add("Morph")
                 elif posep:
-                    tags.add("Morph")
+                    tags.add("Pose")
                 elif cloth:
                     tags.add("Cloth")
                 elif hair:
@@ -313,7 +313,7 @@ def thumb_var2(fname, outdir):
                 elif morph:
                     tags.add("Morph")
                 elif pose:
-                    tags.add("Morph")
+                    tags.add("Pose")
                 elif asset:
                     tags.add("Asset")
                 elif script:
