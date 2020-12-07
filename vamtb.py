@@ -17,8 +17,9 @@ import customdirs
 @click.option('custom', '-c', default="D:\\VAM", help='VAM custom directory.')
 @click.option('file','-f', help='Var file.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
+@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies, move vars with missing dep in 00Dep")
 @click.pass_context
-def cli(ctx,verbose, dir, custom, file):
+def cli(ctx, verbose, move, dir, custom, file):
     """ VAM Toolbox
 
     Examples:
@@ -43,6 +44,7 @@ def cli(ctx,verbose, dir, custom, file):
     ctx.obj['dir'] = dir
     ctx.obj['custom'] = custom
     ctx.obj['file'] = file
+    ctx.obj['move'] = move
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 @cli.command('organize')
@@ -116,7 +118,13 @@ def stats_vars(ctx):
 @click.pass_context
 def check_deps(ctx):
     """Check dependencies of all var files"""
-    dir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    dir = Path("%s/AddonPackages" % ctx.obj['dir'])
+    move = ctx.obj['move']
+    if move:
+        movepath=Path(dir, "00Dep")
+        Path(movepath).mkdir(parents=True, exist_ok=True)
+    else:
+        movepath=None
     logging.info(f'Checking deps for vars in {dir}')
     all_vars = vamdirs.list_vars(dir)
     for var in all_vars:
@@ -146,7 +154,7 @@ def vars_thumb(ctx):
     for var in vars:
         logging.debug(f"Extracting thumb from {var}")
         try:
-            varfile.thumb_var2( var, basedir)
+            varfile.thumb_var( var, basedir)
         except vamex.VarNotFound as e:
             logging.error(f'Cannot find {var.name}')
         except Exception as e:
