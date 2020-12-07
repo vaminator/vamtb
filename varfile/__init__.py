@@ -389,7 +389,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     finalVar = f"{creatorName}.{packageName}.{packageVersion}"
     
     # List files relative to basedir
-    contents = list( Path(os.path.relpath(x, input_dir)) for x in Path(input_dir).glob('**/*') if x.is_file() and x.name!="meta.json" )
+    contents = list( Path(os.path.relpath(x, input_dir)).as_posix() for x in Path(input_dir).glob('**/*') if x.is_file() and x.name!="meta.json" )
     logging.debug(f"Found {len(contents)} elements in {input_dir}")    
     # Solve dependencies stuffs
     # TODO
