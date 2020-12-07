@@ -97,7 +97,7 @@ def find_same_jpg(listFiles, name):
     candidates = [ f for f in listFiles if f.lower().endswith(f"{fname.lower()}.jpg") ]
     return candidates
 
-def thumb_var2(fname, outdir):
+def thumb_var(fname, outdir):
     """ Extract any jpeg to output dir """
     flatdirname="00-Flat"
     save_scene=set()
