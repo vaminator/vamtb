@@ -63,7 +63,7 @@ def recurse_dep(dir, var, do_print=False, movepath=None):
             # This happens if file names contain weird chars for windows
             # FIXME
             logging.error("%sNot found - %s"%(" "*depth, var))
-            Path(var).rename(Path(movepath, var_file.name))
+#            Path(var).rename(Path(movepath, var_file.name))
             raise
         except vamex.VarNameNotCorrect:
             if do_print:
