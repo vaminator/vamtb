@@ -9,6 +9,7 @@ from jinja2 import Environment, FileSystemLoader
 import vamex
 import traceback
 import piexif
+import vamdirs
 from PIL import Image
 
 def split_varname(fname, dest_dir):
@@ -338,6 +339,30 @@ def thumb_var(fname, outdir):
         logging.error(f"Got exception {e} Trace {traceback.format_exc()}")
         exit(0)
 
+def dep_fromvar(dir, var):
+    try:
+        var_file = vamdirs.find_var(dir, varname = var)
+    except vamex.VarNotFound:
+        # This happens if file names contain weird chars for windows
+        # FIXME
+#            Path(var).rename(Path(movepath, var_file.name))
+        raise
+    except vamex.VarNameNotCorrect:
+        raise
+    except Exception as e:
+        logging.error("Uncaught exc %s"%e)
+        raise
+
+    try:
+        meta = extract_meta_var(var_file)
+    except vamex.VarMetaJson:
+        raise
+
+    if not( "dependencies" in meta and meta['dependencies']):
+        return []
+
+    return meta['dependencies']
+
 def gen_meta(**kwargs):
     file_loader = FileSystemLoader('tpl')
     env = Environment(loader=file_loader)
@@ -345,6 +370,27 @@ def gen_meta(**kwargs):
 
     output = template.render(**kwargs)
     return output
+
+def dep_fromscene(scene):
+
+    def _decode_dict(a_dict):
+        for id, ref in a_dict.items():
+            if id in ['id', 'uid']:
+                if ref.startswith("SELF:"):
+                    deps['self'].append(ref)
+                elif ":" in ref and not ref.startswith(':'):
+                    name = ref.split(':')[0]
+                    ndot = len(name.split('.'))
+                    if ndot == 3:
+                        deps['var'].append(ref)
+                elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap", ".json"]):
+                    deps['embed'].append(ref)
+
+    deps = { 'embed': [], 'var': [] , 'self': [] }
+    with open(scene, "r") as fn:
+        json.load(fn, object_hook=_decode_dict)
+    return deps
+
 
 def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVersion=None, outdir="newvar"):
     """
@@ -388,17 +434,39 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
 
     finalVar = f"{creatorName}.{packageName}.{packageVersion}"
     
-    # List files relative to basedir
-    contents = list( Path(os.path.relpath(x, input_dir)).as_posix() for x in Path(input_dir).glob('**/*') if x.is_file() and x.name!="meta.json" )
-    logging.debug(f"Found {len(contents)} elements in {input_dir}")    
-    # Solve dependencies stuffs
-    # TODO
+    # Directory structure check
+    for p in Path(input_dir).glob('**/*'):
+        if p.is_dir():
+            rp = Path(os.path.relpath(p, input_dir))
+            if len(rp.parts)>1 and rp.parts[0] == "Saves" and rp.parts[1] != "scene":
+                logging.error(f"Path {p} is not legal")
+                exit(0)
 
+    # Detect content
+    is_scene = False
+    if Path(input_dir,"Saves/scene").is_dir():
+        is_scene = True
+
+    # List only "content"
+    contents = [ Path(os.path.relpath(x, input_dir)) for x in Path(input_dir).glob('**/*') if x.is_file() and x.name!="meta.json" ]
+    contentsp = [ f.as_posix() for f in contents ]
+    logging.debug(f"Found {len(contentsp)} elements in {input_dir}")    
+
+    # List referenced dependencies
+    all_deps = []
+    if is_scene:
+        for scene in [ p for p in Path(input_dir, "Saves/scene").glob('**/*') if p.is_file() and p.suffix == ".json" and p.name != "meta.json" ]:
+            logging.debug(f"Detected scene {scene}, searching referenced dependencies")
+            deps = dep_fromscene(scene)
+            varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
+            all_deps.extend(varnames)
+
+    logging.info(f"Found deps:{all_deps}")
     # Filter stuffs
     # TODO
 
     logging.debug("Generating meta.json")
-    meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contents)
+    meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
     with open(f"{input_dir}/meta.json", "w") as meta_file: 
         meta_file.write(meta_json) 
 

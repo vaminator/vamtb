@@ -57,38 +57,14 @@ def recurse_dep(dir, var, do_print=False, movepath=None):
         else:
             logging.info("%sChecking dependencies of %s" % (" "*depth, var))
         depth += 1
-        try:
-            var_file = find_var(dir, varname = var)
-        except vamex.VarNotFound:
-            # This happens if file names contain weird chars for windows
-            # FIXME
-            logging.error("%sNot found - %s"%(" "*depth, var))
-#            Path(var).rename(Path(movepath, var_file.name))
-            raise
-        except vamex.VarNameNotCorrect:
-            if do_print:
-                logging.error("%sName not correct - %s"%(" "*depth, var))
-            raise
-        except Exception as e:
-            logging.error("Uncaught exc %s"%e)
-            raise
 
-        try:
-            meta = varfile.extract_meta_var(var_file)
-        except vamex.VarMetaJson:
-            logging.error(f'{" "*depth}Failed to decode meta in {var_file}')
-            raise
-
-        if not( "dependencies" in meta and meta['dependencies']):
-            if do_print:
-                print("%sDep: None" % (" "*depth))
-            return
-        for dep in meta['dependencies']:
+        deps = varfile.dep_fromvar(dir, var)
+        for dep in deps:
             try:
                 _ = find_var(dir, dep)
                 logging.debug("%sSearching dep %s: OK"%(" "*depth, dep))
-            except vamex.VarNotFound as e:
-                logging.error("%sSearching dep %s: NOT FOUND"%(" "*depth, dep))
+            except vamex.VarNotFound:
+                logging.debug("%sSearching dep %s: NOT FOUND"%(" "*depth, dep))
                 raise
             if do_print:
                 print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
