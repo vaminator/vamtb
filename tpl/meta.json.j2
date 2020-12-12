@@ -15,11 +15,16 @@
     {% endfor -%}
    ], 
    "dependencies" : {
-    {% if deps is defined %}
-        {% for dep in deps -%}
-            "{{ dep -}}"{% if not loop.last %},{% endif %}
-        {% endfor %}
-    {% endif -%}
+      {% if deps is defined -%}
+      {% filter indent(width=4) -%}
+          {% for dep in deps -%}
+"{{ dep }}" : {          
+      "licenseType" : "Questionable", 
+      "dependencies" : { }
+    }{% if not loop.last %},{% endif %}
+          {% endfor %}
+      {% endfilter %}
+      {% endif -%}
    }, 
    "customOptions" : { 
       "preloadMorphs" : "{{ preloadMorphs |d('false') }}"
