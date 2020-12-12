@@ -1,3 +1,5 @@
+**/*.var
+log-vamtb.txt
 thumb/
 ws.code-workspace
 .vscode/c_cpp_properties.json
