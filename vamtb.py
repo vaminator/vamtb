@@ -42,7 +42,9 @@ def cli(ctx, verbose, move, dir, custom, file):
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
     fh = logging.FileHandler('log-vamtb.txt', mode="w")
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     # fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
     logger.addHandler(fh)
     ctx.ensure_object(dict)
     ctx.obj['dir'] = dir
