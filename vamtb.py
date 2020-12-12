@@ -39,7 +39,11 @@ def cli(ctx, verbose, move, dir, custom, file):
     vamtb -d d:\VAM -c d:\VAM\Saves\scene organize
 
     """
+    logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
+    fh = logging.FileHandler('log-vamtb.txt')
+    # fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
     ctx.ensure_object(dict)
     ctx.obj['dir'] = dir
     ctx.obj['custom'] = custom
