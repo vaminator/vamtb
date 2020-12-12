@@ -131,7 +131,7 @@ def check_deps(ctx):
         movepath=None
     logging.info(f'Checking deps for vars in {dir}')
     all_vars = vamdirs.list_vars(dir)
-    for var in all_vars:
+    for var in sorted(all_vars):
         try:
             vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, movepath=movepath)
         except (vamex.VarNotFound, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
