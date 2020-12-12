@@ -192,8 +192,9 @@ def var_multiconvert(ctx):
     custom=ctx.obj['custom']
     logging.debug(f'Converting {custom} to var')
 
+    creatorName = input("Give creator name:")
     for p in Path(custom).glob('*'):
-        varfile.make_var(p, None, creatorName="creator", packageName=p.name, packageVersion=1, outdir="newvar")
+        varfile.make_var(p, None, creatorName=creatorName, packageName=p.name, packageVersion=1, outdir="newvar")
 
 
 # TODO
