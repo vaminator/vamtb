@@ -41,7 +41,7 @@ def cli(ctx, verbose, move, dir, custom, file):
     """
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
-    fh = logging.FileHandler('log-vamtb.txt')
+    fh = logging.FileHandler('log-vamtb.txt', mode="w")
     # fh.setLevel(logging.DEBUG)
     logger.addHandler(fh)
     ctx.ensure_object(dict)
