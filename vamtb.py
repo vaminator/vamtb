@@ -18,6 +18,7 @@ import shutil
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
 @click.pass_context
 def cli(ctx, verbose, move, dir, custom, file):
+    # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
     \b
@@ -234,7 +235,9 @@ def var_repack(ctx):
     Convert single file to var.
     The creator name is asked and then you can drag and drop file names or directory names to the prompt.
     In case a directory is dragged and dropped you are prompted to give the root directory from which all files within this directory will be named in the meta.json file.
-    Temporary content is tmp/.
+    Temporary content is tmp/. If you drag files, it is a good idea to begin with detectable types: scenes, person, .. as vamtby will create directory structure automatically.
+    You can then drag and drop undetectable types (like jpg for textures) and vamtb will ask you where to place the files. Another method is to copy/move other content with explorer.
+    Once you're ready, hit enter and the corresponding meta will be created.
     """
     custom = "tmp"
     move = ctx.obj['move']
