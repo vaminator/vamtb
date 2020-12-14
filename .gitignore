@@ -1,6 +1,7 @@
 **/*.var
 log-vamtb.txt
 thumb/
+tmp/
 ws.code-workspace
 .vscode/c_cpp_properties.json
 .vscode/launch.json
