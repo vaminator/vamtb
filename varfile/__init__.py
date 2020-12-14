@@ -372,7 +372,7 @@ def gen_meta(**kwargs):
 def dep_fromscene(scene):
 
     def _decode_dict(a_dict):
-        for id, ref in a_dict.items():
+        for id, ref in a_dict.items():  # pylint: disable=unused-variable
 #            if id in ['id', 'uid', "url"]:
             if type(ref) == str:
                 if ref.startswith("SELF:"):
@@ -465,6 +465,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     # TODO
 
     logging.debug("Generating meta.json")
+    _ = input("Last chance to copy/move files inside {Path(input_dir).resolve()}. Hit enter when ready to proceed:")
     meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
     with open(f"{input_dir}/meta.json", "w") as meta_file: 
         meta_file.write(meta_json) 
@@ -588,7 +589,8 @@ def prep_tree(file, dir, creator, do_move = False):
             if do_move:
                 shutil.move(f"{f}", f"{dir_in_target_abs}")
             else:
-                shutil.copy(f, dir_in_target_abs)
+                if f.is_dir():
+                    shutil.copytree(f, dir_in_target_abs, dirs_exist_ok=True)
         return
 
     # Require some files
