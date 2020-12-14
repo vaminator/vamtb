@@ -241,6 +241,7 @@ def var_repack(ctx):
     """
     custom = "tmp"
     move = ctx.obj['move']
+    assert move, "Sorry but copy is broken on windows shit. Files/Dirs can only be moved from the source dir. Add -x"
     try:
         shutil.rmtree(custom)
     except:
