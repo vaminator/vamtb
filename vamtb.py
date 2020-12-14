@@ -5,39 +5,41 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 import vamex
-
 import click
-
 import vamdirs
 import varfile
-import customdirs
+import shutil
 
 @click.group()
 @click.option('dir', '-d', default="D:\\VAM", help='VAM directory.')
 @click.option('custom', '-c', default="D:\\VAM", help='VAM custom directory.')
 @click.option('file','-f', help='Var file.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
-@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies, move vars with missing dep in 00Dep")
+@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
 @click.pass_context
 def cli(ctx, verbose, move, dir, custom, file):
     """ VAM Toolbox
 
-    Examples:
-    
     \b
+    Dependency handling:
     vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
-    vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
-    vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 printdep
-    vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
     vamtb -d d:\VAM -v checkdeps
-    vamtb -d d:\VAM sortvar  (caution this will reorganize your var directories)
-    vamtb -d d:\VAM statsvar
+    \b
+    Meta json handling:
+    vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
+    \b
+    Thumb handling:
+    vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
     vamtb -d d:\VAM thumb
-
-    Experimental:
-    vamtb -d d:\VAM -c d:\VAM\Saves\scene organize
-
+    \b
+    Organizing:
+    vamtb -d d:\VAM sortvar  (caution this will reorganize your var directories with <creator>/*)
+    vamtb -d d:\VAM statsvar
+    \b
+    Building:
+    vamtb -vvc d:\ToImport\SuperScene convert
+    vamtb -x repack
     """
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
@@ -52,13 +54,6 @@ def cli(ctx, verbose, move, dir, custom, file):
     ctx.obj['file'] = file
     ctx.obj['move'] = move
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
-
-@cli.command('organize')
-@click.pass_context
-def organize(ctx):
-    """Organize"""
-#    customdirs.organize("Custom/Atom/Person/Morphs", ctx.obj['custom'], ctx.obj['dir'])
-    customdirs.organize("Custom/Atom/Person/Hair", ctx.obj['custom'], ctx.obj['dir'])
 
 @cli.command('printdep')
 @click.pass_context
@@ -123,7 +118,11 @@ def stats_vars(ctx):
 @cli.command('checkdeps')
 @click.pass_context
 def check_deps(ctx):
-    """Check dependencies of all var files"""
+    """Check dependencies of all var files.
+    When using -x, files considered bad due to Dep not found, Name not correct, meta JSON incorrect will be moved to 00Dep/.
+    This directory can then be moved away from the directory.
+    You can redo the same dependency check later by moving back the directory and correct vars will be moved out of the directory if they are now valid.
+    """
     dir = Path("%s/AddonPackages" % ctx.obj['dir'])
     move = ctx.obj['move']
     if move:
@@ -170,8 +169,8 @@ def vars_thumb(ctx):
 @click.pass_context
 def var_convert(ctx):
     """
-    Convert tree to var
-    
+    Convert tree to var.
+    You can pass a file (considered a zipped var) with -f or a directory with -c.
     """
     # Used for excluding content already packaged and depending on it
     # dir=Path("%s/AddonPackages" % ctx.obj['dir'])
@@ -179,8 +178,11 @@ def var_convert(ctx):
     custom=ctx.obj['custom']
     logging.debug(f'Converting {custom} to var')
 
-    varfile.make_var(custom, file, outdir="newvar")
-
+    try:
+        varfile.make_var(custom, file, outdir="newvar")
+    except Exception as e:
+        logging.error(f'While handing var content, caught exception {e}')
+        raise
     # We might want to move/archive the input_dir to avoid duplicates now
     # TODO
 
@@ -188,19 +190,23 @@ def var_convert(ctx):
 @click.pass_context
 def var_multiconvert(ctx):
     """
-    Convert tree of tree to var
-    
+    Convert directory tree of directory trees to vars.
+    Toplevel tree should be from the same creator with content in each subfolder.
+    For each subfolder, a var with Creator.Content.1 will be created.
     """
     custom=ctx.obj['custom']
     logging.debug(f'Converting {custom} to var')
 
     creatorName = input("Give creator name:")
     for p in Path(custom).glob('*'):
-        varfile.make_var(p, None, creatorName=creatorName, packageName=p.name, packageVersion=1, outdir="newvar")
-
+        try:
+            varfile.make_var(in_dir=p, in_zipfile=None, creatorName=creatorName, packageName=p.name, packageVersion=1, outdir="newvar")
+        except Exception as e:
+            logging.error(f'While handing directory {p}, caught exception {e}')
+            raise
 
 # TODO
-# Remove old versions of var
+# Move old versions of var that are unused
 # Find vars autoloading morphs and shouldn't
 
 @cli.command('autoload')
@@ -221,8 +227,43 @@ Parse dirstruct/zip of scene and for each corresponding
 List content of var : so that the user can decide to select a few things
 
 """
-#def repack(ctx):
+@cli.command('repack')
+@click.pass_context
+def var_repack(ctx):
+    """
+    Convert single file to var.
+    The creator name is asked and then you can drag and drop file names or directory names to the prompt.
+    In case a directory is dragged and dropped you are prompted to give the root directory from which all files within this directory will be named in the meta.json file.
+    Temporary content is tmp/.
+    """
+    custom = "tmp"
+    move = ctx.obj['move']
+    try:
+        shutil.rmtree(custom)
+    except:
+        pass
+    Path(custom).mkdir(parents=True, exist_ok=True)
+    creatorName = input("Give creator name:")
 
+    while "user didnt hit enter":
+        file = input("Add file or directory (or hit enter to move to next step):")
+        if file:
+            if file.startswith('"') and file.endswith('"'):
+                file=file[1:-1]
+            logging.debug(f'Converting {file} to var')
+            varfile.prep_tree(file, custom, creatorName, do_move=move)
+        else:
+            break
+
+    logging.debug(f"Generating var from directory {custom}")
+
+    try:
+        varfile.make_var(custom, file, creatorName=creatorName, outdir="newvar")
+    except Exception as e:
+        logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
+        raise
+    # We might want to move/archive the input_dir to avoid duplicates now
+    # TODO
 
 if __name__ == '__main__':
     cli() # pylint: disable=no-value-for-parameter

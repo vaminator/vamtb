@@ -11,6 +11,7 @@ import traceback
 import piexif
 import vamdirs
 from PIL import Image
+import json
 
 def split_varname(fname, dest_dir):
     creator, _ = fname.name.split('.', 1)
@@ -137,7 +138,7 @@ def thumb_var(fname, outdir):
                         hair.add(f)
                     else:
                         logging.error(f"Can't detect type {f}")
-                        exit(1)
+                        raise vamex.UnknownExtension
                 if f.endswith(".vmi"):
                     morph.add(f)
                 if f.endswith(".assetbundle"):
@@ -334,10 +335,7 @@ def thumb_var(fname, outdir):
                     shutil.copy(Path(outdir,jpg), Path(outdir, flatdirname, bfname))
 
     except BadZipFile as e:
-        logging.error(f"{fname} is not a correct zipfile")
-    except Exception as e:
-        logging.error(f"Got exception {e} Trace {traceback.format_exc()}")
-        exit(0)
+        logging.error(f"{fname} is not a correct zipfile ({e})")
 
 def dep_fromvar(dir, var):
     try:
@@ -375,7 +373,8 @@ def dep_fromscene(scene):
 
     def _decode_dict(a_dict):
         for id, ref in a_dict.items():
-            if id in ['id', 'uid']:
+#            if id in ['id', 'uid', "url"]:
+            if type(ref) == str:
                 if ref.startswith("SELF:"):
                     deps['self'].append(ref)
                 elif ":" in ref and not ref.startswith(':'):
@@ -440,7 +439,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
             rp = Path(os.path.relpath(p, input_dir))
             if len(rp.parts)>1 and rp.parts[0] == "Saves" and rp.parts[1] != "scene":
                 logging.error(f"Path {p} is not legal")
-                exit(0)
+                raise vamex.IllegalPath
 
     # Detect content
     is_scene = False
@@ -480,8 +479,164 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if in_zipfile:
         shutil.rmtree(tempzipdir)
 
+
+
 def get_type(infile):
     """
     From a file, detect resource type
     """
+    infile = Path(infile)
+    if infile.is_dir():
+        return vamex.T_DIR
+    suffix = infile.suffix
+    if suffix == ".assetbundle" or suffix == ".scene":
+        return vamex.T_ASSET
+    if suffix == ".cs":
+        return vamex.T_SCRIPT
+    if suffix == ".json":
+        with open(infile, "rt") as f:
+            js = json.load(f)
+            if "playerHeightAdjust" in js:
+                return vamex.T_SCENE
+            else:
+                return vamex.T_POSE
+    if suffix == ".vmi" or suffix == ".vmb":
+        return vamex.T_MORPH
+    if suffix == ".vam":
+        with open(infile, "rt") as f:
+            js = json.load(f)
+            if js['itemType'] == "ClothingFemale":
+                return vamex.T_CLOTH | vamex.T_FEMALE
+            if js['itemType'] == "ClothingMale":
+                return vamex.T_CLOTH | vamex.T_MALE
+            if js['itemType'] == "HairFemale":
+                return vamex.T_HAIR | vamex.T_FEMALE
+            if js['itemType'] == "HairMale":
+                return vamex.T_HAIR | vamex.T_MALE
+    if suffix == ".vaj" or suffix == ".vab":
+        return get_type(infile.with_suffix(".vam"))
+    if suffix == ".vap":
+        logging.warning("Didn't detect type of VAP")
+        return vamex.T_VAP
+    if suffix == ".jpg":
+        logging.warning("Didn't detect type of JPG")
+        return vamex.T_JPG
     
+    return vamex.T_UNK
+
+def get_reqfile(infile, mtype):
+    infile=Path(infile)
+    basedir=infile.parent
+    req = set()
+    req.add(infile)
+    logging.debug(f"Search for associated files for {infile}")
+    pic = list(Path(basedir).glob(f"**/{infile.with_suffix('.jpg').name}"))
+    if pic and pic[0].is_file():
+        req.add(pic[0])
+    if mtype == vamex.T_ASSET or mtype == vamex.T_SCRIPT:
+        pass
+    elif mtype == vamex.T_SCENE or mtype == vamex.T_POSE:
+        pass
+    elif mtype & vamex.T_MORPH:
+        vmi = list(Path(basedir).glob(f"**/{infile.with_suffix('.vmi').name}"))[0]
+        vmb = list(Path(basedir).glob(f"**/{infile.with_suffix('.vmb').name}"))[0]
+        if vmi.is_file() and vmb.is_file():
+            req.add(vmi)
+            req.add(vmb)
+        else:
+            logging.error(f"Missing files for {infile}")
+            raise vamex.MissingFiles
+    elif mtype & vamex.T_CLOTH or mtype & vamex.T_HAIR:
+        vam = list(Path(basedir).glob(f"**/{infile.with_suffix('.vam').name}"))[0]
+        vaj = list(Path(basedir).glob(f"**/{infile.with_suffix('.vaj').name}"))[0]
+        vab = list(Path(basedir).glob(f"**/{infile.with_suffix('.vab').name}"))[0]
+        if vam.is_file() and vaj.is_file() and vab.is_file():
+            req.add(vam)
+            req.add(vaj)
+            req.add(vab)
+        else:
+            logging.error(f"Missing files for {infile}")
+            raise vamex.MissingFiles
+    elif mtype == vamex.T_JPG or mtype == vamex.T_VAP:
+        pass
+    else:
+        logging.error(f"Can't detect required files for {infile} of type {mtype}")
+        raise vamex.UnknownContent
+
+    return list(req)
+
+def prep_tree(file, dir, creator, do_move = False):
+
+    # Get type
+    mtype = get_type(file)
+    logging.debug(f"Detected file {file} as type {mtype}")
+
+    if mtype == vamex.T_DIR:
+        # Copy subtree relative to a root (asked to user)
+        parents = [ Path(file) ] 
+        for p in Path(file).parents:
+            parents.append(p)
+        for i, p in enumerate(parents, start=1):
+            tab='\t'
+            print(f"{i}{tab}{p}")
+        root = int(input("Select relative root dir:")) - 1
+        reldir = parents[root]
+        for f in Path(file).glob("**/*"):
+            dir_in_target = Path(os.path.relpath(f, reldir)).parent
+            dir_in_target_abs = Path(dir, dir_in_target)
+            dir_in_target_abs.mkdir(parents=True, exist_ok=True)
+            if do_move:
+                shutil.move(f"{f}", f"{dir_in_target_abs}")
+            else:
+                shutil.copy(f, dir_in_target_abs)
+        return
+
+    # Require some files
+    reqfiles = get_reqfile(file, mtype)
+    nl = '\n'
+    logging.debug(f"List of files:{nl}{nl.join(list(map(lambda x:x.as_posix(), reqfiles)))}")
+
+    # Create dirstruct
+    d = None
+    if mtype == vamex.T_SCENE:
+        d = Path(dir,"Saves", "scene")
+
+    if mtype == vamex.T_ASSET:
+        d = Path(dir,"Custom", "Assets", creator)
+
+    if mtype & vamex.T_CLOTH:
+        if mtype & vamex.T_FEMALE:
+            gend = "Female"
+        elif mtype & vamex.T_MALE:
+            gend = "Male"
+        else:
+            assert(False)
+        d = Path(dir,"Custom", "Clothing", gend, creator)
+
+    if not d:
+        listdirs = []
+        for p in Path(dir).glob("**/*"):
+            if p.is_dir():
+                listdirs.append(Path(os.path.relpath(p, dir)))
+
+        for i, ldir in enumerate(listdirs, start=1):
+            tab='\t'
+            print(f"{i}{tab}{ldir}")
+        cd = input("Choose directory to copy that to (or type new dir relative to var root):") 
+        try:
+            idx = int(i)-1
+            d = list(listdirs)[idx]
+        except ValueError:
+            d = Path(dir, cd).resolve()
+        finally:
+            d = Path(dir, d)
+
+    logging.debug(f"Puting file in {d.resolve()}")
+    d.mkdir(parents=True, exist_ok=True)
+
+    # Copy or Move files
+    for f in reqfiles:
+        if do_move:
+            shutil.move(f"{f}", f"{d}")
+        else:
+            shutil.copy(f, d)
