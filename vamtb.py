@@ -265,8 +265,6 @@ def var_repack(ctx):
     except Exception as e:
         logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
         raise
-    # We might want to move/archive the input_dir to avoid duplicates now
-    # TODO
 
 if __name__ == '__main__':
     cli() # pylint: disable=no-value-for-parameter

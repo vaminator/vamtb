@@ -439,7 +439,9 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
             rp = Path(os.path.relpath(p, input_dir))
             if len(rp.parts)>1 and rp.parts[0] == "Saves" and rp.parts[1] != "scene":
                 logging.error(f"Path {p} is not legal")
-                raise vamex.IllegalPath
+                ok = input("Abort? Hit simply Enter:")
+                if not ok:
+                    raise vamex.IllegalPath
 
     # Detect content
     is_scene = False
@@ -465,7 +467,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     # TODO
 
     logging.debug("Generating meta.json")
-    _ = input("Last chance to copy/move files inside {Path(input_dir).resolve()}. Hit enter when ready to proceed:")
+    _ = input(f"Last chance to copy/move files inside {Path(input_dir).resolve()}. Hit enter when ready to proceed:")
     meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
     with open(f"{input_dir}/meta.json", "w") as meta_file: 
         meta_file.write(meta_json) 
@@ -589,8 +591,7 @@ def prep_tree(file, dir, creator, do_move = False):
             if do_move:
                 shutil.move(f"{f}", f"{dir_in_target_abs}")
             else:
-                if f.is_dir():
-                    shutil.copytree(f, dir_in_target_abs, dirs_exist_ok=True)
+                shutil.copy(f, dir_in_target_abs)
         return
 
     # Require some files
