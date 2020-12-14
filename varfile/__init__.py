@@ -417,7 +417,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
 
     logging.debug(f"Input is {input_dir}")
 
-    # Detect properties (from vmi, from TODO?? )
+    # Detect properties
     # Or ask
     if not creatorName:
         creatorName = input("Give creator name:")
