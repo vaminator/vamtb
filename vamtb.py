@@ -206,10 +206,6 @@ def var_multiconvert(ctx):
             logging.error(f'While handing directory {p}, caught exception {e}')
             raise
 
-# TODO
-# Move old versions of var that are unused
-# Find vars autoloading morphs and shouldn't
-
 @cli.command('autoload')
 @click.pass_context
 def autoload(ctx):
@@ -221,13 +217,6 @@ def autoload(ctx):
         if 'customOptions' in json and json['customOptions']['preloadMorphs'] != "false":
             print(f"{var_file} has autoloading")
 
-
-"""
-Convert dirstruct/zip to var
-Parse dirstruct/zip of scene and for each corresponding 
-List content of var : so that the user can decide to select a few things
-
-"""
 @cli.command('repack')
 @click.pass_context
 def var_repack(ctx):
