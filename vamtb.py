@@ -86,9 +86,23 @@ def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator"""
     dir=ctx.obj['dir']
     logging.info("Sorting var in %s" % dir)
+    all_files = vamdirs.list_vars(dir, pattern="*")
     vars_files = vamdirs.list_vars(dir)
     for var_file in vars_files:
+        try:
+            varfile.is_namecorrect(var_file)
+        except vamex.VarNameNotCorrect:
+            logging.error(f"File {var_file} has incorrect naming.")
+            continue
+        try:
+            varfile.extract_meta_var(var_file)
+        except vamex.VarMetaJson as e:
+            logging.error(f"File {var_file} is corrupted [{e}].")
+            continue
         varfile.split_varname(var_file, dest_dir = "%s/AddonPackages" % dir)
+        jpg = varfile.find_same_jpg(all_files, var_file)
+        if jpg:
+            varfile.split_varname(jpg[0], dest_dir = "%s/AddonPackages" % dir)
 
 @cli.command('statsvar')
 @click.pass_context
