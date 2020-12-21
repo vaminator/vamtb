@@ -14,6 +14,8 @@ from PIL import Image
 import json
 
 def split_varname(fname, dest_dir):
+    if not isinstance(fname, os.PathLike):
+        fname = Path(fname)
     creator, _ = fname.name.split('.', 1)
     # fpath = fname.parents[0]    
     newpath = Path("%s/%s"% (dest_dir, creator))
@@ -38,6 +40,8 @@ def split_varname(fname, dest_dir):
 def is_namecorrect(fname, checksuffix=True):
     """ Takes as parameter a var filename with extension """
     logging.debug("Checking var %s" % fname)
+    if not isinstance(fname, os.PathLike):
+        fname = Path(fname)
     if checksuffix and fname.suffix != ".var":
         raise vamex.VarExtNotCorrect(fname)
     try:
@@ -95,8 +99,9 @@ def set_tag(fname, tags):
         logging.error(f"Couldnt edit tag of jpg {fname}: {e}")
 
 def find_same_jpg(listFiles, name):
+    fpath_listfiles = [ Path(f) for f in listFiles ]
     fname = Path(name).with_suffix('').name
-    candidates = [ f for f in listFiles if f.lower().endswith(f"{fname.lower()}.jpg") ]
+    candidates = [ f for f in fpath_listfiles if f.name.lower().endswith(f"{fname.lower()}.jpg") ]
     return candidates
 
 def thumb_var(fname, outdir):
@@ -194,7 +199,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a scene {first_scene} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Scene")
             if not found and save_person:
@@ -203,7 +208,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a person {first_person} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Person")
             if not found and appear:
@@ -212,7 +217,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a person appearance {first_person} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Person")
             if not found and clothp:
@@ -221,7 +226,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a cloth preset {first_clothp} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Cloth")
             if not found and hairp:
@@ -230,7 +235,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a hair preset {first_hairp} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Hair")
             if not found and morphp:
@@ -239,7 +244,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a morph preset {first_morphp} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Morph")
             if not found and posep:
@@ -248,7 +253,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a pose preset {first_posep} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Pose")
             if not found and cloth:
@@ -257,7 +262,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a cloth {first_cloth} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Cloth")
             if not found and hair:
@@ -266,7 +271,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a hair {first_hair} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Hair")
             if not found and morph:
@@ -275,7 +280,7 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a morph {first_morph} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Morph")
             if not found and pose:
@@ -284,16 +289,16 @@ def thumb_var(fname, outdir):
                 if not jpg:
                     logging.debug(f"We had a pose {first_pose} but didn't find the same jpg")
                 else:
-                    logging.debug(f"Found jpg {jpg[0]}")
+                    logging.debug(f"Found jpg {jpg[0].name}")
                     found = True
                     tags.add("Pose")
             bfname = Path(fname).with_suffix('.jpg').name
             if found:
                 logging.debug(f"We found jpg {jpg}")
-                myvar.extract(jpg[0], outdir)
-                set_tag(f"{Path(outdir,jpg[0])}", list(tags))
-                logging.debug(f"Copying from {outdir}/{jpg[0]} to {flatdirname}/{bfname}")
-                shutil.copy(Path(outdir, jpg[0]), Path(outdir, flatdirname, bfname))
+                myvar.extract(jpg[0].name, outdir)
+                set_tag(f"{Path(outdir,jpg[0].name)}", list(tags))
+                logging.debug(f"Copying from {outdir}/{jpg[0].name} to {flatdirname}/{bfname}")
+                shutil.copy(Path(outdir, jpg[0].name), Path(outdir, flatdirname, bfname))
             else:
                 logging.debug("Didn't find a jpg")
                 if save_scene:
