@@ -442,11 +442,13 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     for p in Path(input_dir).glob('**/*'):
         if p.is_dir():
             rp = Path(os.path.relpath(p, input_dir))
-            if len(rp.parts)>1 and rp.parts[0] == "Saves" and rp.parts[1] != "scene":
+            if len(rp.parts)>1 and rp.parts[0] == "Saves" and (rp.parts[1] != "scene" and rp.parts[1] !="Person"):
                 logging.error(f"Path {p} is not legal")
                 ok = input("Abort? Hit simply Enter:")
                 if not ok:
                     raise vamex.IllegalPath
+
+    _ = input(f"Last chance to copy/move files inside {Path(input_dir).resolve()}. Hit enter when ready to proceed:")
 
     # Detect content
     is_scene = False
@@ -472,7 +474,6 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     # TODO
 
     logging.debug("Generating meta.json")
-    _ = input(f"Last chance to copy/move files inside {Path(input_dir).resolve()}. Hit enter when ready to proceed:")
     meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
     with open(f"{input_dir}/meta.json", "w") as meta_file: 
         meta_file.write(meta_json) 
