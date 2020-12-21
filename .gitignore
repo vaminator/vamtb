@@ -1,4 +1,6 @@
 **/*.var
+**/*.jpg
+**/*.zip
 log-vamtb.txt
 thumb/
 tmp/
