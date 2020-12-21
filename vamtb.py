@@ -88,6 +88,9 @@ def sort_vars(ctx):
     logging.info("Sorting var in %s" % dir)
     all_files = vamdirs.list_vars(dir, pattern="*")
     vars_files = vamdirs.list_vars(dir)
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
     for var_file in vars_files:
         try:
             varfile.is_namecorrect(var_file)
@@ -99,19 +102,21 @@ def sort_vars(ctx):
         except vamex.VarMetaJson as e:
             logging.error(f"File {var_file} is corrupted [{e}].")
             continue
-        varfile.split_varname(var_file, dest_dir = "%s/AddonPackages" % dir)
+        varfile.split_varname(var_file, dest_dir = mdir)
         jpg = varfile.find_same_jpg(all_files, var_file)
         if jpg:
-            varfile.split_varname(jpg[0], dest_dir = "%s/AddonPackages" % dir)
+            varfile.split_varname(jpg[0], dest_dir = mdir)
 
 @cli.command('statsvar')
 @click.pass_context
 def check_vars(ctx):
     """Check all var files for consistency"""
-    dir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
     logging.info("Checking dir %s for vars" % dir)
-    all_files = vamdirs.list_vars(dir, pattern="*")
-    logging.debug("Found %d files in %s" % (len(all_files), dir))
+    all_files = vamdirs.list_vars(mdir, pattern="*")
+    logging.debug("Found %d files in %s" % (len(all_files), mdir))
     for file in all_files:
         varfile.is_namecorrect(file)
 
@@ -119,14 +124,16 @@ def check_vars(ctx):
 @click.pass_context
 def stats_vars(ctx):
     """Get stats on all vars"""
-    dir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    logging.info("Checking stats for dir %s" % dir)
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
+    logging.info("Checking stats for dir %s" % mdir)
     all_files = vamdirs.list_vars(dir, pattern="*.var")
     creators_file = defaultdict(list)
     for file in all_files:
         creator, _ = file.name.split(".", 1)
         creators_file[creator].append(file.name)
-    logging.debug("Found %d files in %s" % (len(all_files), dir))
+    logging.debug("Found %d files in %s" % (len(all_files), mdir))
     for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
         print("Creator %s has %d files" % (k, len(v)))
 
@@ -164,6 +171,8 @@ def vars_thumb(ctx):
     """Gen thumbs from var file(s)"""
     basedir="thumb"
     mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
     mfile=ctx.obj['file']
     if mfile:
         vars = vamdirs.list_vars(mdir, mfile)
@@ -224,7 +233,9 @@ def var_multiconvert(ctx):
 @click.pass_context
 def autoload(ctx):
     """Check vars having autoloading of morph"""
-    dir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
     vars_files = vamdirs.list_vars(dir)
     for var_file in vars_files:
         json = varfile.extract_meta_var(var_file)
