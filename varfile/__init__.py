@@ -83,8 +83,10 @@ def test_print_exif(fname):
 
 def set_tag(fname, tags):
     logging.debug(f"Setting tag of {fname} to {tags}")
+    if not isinstance(fname, os.PathLike):
+        fname = Path(fname)
     try:
-        exif = get_exif(fname)
+        exif = get_exif(fname.as_posix())
         exif["0th"][piexif.ImageIFD.XPKeywords] = f"{';'.join(tags)} ".encode('utf-16')
         try:
             exif_bytes = piexif.dump(exif)
@@ -295,10 +297,10 @@ def thumb_var(fname, outdir):
             bfname = Path(fname).with_suffix('.jpg').name
             if found:
                 logging.debug(f"We found jpg {jpg}")
-                myvar.extract(jpg[0].name, outdir)
-                set_tag(f"{Path(outdir,jpg[0].name)}", list(tags))
+                myvar.extract(jpg[0].as_posix(), outdir)
+                set_tag(Path(outdir,jpg[0]), list(tags))
                 logging.debug(f"Copying from {outdir}/{jpg[0].name} to {flatdirname}/{bfname}")
-                shutil.copy(Path(outdir, jpg[0].name), Path(outdir, flatdirname, bfname))
+                shutil.copy(Path(outdir, jpg[0].as_posix()), Path(outdir, flatdirname, bfname))
             else:
                 logging.debug("Didn't find a jpg")
                 if save_scene:
