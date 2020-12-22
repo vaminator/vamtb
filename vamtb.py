@@ -171,9 +171,11 @@ def check_deps(ctx):
         except Exception as e:
             logging.error(f'While handing var {var.name}, caught exception {e}')
             raise
-    logging.error("You have missing dependencies:")
-    for dep in sorted(list(missing)):
-        logging.error(f"{dep}")
+    if missing:
+        nl="\n"
+        logging.error(f'You have missing dependencies:{nl}{ nl.join( sorted(list(missing)) ) }')
+    else:
+        logging.error("You have no missing dependency it seems. Yay!")
 
 @cli.command('thumb')
 @click.pass_context
