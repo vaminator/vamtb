@@ -154,16 +154,26 @@ def check_deps(ctx):
         movepath=None
     logging.info(f'Checking deps for vars in {dir}')
     all_vars = vamdirs.list_vars(dir)
+    missing = set()
     for var in sorted(all_vars):
         try:
             vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, movepath=movepath)
-        except (vamex.VarNotFound, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
+        except vamex.VarNotFound as e:
+            logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
+            missing.add(f"{e}")
+        except (vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
             if movepath:
                 Path(var).rename(Path(movepath, var.name))
+        except RecursionError:
+            logging.error(f"While handling var {var.name} we got a recursion error. This is pretty bad and the file should be removed.")
+            exit(1)
         except Exception as e:
             logging.error(f'While handing var {var.name}, caught exception {e}')
             raise
+    logging.error("You have missing dependencies:")
+    for dep in sorted(list(missing)):
+        logging.error(f"{dep}")
 
 @cli.command('thumb')
 @click.pass_context
