@@ -29,7 +29,7 @@ setup(
       },   
       entry_points={
         'console_scripts': [
-          'vamtb = vamtb.ui:cli'
+          'vamtb = vamtb.vamtb:cli'
         ]
       }
 )

@@ -7,8 +7,6 @@ To install:
 python setup.py install
 ````
 
-
-
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
