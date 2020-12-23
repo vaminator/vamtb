@@ -3,11 +3,11 @@
 **/*.zip
 log-vamtb.txt
 thumb/
+**/*.dist
+**/*.build
 tmp/
 ws.code-workspace
-.vscode/c_cpp_properties.json
-.vscode/launch.json
-.vscode/settings.json
+.vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
