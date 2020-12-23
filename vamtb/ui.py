@@ -4,11 +4,11 @@ import pprint
 import sys
 from collections import defaultdict
 from pathlib import Path
-import vamex
 import click
-import vamdirs
-import varfile
 import shutil
+from vamtb import vamdirs
+from vamtb import varfile
+from vamtb import vamex
 
 @click.group()
 @click.option('dir', '-d', default="D:\\VAM", help='VAM directory.')

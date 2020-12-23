@@ -6,12 +6,12 @@ import shutil
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
 from jinja2 import Environment, FileSystemLoader
-import vamex
 import traceback
 import piexif
-import vamdirs
 from PIL import Image
 import json
+from vamtb import vamdirs
+from vamtb import vamex
 
 def split_varname(fname, dest_dir):
     if not isinstance(fname, os.PathLike):

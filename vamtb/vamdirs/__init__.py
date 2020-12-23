@@ -2,8 +2,8 @@
 import logging
 from pathlib import Path
 import re
-import varfile
-import vamex
+from vamtb import varfile
+from vamtb import vamex
 
 def is_vamdir(fpath):
     logging.debug("Checking if %s is a VAM dir" % fpath)
