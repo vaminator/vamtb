@@ -1,8 +1,9 @@
 # vamtb
 Vam toolbox
 
-To install:
+You can use already built binaries (see Releases)
 
+It's also possible to build from source and install:
 ````
 python setup.py install
 ````
