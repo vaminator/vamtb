@@ -11,13 +11,13 @@ def is_vamdir(fpath):
 
 def list_vars(fpath, pattern = "*.var"):
     logging.debug(f"Listing files pattern **/{pattern} in {fpath}")
-    pattern = rf"**/{pattern}"
-    return list( x for x in Path(fpath).glob(pattern) if x.is_file())
+    pattern = re.sub(r'([\[\]])','[\\1]',pattern)
+    return list( x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file())
 
-def stats_vars(fpath, pattern = "*.var"):
+def stats_vars(fpath, pattern = None):
     logging.debug("Listing files pattern %s/%s" % (fpath, pattern))
-    pattern = "**/%s" % re.escape(pattern)
-    return list( x for x in Path(fpath).glob(pattern) if x.is_file())
+    pattern = re.sub(r'([\[\]])','[\\1]',pattern)
+    return list( x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file())
 
 def find_var(dir, varname):
     logging.debug("Searching for var %s in %s" % (varname, dir))
