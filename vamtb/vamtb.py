@@ -102,6 +102,9 @@ def sort_vars(ctx):
         except vamex.VarMetaJson as e:
             logging.error(f"File {var_file} is corrupted [{e}].")
             continue
+        except vamex.NoMetaJson as e:
+            logging.error(f"File {var_file} doesn't have a meta.json file [{e}].")
+            continue
         varfile.split_varname(var_file, dest_dir = mdir)
         jpg = varfile.find_same_jpg(all_files, var_file)
         if jpg:
@@ -250,9 +253,12 @@ def autoload(ctx):
         mdir=Path(ctx.obj['dir'])
     vars_files = vamdirs.list_vars(dir)
     for var_file in vars_files:
+        try:
         json = varfile.extract_meta_var(var_file)
         if 'customOptions' in json and json['customOptions']['preloadMorphs'] != "false":
             print(f"{var_file} has autoloading")
+        except Exception as e:
+            logging.error(f"Couldn't decode {var_file} [{e}]")
 
 @cli.command('repack')
 @click.pass_context

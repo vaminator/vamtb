@@ -54,6 +54,15 @@ class VarMetaJson(Exception):
         super().__init__(varname, "VarMetaJson")
 
 
+class NoMetaJson(OneParamException):
+    """Exception raised for not present meta.json.
+
+    """
+
+    def __init__(self, varname):
+        super().__init__(varname, "MetaJsonNotFound")
+
+
 class UnknownExtension(Exception):
     """Exception raised for unknown extension.
 
