@@ -164,7 +164,7 @@ def check_deps(ctx):
         except vamex.VarNotFound as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
             missing.add(f"{e}")
-        except (vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
+        except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
             if movepath:
                 Path(var).rename(Path(movepath, var.name))

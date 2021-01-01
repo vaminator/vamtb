@@ -367,6 +367,8 @@ def dep_fromvar(dir, var):
         meta = extract_meta_var(var_file)
     except vamex.VarMetaJson:
         raise
+    except vamex.NoMetaJson:
+        raise
 
     if not( "dependencies" in meta and meta['dependencies']):
         return []
