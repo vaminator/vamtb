@@ -513,6 +513,16 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
 
 
 
+def get_creators_dir(input_dir):
+    lc = set()
+    for fn in Path(input_dir).glob('**/*'):
+        if fn.suffix in ['.vam']:
+            with open(fn, "r") as f:
+                content = json.load(f)
+                if "creatorName" in content:
+                    lc.add(content['creatorName'])
+    return list(lc)
+
 def get_type(infile):
     """
     From a file, detect resource type
