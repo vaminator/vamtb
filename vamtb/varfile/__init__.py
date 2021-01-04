@@ -448,8 +448,6 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
             else:
                 break
 
-    finalVar = f"{creatorName}.{packageName}.{packageVersion}"
-    
     # Directory structure check
     for p in Path(input_dir).glob('**/*'):
         if p.is_dir():
@@ -484,6 +482,18 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     logging.info(f"Found deps:{all_deps}")
     # Filter stuffs
     # TODO
+    reref_dir(input_dir)
+
+    # Detect creator(s)
+    dcreators = get_creators_dir(input_dir)
+    if dcreators:
+        ncreator = dcreators[0]
+    if len(dcreators) and ncreator != creatorName:
+        logging.error(f"From files, creator(s) found: { ','.join(dcreators) }")
+        creatorName = input(f"Set creator from {creatorName} to {ncreator} or set manually:")
+        if not creatorName:
+            creatorName = ncreator
+            logging.debug(f"Setting creator to {creatorName}")
 
     logging.debug("Generating meta.json")
     meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
@@ -491,7 +501,8 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
         meta_file.write(meta_json) 
 
     # We want files inside outdir
-    logging.debug("Packing var file")
+    finalVar = f"{creatorName}.{packageName}.{packageVersion}"    
+    logging.debug(f"Packing var file {finalVar}")
     with ZipFile(f'{finalVar}.var', 'w') as myzip:
         for file in Path(input_dir).glob('**/*'):
             myzip.write(filename = file, arcname = os.path.relpath(file, input_dir))
