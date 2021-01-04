@@ -254,7 +254,7 @@ def autoload(ctx):
     vars_files = vamdirs.list_vars(dir)
     for var_file in vars_files:
         try:
-        json = varfile.extract_meta_var(var_file)
+            json = varfile.extract_meta_var(var_file)
         except Exception as e:
             logging.error(f"Couldn't decode {var_file} [{e}]")
             continue
