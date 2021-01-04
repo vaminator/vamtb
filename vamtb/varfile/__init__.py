@@ -511,7 +511,24 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if in_zipfile:
         shutil.rmtree(tempzipdir)
 
+def reref(mfile):
+    orig = mfile.with_suffix(f"{mfile.suffix}.orig")
+    mfile.rename(orig)
+    with open(mfile, "w") as dest:
+        with open(orig, "r") as src:
+            for l in src:
+                if '"Custom/' in l:
+                    ol = l
+                    l = ol.replace('Custom', 'SELF:/Custom', 1)
+                    logging.debug(f"{mfile}: rerefed {ol} to {l}")
+                dest.write(l)
+    orig.unlink()
 
+
+def reref_dir(input_dir):
+    for f in Path(input_dir).glob('**/*'):
+        if f.suffix in ['.vap', '.vaj', '.json']:
+            reref(f)
 
 def get_creators_dir(input_dir):
     lc = set()
