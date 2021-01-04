@@ -376,7 +376,7 @@ def dep_fromvar(dir, var):
     return meta['dependencies']
 
 def gen_meta(**kwargs):
-    file_loader = FileSystemLoader('tpl')
+    file_loader = FileSystemLoader('vamtb/tpl')
     env = Environment(loader=file_loader)
     template = env.get_template('meta.json.j2')
 
