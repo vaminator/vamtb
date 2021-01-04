@@ -62,12 +62,12 @@ def extract_meta_var(fname):
     try:
         with ZipFile(fname, mode='r') as myvar:
             try:
-            with myvar.open("meta.json") as meta:
-                try:
-                    return json.load(meta)
-                except Exception as e:
-                    pass
-                    raise vamex.VarMetaJson(f"Failed to decode meta json {fname}: {e}")
+                with myvar.open("meta.json") as meta:
+                    try:
+                        return json.load(meta)
+                    except Exception as e:
+                        pass
+                        raise vamex.VarMetaJson(f"Failed to decode meta json {fname}: {e}")
             except KeyError:
                 pass
                 raise vamex.NoMetaJson(fname)
