@@ -255,10 +255,11 @@ def autoload(ctx):
     for var_file in vars_files:
         try:
         json = varfile.extract_meta_var(var_file)
-        if 'customOptions' in json and json['customOptions']['preloadMorphs'] != "false":
-            print(f"{var_file} has autoloading")
         except Exception as e:
             logging.error(f"Couldn't decode {var_file} [{e}]")
+            continue
+        if 'customOptions' in json and json['customOptions']['preloadMorphs'] != "false":
+            print(f"{var_file} has autoloading")
 
 @cli.command('repack')
 @click.pass_context
