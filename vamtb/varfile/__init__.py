@@ -623,14 +623,11 @@ def prep_tree(file, dir, creator, do_move = False):
             print(f"{i}{tab}{p}")
         root = int(input("Select relative root dir:")) - 1
         reldir = parents[root]
-        for f in Path(file).glob("**/*"):
-            dir_in_target = Path(os.path.relpath(f, reldir)).parent
-            dir_in_target_abs = Path(dir, dir_in_target)
-            dir_in_target_abs.mkdir(parents=True, exist_ok=True)
-            if do_move:
-                shutil.move(f"{f}", f"{dir_in_target_abs}")
-            else:
-                shutil.copy(f, dir_in_target_abs)
+        # FIXME this copies all directories at the same level, not only the selected one
+        shutil.copytree(reldir, dir, dirs_exist_ok = True)
+        if do_move:
+            shutil.rmtree(file)
+            
         return
 
     # Require some files
