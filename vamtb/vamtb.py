@@ -280,7 +280,9 @@ def var_repack(ctx):
     except:
         pass
     Path(custom).mkdir(parents=True, exist_ok=True)
-    creatorName = input("Give creator name:")
+    creatorName = input("Give creator name [Unknown]:")
+    if not creatorName:
+        creatorName = "Unknown"
 
     while "user didnt hit enter":
         file = input("Add file or directory (or hit enter to move to next step):")
