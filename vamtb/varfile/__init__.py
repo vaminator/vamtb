@@ -439,7 +439,10 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if not packageVersion:
         while True:
             try:
-                packageVersion = int(input("Give package version:"))
+                packageVersion = input("Give package version[1]:")
+                if not packageVersion:
+                    packageVersion = 1
+                packageVersion = int(packageVersion)
             except:
                 print("Noo, I need an integer")
             else:
