@@ -74,6 +74,8 @@ def extract_meta_var(fname):
 
     except FileNotFoundError:
         return
+    except BadZipFile as e:
+        logging.error(f"{fname} is not a correct zipfile ({e})")
 
 def get_exif(fname):
     exif = piexif.load(fname)
