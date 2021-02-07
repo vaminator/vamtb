@@ -118,10 +118,16 @@ def check_vars(ctx):
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
     logging.info("Checking dir %s for vars" % dir)
-    all_files = vamdirs.list_vars(mdir, pattern="*")
+    all_files = vamdirs.list_vars(mdir, pattern="*.var")
     logging.debug("Found %d files in %s" % (len(all_files), mdir))
     for file in all_files:
-        varfile.is_namecorrect(file)
+        try:
+            varfile.is_namecorrect(file)
+            dll = varfile.contains(file, ".dll")
+            if dll:
+                logging.warning(f"Var {file} contains dll files {','.join(dll)}")
+        except vamex.VarNameNotCorrect:
+            logging.error(f"Bad var {file}")
 
 @cli.command('statsvar')
 @click.pass_context
