@@ -21,7 +21,7 @@ setup(
         "click", 
         "jinja2", 
         "Pillow", 
-        "piexif"
+        "piexif",
       ],
       extras_require={
         'test': [
