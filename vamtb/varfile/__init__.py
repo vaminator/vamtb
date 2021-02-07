@@ -12,6 +12,16 @@ from PIL import Image
 import json
 from vamtb import vamdirs
 from vamtb import vamex
+import binascii
+
+
+def crc32c(content):
+    buf = (binascii.crc32(content) & 0xFFFFFFFF)
+    return "%08X" % buf
+
+def crc32(filename):
+    buf = open(filename,'rb').read()
+    return crc32c(buf)
 
 def split_varname(fname, dest_dir):
     if not isinstance(fname, os.PathLike):
@@ -31,11 +41,30 @@ def split_varname(fname, dest_dir):
         fname.rename(newname)
     except FileExistsError:
         pass
-        try:
-            Path.unlink(fname)
-        except PermissionError:
-            logging.error(f"Couldnt remove {fname}")
-            pass
+        fcrc = crc32(fname)
+        ncrc = crc32(newname)
+        if fcrc == ncrc:
+            logging.info("Exact same file exists, removing duplicate")
+            try:
+                Path.unlink(fname)
+            except PermissionError:
+                pass
+                logging.error(f"Couldnt remove {fname}")
+        else:
+            logging.error(f"File {fname} and {newname} have same name but crc differ {fcrc} , {ncrc}. Remove yourself.") 
+
+def contains(var, pattern):
+    lc = []
+    try:
+        with ZipFile(var, mode='r') as myvar:
+            listOfFileNames = [f for f in myvar.namelist() if pattern in f]
+            for f in listOfFileNames:
+                with myvar.open(f) as fh:
+                    lc.append(f'{f}[{crc32c(fh.read())}]')
+        return lc if lc else False
+    except BadZipFile:
+        logging.error(f"Couldn't list files in {var}")
+
 
 def is_namecorrect(fname, checksuffix=True):
     """ Takes as parameter a var filename with extension """
@@ -625,6 +654,16 @@ def get_reqfile(infile, mtype):
         raise vamex.UnknownContent
 
     return list(req)
+
+def mcopytree(src, dst):
+    def ignore(path, content_list):
+        return [
+            content
+            for content in content_list
+            if os.path.isdir(os.path.join(path, content))
+        ]    
+    shutil.copytree(f"{src}", f"{dst}", ignore=ignore, dirs_exist_ok=True)
+
 
 def prep_tree(file, dir, creator, do_move = False):
 

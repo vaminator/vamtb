@@ -93,11 +93,13 @@ def sort_vars(ctx):
         mdir=Path(ctx.obj['dir'])
     for var_file in vars_files:
         try:
+            pass
             varfile.is_namecorrect(var_file)
         except vamex.VarNameNotCorrect:
             logging.error(f"File {var_file} has incorrect naming.")
             continue
         try:
+            pass
             varfile.extract_meta_var(var_file)
         except vamex.VarMetaJson as e:
             logging.error(f"File {var_file} is corrupted [{e}].")
@@ -110,7 +112,7 @@ def sort_vars(ctx):
 #        if jpg:
 #            varfile.split_varname(jpg[0], dest_dir = mdir)
 
-@cli.command('statsvar')
+@cli.command('checksvar')
 @click.pass_context
 def check_vars(ctx):
     """Check all var files for consistency"""
