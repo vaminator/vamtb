@@ -431,7 +431,7 @@ def dep_fromscene(scene):
                     deps['embed'].append(ref)
 
     deps = { 'embed': [], 'var': [] , 'self': [] }
-    with open(scene, "r") as fn:
+    with open(scene, "r", encoding='utf-8') as fn:
         json.load(fn, object_hook=_decode_dict)
     return deps
 
@@ -517,8 +517,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
 
     # Detect creator(s)
     dcreators = get_creators_dir(input_dir)
-    if dcreators:
-        ncreator = dcreators[0]
+    ncreator = dcreators[0] if dcreators else 0
     if len(dcreators) and ncreator != creatorName:
         logging.error(f"From files, creator(s) found: { ','.join(dcreators) }")
         creatorName = input(f"Set creator from {creatorName} to {ncreator} or set manually:")
@@ -545,8 +544,8 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
 def reref(mfile):
     orig = mfile.with_suffix(f"{mfile.suffix}.orig")
     mfile.rename(orig)
-    with open(mfile, "w") as dest:
-        with open(orig, "r") as src:
+    with open(mfile, "w", encoding='utf-8') as dest:
+        with open(orig, "r", encoding='utf-8') as src:
             for l in src:
                 if '"Custom/' in l:
                     ol = l
@@ -565,7 +564,7 @@ def get_creators_dir(input_dir):
     lc = set()
     for fn in Path(input_dir).glob('**/*'):
         if fn.suffix in ['.vam']:
-            with open(fn, "r") as f:
+            with open(fn, "r", encoding='utf-8') as f:
                 content = json.load(f)
                 if "creatorName" in content:
                     lc.add(content['creatorName'])
@@ -584,7 +583,7 @@ def get_type(infile):
     if suffix == ".cs":
         return vamex.T_SCRIPT
     if suffix == ".json":
-        with open(infile, "rt") as f:
+        with open(infile, "rt", encoding='utf-8') as f:
             js = json.load(f)
             if "playerHeightAdjust" in js:
                 return vamex.T_SCENE
@@ -593,7 +592,7 @@ def get_type(infile):
     if suffix == ".vmi" or suffix == ".vmb":
         return vamex.T_MORPH
     if suffix == ".vam":
-        with open(infile, "rt") as f:
+        with open(infile, "rt", encoding='utf-8') as f:
             js = json.load(f)
             if js['itemType'] == "ClothingFemale":
                 return vamex.T_CLOTH | vamex.T_FEMALE
