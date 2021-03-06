@@ -50,8 +50,8 @@ def find_var(dir, varname):
     else:
         raise vamex.VarNotFound(varname)
 
-def recurse_dep(dir, var, do_print=False, movepath=None):
-    def recdef(dir, var, do_print, depth):
+def recurse_dep(dir, var, do_print=False):
+    def recdef(var, depth=0):
         if do_print:
             print("%sChecking dependencies of %s" % (" "*depth, var))
         else:
@@ -69,11 +69,11 @@ def recurse_dep(dir, var, do_print=False, movepath=None):
             if do_print:
                 print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
             try:
-                recdef(dir, dep, do_print, depth + 1)
+                recdef(dep, depth + 1)
             except RecursionError:
                 # TODO: detect from which var the loop is created move that var
                 raise
-    recdef(dir, var, do_print, 0)
+    recdef(var)
 
 def create_dir(infile, newdir):
     """
