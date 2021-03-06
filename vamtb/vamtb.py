@@ -163,17 +163,20 @@ def check_deps(ctx):
         Path(movepath).mkdir(parents=True, exist_ok=True)
     else:
         movepath=None
-    logging.info(f'Checking deps for vars in {dir}')
+    logging.info(f'Checking deps for vars in {dir} with moving: {movepath is not None}')
     all_vars = vamdirs.list_vars(dir)
     missing = set()
     for var in sorted(all_vars):
         try:
-            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, movepath=movepath)
+            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False)
         except vamex.VarNotFound as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
             missing.add(f"{e}")
+            if movepath:
+                Path(var).rename(Path(movepath, var.name))
         except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
+            print(f"{movepath}")
             if movepath:
                 Path(var).rename(Path(movepath, var.name))
         except RecursionError:
