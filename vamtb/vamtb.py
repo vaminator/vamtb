@@ -112,7 +112,7 @@ def sort_vars(ctx):
 #        if jpg:
 #            varfile.split_varname(jpg[0], dest_dir = mdir)
 
-@cli.command('checksvar')
+@cli.command('checkvars')
 @click.pass_context
 def check_vars(ctx):
     """Check all var files for consistency"""
