@@ -119,7 +119,7 @@ def check_vars(ctx):
     mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
-    logging.info("Checking dir %s for vars" % dir)
+    logging.info("Checking dir %s for vars" % mdir)
     all_files = vamdirs.list_vars(mdir, pattern="*.var")
     logging.debug("Found %d files in %s" % (len(all_files), mdir))
     for file in all_files:
