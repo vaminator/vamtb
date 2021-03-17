@@ -139,7 +139,7 @@ def stats_vars(ctx):
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
     logging.info("Checking stats for dir %s" % mdir)
-    all_files = vamdirs.list_vars(dir, pattern="*.var")
+    all_files = vamdirs.list_vars(mdir, pattern="*.var")
     creators_file = defaultdict(list)
     for file in all_files:
         creator, _ = file.name.split(".", 1)
