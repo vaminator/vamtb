@@ -401,7 +401,7 @@ def dep_fromvar(dir, var):
     except vamex.NoMetaJson:
         raise
 
-    if not( "dependencies" in meta and meta['dependencies']):
+    if not( meta and "dependencies" in meta and meta['dependencies']):
         return []
 
     return meta['dependencies']
