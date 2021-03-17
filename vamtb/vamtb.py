@@ -144,7 +144,7 @@ def stats_vars(ctx):
     for file in all_files:
         creator, _ = file.name.split(".", 1)
         creators_file[creator].append(file.name)
-    logging.debug("Found %d files in %s" % (len(all_files), mdir))
+    logging.debug("Found %d files in %s, %d creators" % (len(all_files), mdir, len(creators_file)))
     for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
         print("Creator %s has %d files" % (k, len(v)))
 
@@ -176,7 +176,6 @@ def check_deps(ctx):
                 Path(var).rename(Path(movepath, var.name))
         except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
             logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
-            print(f"{movepath}")
             if movepath:
                 Path(var).rename(Path(movepath, var.name))
         except RecursionError:
