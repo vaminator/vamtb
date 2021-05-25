@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
 from jinja2 import Environment, FileSystemLoader
@@ -14,7 +15,6 @@ import json
 from vamtb import vamdirs
 from vamtb import vamex
 import binascii
-
 
 def crc32c(content):
     buf = (binascii.crc32(content) & 0xFFFFFFFF)
@@ -537,7 +537,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
             logging.debug(f"Setting creator to {creatorName}")
 
     logging.debug("Generating meta.json")
-    meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps)
+    meta_json = gen_meta(creatorName=creatorName, packageName=packageName, contents=contentsp, deps=all_deps, promotionalLink=datetime.now(timezone.utc))
     with open(f"{input_dir}/meta.json", "w") as meta_file: 
         meta_file.write(meta_json) 
 
