@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
@@ -377,6 +378,16 @@ def thumb_var(fname, outdir):
                     set_tag(f"{Path(outdir,jpg)}", list(tags))
                     shutil.copy(Path(outdir,jpg), Path(outdir, flatdirname, bfname))
 
+    except BadZipFile as e:
+        logging.error(f"{fname} is not a correct zipfile ({e})")
+
+def pattern_var(fname, pattern):
+    """ List files within var matching a pattern """
+    logging.info(f"Searching thumb for {fname}")
+    try:
+        with ZipFile(fname, mode='r') as myvar:
+            listOfFileNames = [f for f in myvar.namelist() if re.search(pattern, f) is not None]
+            return listOfFileNames
     except BadZipFile as e:
         logging.error(f"{fname} is not a correct zipfile ({e})")
 

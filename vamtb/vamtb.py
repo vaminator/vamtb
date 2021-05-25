@@ -257,11 +257,12 @@ def var_multiconvert(ctx):
 @cli.command('autoload')
 @click.pass_context
 def autoload(ctx):
-    """Check vars having autoloading of morph"""
+    """Check vars having autoloading of morph
+    Each morph is then printed (either creator name as subdir or vmi file)"""
     mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
-    vars_files = vamdirs.list_vars(dir)
+    vars_files = vamdirs.list_vars(mdir)
     for var_file in vars_files:
         try:
             json = varfile.extract_meta_var(var_file)
@@ -269,7 +270,10 @@ def autoload(ctx):
             logging.error(f"Couldn't decode {var_file} [{e}]")
             continue
         if 'customOptions' in json and json['customOptions']['preloadMorphs'] != "false":
-            print(f"{var_file} has autoloading")
+            vmi = varfile.pattern_var(var_file, r"\.vmi$")
+            vmib = list(map(lambda x: x.split("/")[5], vmi))
+            vmib = set(map(lambda x: x.split("/")[0], vmib))
+            print(f"{var_file} has autoloading and contains morphs dirs: {vmib}")
 
 @cli.command('repack')
 @click.pass_context
