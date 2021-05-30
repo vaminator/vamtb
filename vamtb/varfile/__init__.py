@@ -804,3 +804,41 @@ def reref(mdir, var, refvar, license, assocs):
     with open("tmp/meta.json", "w") as outfile:
         outfile.write(json_object)
     vamdirs.zipdir("tmp", varfname)
+
+def onerror(function, path, exc_info):
+    # Handle ENOTEMPTY for rmdir
+    if (function is os.rmdir
+          and issubclass(exc_info[0], OSError)
+          and exc_info[1].errno == errno.ENOTEMPTY):
+        timeout = 0.001
+        while timeout < 2:
+            if not os.listdir(path):
+                return os.rmdir(path)
+            time.sleep(timeout)
+            timeout *= 2
+    raise
+
+def clean_dir_safe(path):
+    try:
+        shutil.rmtree(path, onerror=onerror)
+    except FileNotFoundError:
+        pass
+    # rmtree didn't fail, but path may still be linked if there is or was
+    # a handle that shares delete access. Assume the owner of the handle
+    # is watching for changes and will close it ASAP. So retry creating
+    # the directory by using a loop with an increasing timeout.
+    timeout = 0.001
+    while True:
+        try:
+            return os.mkdir(path)
+        except PermissionError as e:
+            # Getting access denied (5) when trying to create a file or
+            # directory means either the caller lacks access to the
+            # parent directory or that a file or directory with that
+            # name exists but is in the deleted state. Handle both cases
+            # the same way. Otherwise, re-raise the exception for other
+            # permission errors, such as a sharing violation (32).
+            if e.winerror != 5 or timeout >= 2:
+                raise
+            time.sleep(timeout)
+            timeout *= 2
