@@ -121,7 +121,7 @@ def find_common_files(conn, dup_varname, ref_varname):
         if not ref_var_file:
             continue
         assert(len(ref_var_file) == 1)
-        _, ref_filename, _, _, _ = dup_var_file
+        _, ref_filename, _, _, _ = ref_var_file[0]
         elt=(f"SELF:/{dup_filename}", f"{ref_varname_latest}:/{ref_filename}")
         result.append(elt)
     return result
