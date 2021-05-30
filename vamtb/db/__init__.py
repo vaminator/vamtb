@@ -134,6 +134,12 @@ def reref(conn, mdir, dup_varname, ref_varname, license):
     for cf in common_files:
         logging.info(f"{cf[0]}-->{cf[1]}")
     varfile.reref(mdir, dup_varname, ref_varname, license, common_files)
+    for f in common_files:
+        sql="DELETE FROM FILES WHERE VARNAME=? AND FILENAME=?"
+        row=(f"{dup_varname}.var", f[0].removeprefix("SELF:/"))
+        cur = conn.cursor()
+        cur.execute(sql, row)
+    conn.commit()
     
 def get_license(conn, varname):
     cur = conn.cursor()
