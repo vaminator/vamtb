@@ -9,6 +9,7 @@ import shutil
 from vamtb import vamdirs
 from vamtb import varfile
 from vamtb import vamex
+from vamtb import db
 
 @click.group()
 @click.option('dir', '-d', default="D:\\VAM", help='VAM directory.')
@@ -41,6 +42,10 @@ def cli(ctx, verbose, move, dir, custom, file):
     Building:
     vamtb -vvc d:\ToImport\SuperScene convert
     vamtb -x repack
+    \b
+    Database:
+    vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
+    vamtb -vvd d:\VAM dups will scan your vars and for any files already in a ref var, will reref to use that ref var files
     """
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
@@ -316,3 +321,25 @@ def var_repack(ctx):
         logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
         raise
 
+@cli.command('dbs')
+@click.pass_context
+def dbs(ctx):
+    """
+    Scan vars and store props in db
+    """
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
+    vars_files = sorted(vamdirs.list_vars(mdir))
+    db.store_vars(vars_files)
+
+@cli.command('dups')
+@click.pass_context
+def dups(ctx):
+    """
+    n2 dup find
+    """
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
+    db.find_dups(do_reref=True, mdir=mdir)

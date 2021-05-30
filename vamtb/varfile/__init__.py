@@ -524,7 +524,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     logging.info(f"Found deps:{all_deps}")
     # Filter stuffs
     # TODO
-    reref_dir(input_dir)
+    repack_reref_dir(input_dir)
 
     # Detect creator(s)
     dcreators = get_creators_dir(input_dir)
@@ -552,7 +552,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if in_zipfile:
         shutil.rmtree(tempzipdir)
 
-def reref(mfile):
+def repack_reref(mfile):
     orig = mfile.with_suffix(f"{mfile.suffix}.orig")
     mfile.rename(orig)
     with open(mfile, "w", encoding='utf-8') as dest:
@@ -566,10 +566,10 @@ def reref(mfile):
     orig.unlink()
 
 
-def reref_dir(input_dir):
+def repack_reref_dir(input_dir):
     for f in Path(input_dir).glob('**/*'):
         if f.suffix in ['.vap', '.vaj', '.json']:
-            reref(f)
+            repack_reref(f)
 
 def get_creators_dir(input_dir):
     lc = set()
@@ -747,3 +747,60 @@ def prep_tree(file, dir, creator, do_move = False):
             shutil.move(f"{f}", f"{d}")
         else:
             shutil.copy(f, d)
+
+def get_props(var):
+    modified_time = os.path.getmtime(var)
+    # json = extract_meta_var(var)
+    creator, asset, version, ext = var.name.split('.', 4)
+    cksum = crc32(var)
+    return creator, version, modified_time, cksum
+
+def search_and_replace_dir(mdir, text, subst):
+    _replace_re = re.compile(text)
+    for dirpath, dirnames, filenames in os.walk(mdir):
+        for file in filenames:
+            if Path(file).suffix in (".vab", ".vmb", ".dll", ".jpg", ".png", ".ogg", ".wav", ".mp3", ".AssetBundle", ".assetbundle"):
+                continue
+            file = os.path.join(dirpath, file)
+            tempfile = file + ".temp"
+            with open(tempfile, "w", encoding='utf-8') as target:
+                # logging.debug(f"Rewriting {file}")
+                with open(file, "r", encoding='utf-8') as source:
+                    for line in source:
+                        if _replace_re.findall(line):
+                            logging.info("Found a match")
+                        line = _replace_re.sub(subst, line)
+                        target.write(line)
+            os.remove(file)
+            os.rename(tempfile, file)
+
+def reref(mdir, var, refvar, license, assocs):
+    """
+    Will modify var to point to refvar. Files to relink are in assocs
+    text to substitute, substitute
+    """
+    logging.debug(f"Rerefing var {var} to point to {refvar} for files: {assocs}")
+    try:
+        shutil.rmtree('tmp')
+    except:
+        pass
+    os.makedirs('tmp')
+    varfname=vamdirs.find_var(mdir, var)
+    bkpvarfname=f"{varfname}.orig"
+    os.rename(varfname, bkpvarfname)
+    with ZipFile(bkpvarfname, 'r') as zipObj:
+        zipObj.extractall("tmp")
+    meta = json.load(open("tmp/meta.json"))
+    for assoc in assocs:
+        text, subst = assoc
+        search_and_replace_dir("tmp", text, subst)
+        meta['contentList'] = [ i for i in meta['contentList'] if i != text.removeprefix("SELF:/") ]
+    creator, asset, _ = refvar.split(".", 3)
+    refvar_latest = ".".join((creator, asset, "latest"))
+    meta['dependencies'][refvar_latest]={}
+    meta['dependencies'][refvar_latest]['licenseType'] = license
+    meta['description'] += f"\\nRerefed on {datetime.now(timezone.utc)}"
+    json_object = json.dumps(meta, indent = 4)
+    with open("tmp/meta.json", "w") as outfile:
+        outfile.write(json_object)
+    vamdirs.zipdir("tmp", varfname)

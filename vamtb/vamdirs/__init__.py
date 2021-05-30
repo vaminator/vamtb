@@ -2,6 +2,8 @@
 import logging
 from pathlib import Path
 import re
+import os
+import zipfile
 from vamtb import varfile
 from vamtb import vamex
 
@@ -85,3 +87,13 @@ def create_dir(infile, newdir):
     Path(newdir).mkdir(parents=True, exist_ok=True)
     logging.debug(f"Directory {newdir} created")
     
+
+def zipdir(path, zipname):
+    zipf = zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED)
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            zipf.write(os.path.join(root, file), 
+                       os.path.relpath(os.path.join(root, file), 
+                                       os.path.join(path, '.')))
+    zipf.close()

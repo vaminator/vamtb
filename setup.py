@@ -14,7 +14,8 @@ setup(
         'vamtb',
         'vamtb.vamdirs',
         'vamtb.varfile',
-        'vamtb.vamex'
+        'vamtb.vamex',
+        'vamtb.db',
       ],
       package_data={},
       install_requires=[
@@ -22,6 +23,7 @@ setup(
         "jinja2", 
         "Pillow", 
         "piexif",
+        "sqlite3",
       ],
       extras_require={
         'test': [
