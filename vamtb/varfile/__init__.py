@@ -1,6 +1,7 @@
 '''Var file naming'''
 import json
 import logging
+import errno
 import os
 import re
 import shutil
@@ -756,10 +757,15 @@ def get_props(var):
     return creator, version, modified_time, cksum
 
 def search_and_replace_dir(mdir, text, subst):
-    _replace_re = re.compile(text)
+    text=Path(text.removeprefix("SELF:/")).name
+    text = re.escape(text)
+    pattern = fr'"[^"]*{text}"'
+    _replace_re = re.compile(pattern)
     for dirpath, dirnames, filenames in os.walk(mdir):
         for file in filenames:
             if Path(file).suffix in (".vab", ".vmb", ".dll", ".jpg", ".png", ".ogg", ".wav", ".mp3", ".AssetBundle", ".assetbundle"):
+                continue
+            if Path(file).name == "meta.json":
                 continue
             file = os.path.join(dirpath, file)
             tempfile = file + ".temp"
@@ -768,8 +774,8 @@ def search_and_replace_dir(mdir, text, subst):
                 with open(file, "r", encoding='utf-8') as source:
                     for line in source:
                         if _replace_re.findall(line):
-                            logging.info("Found a match")
-                        line = _replace_re.sub(subst, line)
+                            logging.info(f"Found a match in file {file}")
+                        line = _replace_re.sub(f'"{subst}"', line)
                         target.write(line)
             os.remove(file)
             os.rename(tempfile, file)
@@ -780,16 +786,26 @@ def reref(mdir, var, refvar, license, assocs):
     text to substitute, substitute
     """
     logging.debug(f"Rerefing var {var} to point to {refvar} for files: {assocs}")
-    try:
-        shutil.rmtree('tmp')
-    except:
-        pass
-    os.makedirs('tmp')
+    clean_dir_safe('tmp')
     varfname=vamdirs.find_var(mdir, var)
     bkpvarfname=f"{varfname}.orig"
+    try:
+        os.unlink(bkpvarfname)
+    except:
+        pass
     os.rename(varfname, bkpvarfname)
     with ZipFile(bkpvarfname, 'r') as zipObj:
-        zipObj.extractall("tmp")
+        for f in zipObj.namelist():
+            to_ext = True
+            for assoc in assocs:
+                file, repl = assoc
+                file = file.removeprefix("SELF:/")
+                if file == f:
+                    to_ext = False
+            if to_ext:
+                zipObj.extract(f, "tmp")
+            else:
+                logging.debug(f"Not extracting {f}")
     meta = json.load(open("tmp/meta.json"))
     for assoc in assocs:
         text, subst = assoc
@@ -799,7 +815,7 @@ def reref(mdir, var, refvar, license, assocs):
     refvar_latest = ".".join((creator, asset, "latest"))
     meta['dependencies'][refvar_latest]={}
     meta['dependencies'][refvar_latest]['licenseType'] = license
-    meta['description'] += f"\\nRerefed on {datetime.now(timezone.utc)}"
+    meta['description'] += f"\nRerefed on {datetime.now(timezone.utc)}"
     json_object = json.dumps(meta, indent = 4)
     with open("tmp/meta.json", "w") as outfile:
         outfile.write(json_object)

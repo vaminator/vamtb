@@ -158,7 +158,8 @@ def find_dups(do_reref, mdir):
     db_files = cur.fetchall()
     for db_file in db_files:
         ref_id, ref_filename, ref_isref, ref_varname, ref_cksum = db_file
-        ref_creator,_ = ref_varname.split(".", 1)
+        ref_creator, asset, version, _ = ref_varname.split(".", 4)
+        ref_varname = ".".join((ref_creator, asset, version))
         ref_filenamebase = Path(ref_filename).name
         if ref_cksum == "00000000":
             continue
@@ -175,12 +176,11 @@ def find_dups(do_reref, mdir):
             dup_id, dup_filename, dup_isref, dup_varname, dup_cksum = db_file_dup
             creator, asset, version, _ = dup_varname.split(".", 4)
             dup_varname = ".".join((creator, asset, version))
-            creator, asset, version, _ = ref_varname.split(".", 4)
-            ref_varname = ".".join((creator, asset, version))
             logging.debug(f"Found dup of {ref_varname} : '{ref_filename}' in {dup_varname} : '{dup_filename}'")
             if do_reref and f"{dup_varname},{ref_varname}" not in rerefed:
-                print(f"Reref {dup_varname} to use {ref_varname} [Y/N] ?")
+                print(f"Reref {dup_varname} to use {ref_varname} [Y/N] ? ", end='')
                 if (input() == "Y"):
                     ref_license=get_license(conn, f"{ref_varname}.var")
                     reref(conn, mdir, dup_varname, ref_varname, ref_license)
                 rerefed.append(f"{dup_varname},{ref_varname}")
+    
