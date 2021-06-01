@@ -174,7 +174,7 @@ def find_dups(do_reref, mdir):
         if not db_files_dup:
             continue
         list_dup_varname = list(map(lambda x: x[3], db_files_dup))
-        logging.info(f"Found {len(db_files_dup)} dups of {ref_varname} : '{ref_filename}' in vars {list_dup_varname}")
+        # logging.info(f"Found {len(db_files_dup)} dups of {ref_varname} : '{ref_filename}' in vars {list_dup_varname}")
         for db_file_dup in db_files_dup:
             dup_id, dup_filename, dup_isref, dup_varname, dup_cksum = db_file_dup
             creator, asset, version, _ = dup_varname.split(".", 4)
