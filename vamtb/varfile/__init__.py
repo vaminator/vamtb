@@ -2,6 +2,7 @@
 import json
 import logging
 import errno
+import time
 import os
 import re
 import shutil
@@ -756,27 +757,39 @@ def get_props(var):
     cksum = crc32(var)
     return creator, version, modified_time, cksum
 
-def search_and_replace_dir(mdir, text, subst):
+def search_and_replace_dir(mdir, text, subst, enc):
     text=Path(text.removeprefix("SELF:/")).name
     text = re.escape(text)
     pattern = fr'"[^"]*{text}"'
     _replace_re = re.compile(pattern)
     for dirpath, dirnames, filenames in os.walk(mdir):
         for file in filenames:
-            if Path(file).suffix in (".vab", ".vmb", ".dll", ".jpg", ".png", ".ogg", ".wav", ".mp3", ".AssetBundle", ".assetbundle"):
+            if Path(file).suffix in (".vab", ".vmb", ".dll", ".jpg", ".png", "tif", ".ogg", ".wav", ".mp3", ".AssetBundle", ".assetbundle"):
                 continue
             if Path(file).name == "meta.json":
                 continue
             file = os.path.join(dirpath, file)
             tempfile = file + ".temp"
-            with open(tempfile, "w", encoding='utf-8') as target:
+            with open(tempfile, "w", encoding="utf-8") as target:
                 # logging.debug(f"Rewriting {file}")
-                with open(file, "r", encoding='utf-8') as source:
-                    for line in source:
-                        if _replace_re.findall(line):
-                            logging.info(f"Found a match in file {file}")
-                        line = _replace_re.sub(f'"{subst}"', line)
-                        target.write(line)
+                with open(file, "r", encoding=enc) as source:
+                    try:
+                        for line in source:
+                            if _replace_re.findall(line):
+                                logging.info(f"Found a match in file {file}")
+                            line = _replace_re.sub(f'"{subst}"', line)
+                            target.write(line)
+                    except UnicodeDecodeError:
+                        logging.error(f"Could not decode file {file} with encoding {enc}")
+                        timeout = 0.001
+                        time.sleep(timeout)
+                        while(timeout < 2):
+                            try:
+                                os.remove(tempfile)
+                            except PermissionError:
+                                timeout *= 2
+                            except FileNotFoundError:
+                                raise UnicodeDecodeError
             os.remove(file)
             os.rename(tempfile, file)
 
@@ -794,6 +807,7 @@ def reref(mdir, var, refvar, license, assocs):
     except:
         pass
     os.rename(varfname, bkpvarfname)
+    logging.debug("Unpacking var...")
     with ZipFile(bkpvarfname, 'r') as zipObj:
         for f in zipObj.namelist():
             to_ext = True
@@ -806,10 +820,24 @@ def reref(mdir, var, refvar, license, assocs):
                 zipObj.extract(f, "tmp")
             else:
                 logging.debug(f"Not extracting {f}")
-    meta = json.load(open("tmp/meta.json"))
+    try:
+        meta = json.load(open("tmp/meta.json"))
+    except:
+        logging.error(f"meta.json from var {var} is not pure json. Rename back .var.orig to .var")
+        return
     for assoc in assocs:
         text, subst = assoc
-        search_and_replace_dir("tmp", text, subst)
+        for enc in ( "utf-8", "cp1252", "latin1", "iso-8859-1" ):  # Fuck you if you didn't use utf-8
+            try:
+                search_and_replace_dir("tmp", text, subst, enc)
+                break
+            except UnicodeDecodeError:
+                # Try with another encoding..
+                continue
+        else:
+            # 
+            logging.error(f"We did not manage to read the input files of {var} due to encoding failures. Rename back .var.orig to .var")
+            return
         meta['contentList'] = [ i for i in meta['contentList'] if i != text.removeprefix("SELF:/") ]
     creator, asset, _ = refvar.split(".", 3)
     refvar_latest = ".".join((creator, asset, "latest"))
