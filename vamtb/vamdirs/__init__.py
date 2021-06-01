@@ -89,6 +89,7 @@ def create_dir(infile, newdir):
     
 
 def zipdir(path, zipname):
+    logging.debug("Repacking var...")
     zipf = zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED)
     # ziph is zipfile handle
     for root, dirs, files in os.walk(path):
