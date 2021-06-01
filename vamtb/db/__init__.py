@@ -27,9 +27,9 @@ def init_dbs(conn):
 
 ref_creators = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
-"CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
-"Jackaroo","JoyBoy","LFE","MacGruber","MeshedVR","Miki","Molmark","Oeshii",
-"Roac","SupaRioAmateur","VL_13")
+"bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
+"Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","Oeshii",
+"Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 
 def store_var(conn, var):
     """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
