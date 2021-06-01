@@ -120,7 +120,8 @@ def find_common_files(conn, dup_varname, ref_varname):
         ref_var_file=cur.fetchall()
         if not ref_var_file:
             continue
-        assert(len(ref_var_file) == 1)
+        if len(ref_var_file) != 1:
+            logging.error(f"We found two identical files in the same var file {ref_varname} ... taking first one")
         _, ref_filename, _, _, _ = ref_var_file[0]
         elt=(f"SELF:/{dup_filename}", f"{ref_varname_latest}:/{ref_filename}")
         result.append(elt)
