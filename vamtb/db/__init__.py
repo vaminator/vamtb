@@ -3,6 +3,7 @@ import os
 import logging
 import re
 import sqlite3
+from tqdm import tqdm
 from pathlib import Path
 from vamtb import varfile
 from vamtb import vamex
@@ -157,7 +158,8 @@ def find_dups(do_reref, mdir):
     cur = conn.cursor()
     cur.execute("SELECT * FROM FILES")
     db_files = cur.fetchall()
-    for db_file in db_files:
+    progress_iterator = tqdm(db_files, desc="Scanning database…", ascii=True, ncols=75)
+    for db_file in progress_iterator:
         ref_id, ref_filename, ref_isref, ref_varname, ref_cksum = db_file
         ref_creator, asset, version, _ = ref_varname.split(".", 4)
         ref_varname = ".".join((ref_creator, asset, version))
@@ -177,11 +179,18 @@ def find_dups(do_reref, mdir):
             dup_id, dup_filename, dup_isref, dup_varname, dup_cksum = db_file_dup
             creator, asset, version, _ = dup_varname.split(".", 4)
             dup_varname = ".".join((creator, asset, version))
-            logging.debug(f"Found dup of {ref_varname} : '{ref_filename}' in {dup_varname} : '{dup_filename}'")
             if do_reref and f"{dup_varname},{ref_varname}" not in rerefed:
-                print(f"Reref {dup_varname} to use {ref_varname} [Y/N] ? ", end='')
+                progress_iterator.clear()  # meh broken
+                logging.debug(f"Found dup of {ref_varname} : '{ref_filename}' in {dup_varname} : '{dup_filename}'")
+                tqdm.write(f"Reref {dup_varname} to use {ref_varname} [Y/N] ?")
                 if (input() == "Y"):
-                    ref_license=get_license(conn, f"{ref_varname}.var")
-                    reref(conn, mdir, dup_varname, ref_varname, ref_license)
+                    ref_license = get_license(conn, f"{ref_varname}.var")
+                    try:
+                        reref(conn, mdir, dup_varname, ref_varname, ref_license)
+                    except vamex.VarNotFound:
+                        logging.error(f"We didn't find var {dup_varname} on the disk")
+                else:
+                    print("N")
+                progress_iterator.refresh()
                 rerefed.append(f"{dup_varname},{ref_varname}")
     

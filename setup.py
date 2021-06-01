@@ -23,7 +23,7 @@ setup(
         "jinja2", 
         "Pillow", 
         "piexif",
-        "sqlite3",
+        "tqdm",
       ],
       extras_require={
         'test': [
