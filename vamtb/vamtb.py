@@ -342,8 +342,8 @@ def renamevar(ctx):
         creator, asset, version, _ = var.name.split('.', 4)
         js = varfile.extract_meta_var(var)
         rcreator, rasset = js['creatorName'],js['packageName']
-        if creator != rcreator or asset != rasset:
-            rfile = Path(os.path.dirname(var), f"{rcreator}.{rasset}.{version}.var")
+        if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
+            rfile = Path(os.path.dirname(var), f"{rcreator}.{rasset}.{version}.var".replace(" ", "_"))
             logging.info(f"Renaming {var} to {rfile}")
             os.rename(var, rfile)
 
