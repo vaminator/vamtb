@@ -42,10 +42,13 @@ def cli(ctx, verbose, move, dir, custom, file):
     Building:
     vamtb -vvc d:\ToImport\SuperScene convert
     vamtb -x repack
+    vamtb -d d:\VAM renamevar
+    vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var renamevar
     \b
     Database:
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
     vamtb -vvd d:\VAM dups will scan your vars and for any files already in a ref var, will reref to use that ref var files
+    vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dups will reref this var to use external dependencies
     """
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
