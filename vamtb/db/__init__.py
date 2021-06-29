@@ -86,7 +86,7 @@ def store_vars(vars_list):
     conn = sqlite3.connect('vars.db')
     init_dbs(conn)
     for var in vars_list:
-        logging.debug(f"Storing var {var}")
+        logging.debug(f"Analyzing files in var {var}")
         store_var(conn, var)
     # Commit at the end to speed things up but you need more RAM
     conn.commit()
@@ -152,11 +152,22 @@ def get_license(conn, varname):
     license = cur.fetchall()
     return license[0][0]
 
-def find_dups(do_reref, mdir):
+def find_dups(do_reref=False, mdir=None, var = None):
+    """
+    This will display files duplicates (based on filename AND cksum AND only from other creator). 
+    Note that so called reference files will not be searched for duplicates.
+    When do_reref, will go through var embedding ref content and remove embedded content and relink to ref content.
+    If var is specified, will only search duplicates within a specific var (even if its files are considered a reference).
+    """
     rerefed=list()
     conn = sqlite3.connect('vars.db')
     cur = conn.cursor()
-    cur.execute("SELECT * FROM FILES")
+    if var:
+        sql = f"SELECT * FROM FILES WHERE VARNAME == \"{var}\""
+    else:
+        sql = "SELECT * FROM FILES"
+    cur.execute(sql)
+
     db_files = cur.fetchall()
     progress_iterator = tqdm(db_files, desc="Scanning database…", ascii=True, ncols=75)
     for db_file in progress_iterator:
@@ -167,18 +178,28 @@ def find_dups(do_reref, mdir):
         if ref_cksum == "00000000":
             continue
         sql = """SELECT * FROM FILES WHERE ISREF != ? AND FILENAME LIKE ? AND CKSUM == ? AND ID != ? AND VARNAME NOT LIKE ?"""
-        row = ("YES", f"%{ref_filenamebase}%", ref_cksum, ref_id, f"{ref_creator}%")
+        row = ("UNKNOWN" if var else "YES", f"%{ref_filenamebase}%", ref_cksum, ref_id, f"{ref_creator}%")
+#        if var:
+#            sql = """SELECT * FROM FILES WHERE FILENAME LIKE ? AND CKSUM == ? AND ID != ? AND VARNAME == ?"""
+#            row = (f"%{ref_filenamebase}%", ref_cksum, ref_id, var)
+#        else:
+#            sql = """SELECT * FROM FILES WHERE FILENAME LIKE ? AND ISREF != "YES" AND CKSUM == ? AND ID != ? AND VARNAME NOT LIKE ?"""
+#            row = (f"%{ref_filenamebase}%", ref_cksum, ref_id, f"{ref_creator}%")
         cur = conn.cursor()
         cur.execute(sql, row)
         db_files_dup = cur.fetchall()
         if not db_files_dup:
             continue
-        list_dup_varname = list(map(lambda x: x[3], db_files_dup))
+        # list_dup_varname = list(map(lambda x: x[3], db_files_dup))
         # logging.info(f"Found {len(db_files_dup)} dups of {ref_varname} : '{ref_filename}' in vars {list_dup_varname}")
         for db_file_dup in db_files_dup:
             dup_id, dup_filename, dup_isref, dup_varname, dup_cksum = db_file_dup
             creator, asset, version, _ = dup_varname.split(".", 4)
             dup_varname = ".".join((creator, asset, version))
+            if var:
+                temp = ref_varname
+                ref_varname = dup_varname
+                dup_varname = temp
             if do_reref and f"{dup_varname},{ref_varname}" not in rerefed:
                 progress_iterator.clear()  # meh broken
                 logging.debug(f"Found dup of {ref_varname} : '{ref_filename}' in {dup_varname} : '{dup_filename}'")

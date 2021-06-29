@@ -366,4 +366,4 @@ def dups(ctx):
     mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
-    db.find_dups(do_reref=True, mdir=mdir)
+    db.find_dups(do_reref=True, mdir=mdir, var=f"{ctx.obj['file']}.var" if ctx.obj['file'] else None)
