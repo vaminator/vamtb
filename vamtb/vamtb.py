@@ -321,6 +321,30 @@ def var_repack(ctx):
         logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
         raise
 
+@cli.command('renamevar')
+@click.pass_context
+def renamevar(ctx):
+    """Rename var from meta.json"""
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
+    if ctx.obj['file']:
+        mfile=ctx.obj['file']
+        vars = vamdirs.list_vars(mdir, mfile)
+    else:
+        vars = vamdirs.list_vars(mdir)
+    logging.debug(f'Renaming vars')
+    for var in vars:
+        logging.debug(f"Checking {var}")
+        creator, asset, version, _ = var.name.split('.', 4)
+        js = varfile.extract_meta_var(var)
+        rcreator, rasset = js['creatorName'],js['packageName']
+        if creator != rcreator or asset != rasset:
+            rfile = Path(os.path.dirname(var), f"{rcreator}.{rasset}.{version}.var")
+            logging.info(f"Renaming {var} to {rfile}")
+            os.rename(var, rfile)
+
+
 @cli.command('dbs')
 @click.pass_context
 def dbs(ctx):
