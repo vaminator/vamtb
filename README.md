@@ -1,7 +1,7 @@
 # vamtb
 Vam toolbox
 
-You can use already built binaries (see Releases)
+You can use already built binaries (see Releases, not built often though)
 
 It's also possible to build from source and install:
 ````
