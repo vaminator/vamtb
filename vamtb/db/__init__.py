@@ -77,7 +77,8 @@ def store_var(conn, var):
         db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
         if db_modtime < modified_time:
             logging.error("Update of database not done, erase database file and rerun vamtb dbs")
-            assert(False)
+            logging.error(f"This could also be because you have duplicate var for {varname} (in that case, use vamtb sortvar) ")
+            exit(0)
         else:
             logging.debug(f"Var {varname} already in database")
 
