@@ -14,16 +14,18 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   VAM Toolbox
 
   Dependency handling:
+  vamtb -d d:\VAM -v checkdeps
   vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
   vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
-  vamtb -d d:\VAM -v checkdeps
+  vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printrealdep
 
   Meta json handling:
   vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
+  vamtb -d d:\VAM -f Community.PosePack.1 noroot
 
   Thumb handling:
-  vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
   vamtb -d d:\VAM thumb
+  vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
 
   Organizing:
   vamtb -d d:\VAM sortvar  (caution this will reorganize your var directories with <creator>/*)
@@ -60,7 +62,9 @@ Commands:
   dump          Dump var meta.json
   dups          n2 dup find
   multiconvert  Convert directory tree of directory trees to vars.
-  printdep      Print dependencies of a var
+  noroot        Remove root node stored in pose presets
+  printdep      Print dependencies of a var from reading meta.
+  printrealdep  Print dependencies of a var from inspecting all json files.
   renamevar     Rename var from meta.json
   repack        Convert single file to var.
   sortvar       Moves vars to subdirectory named by its creator
