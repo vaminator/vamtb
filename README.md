@@ -72,3 +72,4 @@ Commands:
   thumb         Gen thumbs from var file(s)
 
 ```
+When using dbs, this will generate a sqlite file that you can browse you vars and included files insude with any tool compatible, like https://sqlitebrowser.org/
