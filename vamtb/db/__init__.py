@@ -36,6 +36,7 @@ def store_var(conn, var):
     """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
     modified_time = os.path.getmtime(var)
     varname = var.name
+    varversion = varname.split('.')[2]
 
     cur = conn.cursor()
     cur.execute("SELECT * FROM VARS WHERE VARNAME=?", (varname,))
