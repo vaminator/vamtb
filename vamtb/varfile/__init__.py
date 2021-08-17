@@ -6,6 +6,7 @@ import time
 import os
 import re
 import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
@@ -68,6 +69,36 @@ def contains(var, pattern):
     except BadZipFile:
         logging.error(f"Couldn't list files in {var}")
 
+def remroot(var):
+
+    logging.debug("Removing root from %s" % var)
+    tmpfd, tmpname = tempfile.mkstemp(dir=os.path.dirname(var))
+    os.close(tmpfd)
+
+    with ZipFile(var, 'r') as zin:
+        with ZipFile(tmpname, 'w') as zout:
+            zout.comment = zin.comment
+            for posep in zin.infolist():
+                if str(posep.filename).endswith(".vap") and str(posep.filename).startswith("Custom/Atom/Person/Pose/"):
+                    content = zin.read(posep.filename)
+
+                    jvap = json.loads(content)
+                    jvap_storables = jvap['storables']
+                    jvap_storables_noroot = []
+
+                    for s in jvap_storables:
+                        if s['id'] not in ['control', 'CharacterPoseSnapRestore']:
+                            jvap_storables_noroot.append(s)
+                        else:
+                            logging.info("Removing root from var %s" % posep.filename)
+                    jvap['storables'] = jvap_storables_noroot
+
+                    zout.writestr(posep, json.dumps(jvap, indent=4))
+                else:
+                    zout.writestr(posep, zin.read(posep.filename))
+
+    os.remove(var)
+    os.rename(tmpname, var)
 
 def is_namecorrect(fname, checksuffix=True):
     """ Takes as parameter a var filename with extension """

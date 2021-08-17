@@ -90,6 +90,16 @@ def dumpvar(ctx):
     except Exception as e:
         logging.error(f"Couldn't dump var: {e}")
 
+@cli.command('noroot')
+@click.pass_context
+def noroot(ctx):
+    """Remove root node stored in pose presets"""
+    mdir = ctx.obj['dir']
+    mfile = ctx.obj['file']
+    var = vamdirs.find_var(mdir, mfile)
+    logging.info(f"Removing root node from {var}")
+    varfile.remroot(var)
+
 @cli.command('sortvar')
 @click.pass_context
 def sort_vars(ctx):
