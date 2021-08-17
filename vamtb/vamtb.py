@@ -24,16 +24,18 @@ def cli(ctx, verbose, move, dir, custom, file):
 
     \b
     Dependency handling:
+    vamtb -d d:\VAM -v checkdeps
     vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
-    vamtb -d d:\VAM -v checkdeps
+    vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printrealdep
     \b
     Meta json handling:
     vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
+    vamtb -d d:\VAM -f Community.PosePack.1 noroot
     \b
     Thumb handling:
-    vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
     vamtb -d d:\VAM thumb
+    vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
     \b
     Organizing:
     vamtb -d d:\VAM sortvar  (caution this will reorganize your var directories with <creator>/*)
