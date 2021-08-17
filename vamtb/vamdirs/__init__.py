@@ -60,7 +60,7 @@ def recurse_dep(dir, var, do_print=False):
             logging.info("%sChecking dependencies of %s" % (" "*depth, var))
         depth += 1
 
-        deps = varfile.dep_fromvar(dir, var)
+        deps = varfile.dep_frommeta(dir, var)
         for dep in deps:
             try:
                 _ = find_var(dir, dep)

@@ -69,8 +69,15 @@ def cli(ctx, verbose, move, dir, custom, file):
 @cli.command('printdep')
 @click.pass_context
 def printdep(ctx):
-    """Print dependencies of a var"""
+    """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
     vamdirs.recurse_dep("%s/AddonPackages" % ctx.obj['dir'], ctx.obj['file'], do_print = True)
+
+@cli.command('printrealdep')
+@click.pass_context
+def printrealdep(ctx):
+    """Print dependencies of a var from inspecting all json files. Not recursive"""
+    deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
+    print("%s" % "\n".join(sorted(deps, key=str.casefold)))
 
 @cli.command('checkdep')
 @click.pass_context

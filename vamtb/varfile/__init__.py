@@ -424,7 +424,25 @@ def pattern_var(fname, pattern):
     except BadZipFile as e:
         logging.error(f"{fname} is not a correct zipfile ({e})")
 
-def dep_fromvar(dir, var):
+def dep_fromvar(dir,var):
+    all_deps = []
+    var_file = vamdirs.find_var(dir, varname = var)
+    with ZipFile(var_file, 'r') as zin:
+        for mfile in zin.infolist():
+            if mfile.filename.endswith("meta.json"):
+                continue
+            content = zin.read(mfile.filename)
+            try:
+                deps = dep_fromjson(json_file = None, json_content = content)
+            except Exception as e:
+                continue
+            varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
+            logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(varnames)))
+            all_deps.extend(varnames)
+    all_deps = list(set(all_deps))
+    return all_deps
+
+def dep_frommeta(dir, var):
     try:
         var_file = vamdirs.find_var(dir, varname = var)
     except vamex.VarNotFound:
@@ -458,7 +476,8 @@ def gen_meta(**kwargs):
     output = template.render(**kwargs)
     return output
 
-def dep_fromscene(scene):
+
+def dep_fromjson(json_file, json_content = None):
 
     def _decode_dict(a_dict):
         for id, ref in a_dict.items():  # pylint: disable=unused-variable
@@ -475,10 +494,13 @@ def dep_fromscene(scene):
                     deps['embed'].append(ref)
 
     deps = { 'embed': [], 'var': [] , 'self': [] }
-    with open(scene, "r", encoding='utf-8') as fn:
-        json.load(fn, object_hook=_decode_dict)
-    return deps
+    if json_file:
+        with open(json_file, "r", encoding='utf-8') as fn:
+            json.load(fn, object_hook=_decode_dict)
+    elif json_content:
+        json.loads(json_content, object_hook=_decode_dict)
 
+    return deps
 
 def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVersion=None, outdir="newvar"):
     """
@@ -550,7 +572,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if is_scene:
         for scene in [ p for p in Path(input_dir, "Saves/scene").glob('**/*') if p.is_file() and p.suffix == ".json" and p.name != "meta.json" ]:
             logging.debug(f"Detected scene {scene}, searching referenced dependencies")
-            deps = dep_fromscene(scene)
+            deps = dep_fromjson(json_file=scene)
             varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
             all_deps.extend(varnames)
 
