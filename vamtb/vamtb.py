@@ -31,7 +31,6 @@ def cli(ctx, verbose, move, dir, custom, file):
     \b
     Meta json handling:
     vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
-    vamtb -d d:\VAM -f Community.PosePack.1 noroot
     \b
     Thumb handling:
     vamtb -d d:\VAM thumb
@@ -44,8 +43,9 @@ def cli(ctx, verbose, move, dir, custom, file):
     Building:
     vamtb -vvc d:\ToImport\SuperScene convert
     vamtb -x repack
-    vamtb -d d:\VAM renamevar
+    vamtb -d d:\VAM renamevar (caution this will rename vars based on meta.json creator and creation name)
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var renamevar
+    vamtb -d d:\VAM -f Community.PosePack.1 noroot (caution this will remove root node from pose, don't do this on scenes)
     \b
     Database:
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
