@@ -45,7 +45,8 @@ def cli(ctx, verbose, move, dir, custom, file):
     vamtb -x repack
     vamtb -d d:\VAM renamevar (caution this will rename vars based on meta.json creator and creation name)
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var renamevar
-    vamtb -d d:\VAM -f Community.PosePack.1 noroot (caution this will remove root node from pose, don't do this on scenes)
+    vamtb -d d:\VAM -f Community.PosePack.1 noroot  - Remove root node from poses (caution this will remove root node from pose, don't do this on scenes)
+    vamtb -d d:\VAM -f Community.PosePack.1 uiap - Will generate uiap file containing pose presets, you then merge that to existing uiap 
     \b
     Database:
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
@@ -390,3 +391,14 @@ def dups(ctx):
     if not mdir.exists():
         mdir=Path(ctx.obj['dir'])
     db.find_dups(do_reref=True, mdir=mdir, var=f"{ctx.obj['file']}.var" if ctx.obj['file'] else None)
+
+@cli.command('uiap')
+@click.pass_context
+def uiap(ctx):
+    """Gen uia preset from var"""
+    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
+    if not mdir.exists():
+        mdir=Path(ctx.obj['dir'])
+    mfile=ctx.obj['file']
+    mvar, = vamdirs.list_vars(mdir, mfile)
+    varfile.uiap(mvar)

@@ -939,3 +939,98 @@ def clean_dir_safe(path):
                 raise
             time.sleep(timeout)
             timeout *= 2
+
+def gen_uia(**kwargs):
+    file_loader = FileSystemLoader('vamtb/tpl')
+    env = Environment(loader=file_loader)
+    template = env.get_template('uiap.j2')
+
+    output = template.render(**kwargs)
+    return output
+
+def get_gridlabel(txt):
+    rtxt = txt
+    rtxt = rtxt.replace('/',' ')
+    rtxt = rtxt.replace('poses ','')
+    rtxt = rtxt.replace(' poses','')
+    rtxt = rtxt.replace('Poses ','')
+    rtxt = rtxt.replace(' Poses','')
+    rtxt = rtxt.replace('Klphgz ','')
+    rtxt = rtxt.replace('Nial - ','')
+    rtxt = rtxt.replace('[Alter3go] ','')
+    rtxt = rtxt.replace('ZRSX - ','')
+    rtxt = rtxt.replace('SupaRioAmateur ','')
+    rtxt = rtxt.replace('REM ','')
+    rtxt = rtxt.replace(' or sort of casual','')
+    rtxt = rtxt.replace('400 ','')
+    rtxt = rtxt.replace('POSE ','')
+    rtxt = rtxt.replace('POSES ','')
+    rtxt = rtxt.replace('FEMALE ','F ')
+    rtxt = rtxt.replace('MALE ','M ')
+    rtxt = rtxt.replace('SUPINE ','')
+
+    rtxt = rtxt[0].upper() + rtxt[1:]
+    if txt != rtxt:
+        logging.info("Renaming button grid from %s to %s, will be displayed as %s" % (txt, rtxt, rtxt[0:15]))
+    return rtxt
+
+def gridsize(nf):
+    col_row = [ [2,2], [2,3], [3,2], [3,3], [3,4], [4,3], [4,4], 
+    [4,5], [5,4], [5,5], [5,6], [6,5], [6,6], [7,6], [6,7], [7,7], [8,7], [7,8], [8,8], [9,8], [8,9], [9,9] ]
+    c=9
+    r=9
+    for cr, rr in col_row:
+        if cr * rr >= nf:
+            c = cr
+            r = rr
+            break
+    bsize="Large"
+    if r>=6 and c>=6:
+        bsize="Medium"
+    if r>=5 and c>=6:
+        bsize="Medium"
+    if r>3 or c>3:
+        bsize="Small"    
+    return c, r, bsize
+
+def fill_grid(grid):
+    nf = len(grid['files'])
+    c, r, bsize = gridsize(nf)
+    npad = r * c  -nf
+    for i in range(npad):
+        grid['files'].append("")
+    grid['bsize'] = bsize
+    grid['col'] = c
+    grid['row'] = r
+
+
+def uiap(varfile):
+    lmax=7;cmax=6
+    ngmax = 0
+    logging.debug("Generating uia presets for %s" % varfile)
+    based=Path("")
+    for p in Path(varfile).parents:
+        if p.stem == "AddonPackages":
+            based = Path(p).parent
+    grids = []
+    lastdir = None
+    ngrid = 0
+    with ZipFile(varfile, 'r') as zin:
+        for mfile in zin.infolist():
+            if mfile.filename.startswith("Custom/Atom/Person/Pose/") and mfile.filename.endswith(".vap"):
+                vfile = Path(mfile.filename).name
+                posedir = mfile.filename[len("Custom/Atom/Person/Pose/"):-len(vfile)-1]
+                gridlabel = get_gridlabel(posedir)
+                if posedir != lastdir or len(grids[-1]['files']) == lmax * cmax:
+                    if lastdir is not None:
+                        fill_grid(grids[-1])
+                    if ngmax and ngrid >= ngmax:
+                        break
+                    grids.append({"label": gridlabel, "files": []})
+                    lastdir = posedir
+                    ngrid += 1
+                grids[-1]['files'].append("/" + mfile.filename)
+    fill_grid(grids[-1])
+    uiap = gen_uia(varfile = varfile.name[:-4], grids = grids)
+    with open("out.uiap", "w") as f:
+        f.write(uiap)
