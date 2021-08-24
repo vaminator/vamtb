@@ -52,6 +52,17 @@ def find_var(dir, varname):
     else:
         raise vamex.VarNotFound(varname)
 
+def exists_var(dir, varname):
+    mlevel = logging.root.level
+    logging.root.setLevel(level = logging.ERROR)
+    found = True
+    try:
+        find_var(dir, varname)
+    except:
+        found = False
+    logging.root.setLevel(level = mlevel)
+    return found
+
 def recurse_dep(dir, var, do_print=False):
     def recdef(var, depth=0):
         if do_print:

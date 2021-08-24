@@ -77,7 +77,8 @@ def printdep(ctx):
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
     deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
-    print("%s" % "\n".join(sorted(deps, key=str.casefold)))
+    for d in sorted(deps, key=str.casefold):
+        print("%-60s : %s" % (d, "Found" if vamdirs.exists_var(ctx.obj['dir'], d) else "Not found"))
 
 @cli.command('checkdep')
 @click.pass_context
