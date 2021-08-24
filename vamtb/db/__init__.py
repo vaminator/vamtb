@@ -29,7 +29,7 @@ def init_dbs(conn):
 ref_creators = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
 "bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
-"Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","Oeshii",
+"Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 
 def store_var(conn, var):
