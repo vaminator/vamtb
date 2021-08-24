@@ -4,11 +4,12 @@ import logging
 import errno
 import time
 import os
+import math
 import re
 import shutil
 import tempfile
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from zipfile import ZipFile, BadZipFile
 from jinja2 import Environment, FileSystemLoader
 import traceback
@@ -102,7 +103,7 @@ def remroot(var):
 
 def is_namecorrect(fname, checksuffix=True):
     """ Takes as parameter a var filename with extension """
-    logging.debug("Checking var %s" % fname)
+    # logging.debug("Checking var %s" % fname)
     if not isinstance(fname, os.PathLike):
         fname = Path(fname)
     if checksuffix and fname.suffix != ".var":
@@ -437,7 +438,8 @@ def dep_fromvar(dir,var):
             except Exception as e:
                 continue
             varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
-            logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(varnames)))
+            if varnames:
+                logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(varnames)))
             all_deps.extend(varnames)
     all_deps = list(set(all_deps))
     return all_deps
@@ -475,7 +477,6 @@ def gen_meta(**kwargs):
 
     output = template.render(**kwargs)
     return output
-
 
 def dep_fromjson(json_file, json_content = None):
 
