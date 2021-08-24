@@ -1,0 +1,135 @@
+      {% for grid in grids -%}
+      { 
+         "gridColumns" : "{{grid.col}}", 
+         "gridRows" : "{{grid.row}}",
+         "buttonSize" : "{{grid.bsize}}", 
+         "activeButtonCount" : "1", 
+         "maxButtonRow" : "4",
+         "gridLabel" : "{{grid.label}}", 
+         "quickLaunchBar" : "false", 
+         "Buttons" : [{% for presetfile in grid.files -%}
+            {% if presetfile == "" %}
+            { 
+               "buttonCategory" : "Miscellaneous", 
+               "buttonType" : "Blank"
+            }{% else %}
+            { 
+               "buttonCategory" : "Presets", 
+               "buttonType" : "Load Pose Preset", 
+               "targetCategory" : "Gaze Selected Atom", 
+               "targetName" : "Last viewed Female", 
+               "targetParamNameOn" : "", 
+               "targetParamNameOff" : "", 
+               "pluginType" : "", 
+               "presetFilePath" : "{{varfile}}:{{presetfile}}", 
+               "preset2FilePath" : "", 
+               "preset3FilePath" : "", 
+               "preset1Type" : "Single File", 
+               "preset2Type" : "Single File", 
+               "preset3Type" : "Single File", 
+               "parentLinkToTarget" : "false", 
+               "useLatestVARforPresets" : "true", 
+               "buttonLabelOn" : "", 
+               "buttonLabelOff" : "", 
+               "suppressClothingLoad" : "false", 
+               "suppressPersonScaleLoad" : "false", 
+               "mergeLoadPreset" : "false", 
+               "autoLabel" : "false", 
+               "spawnAtomIfTargetMissing" : "false", 
+               "useButtonTexture" : "true", 
+               "closeGameUIonPlayMode" : "true", 
+               "openGameUIonEditMode" : "true", 
+               "decalFaceLoad" : "false", 
+               "decalBodyLoad" : "false", 
+               "decalLimbsLoad" : "false", 
+               "decalGenLoad" : "false", 
+               "atomCategory" : "People", 
+               "atomType" : "Person", 
+               "atomPositionRelativeTo" : "", 
+               "targetNode" : "control", 
+               "atomSpawnSpecifyName" : "false", 
+               "atomSpawnName" : "", 
+               "motionCaptureAtomName" : "", 
+               "atomPositionX" : "0", 
+               "atomPositionY" : "0", 
+               "atomPositionZ" : "0", 
+               "atomRotationX" : "0", 
+               "atomRotationY" : "0", 
+               "atomRotationZ" : "0", 
+               "atomAbsoluteHeight" : "false", 
+               "atomAbsolutePitch" : "false", 
+               "atomAbsoluteRoll" : "false", 
+               "worldScaleAbs" : "1", 
+               "worldScaleIncrement" : "0.1", 
+               "lockedPositionX" : "false", 
+               "lockedPositionY" : "true", 
+               "lockedPositionZ" : "false", 
+               "lockedRotationX" : "true", 
+               "lockedRotationY" : "false", 
+               "lockedRotationZ" : "true", 
+               "vrMoveDisablePhysics" : "false", 
+               "toggleShowLeftVRHand" : "true", 
+               "toggleShowRightVRHand" : "true", 
+               "mocapLoadHeelAdjust" : "true", 
+               "swtichUIAScreenTarget" : "1", 
+               "maxButtonStates" : "1", 
+               "ButtonSkin" : { 
+                  "minFontSize" : "4", 
+                  "maxFontSize" : "25", 
+                  "minMicroFontSize" : "3", 
+                  "maxMicroFontSize" : "12", 
+                  "minMiniFontSize" : "3", 
+                  "maxMiniFontSize" : "15", 
+                  "minSmallFontSize" : "4", 
+                  "maxSmallFontSize" : "15", 
+                  "minMediumFontSize" : "4", 
+                  "maxMediumFontSize" : "25", 
+                  "minLargeFontSize" : "4", 
+                  "maxLargeFontSize" : "35", 
+                  "fontSizeDefault" : "true", 
+                  "textOnColorDefault" : "true", 
+                  "textOffColorDefault" : "true", 
+                  "textAlignmentDefault" : "true", 
+                  "buttonOnColorDefault" : "true", 
+                  "buttonOffColorDefault" : "true", 
+                  "customButtonOnTextureDefault" : "true", 
+                  "customButtonOffTextureDefault" : "true", 
+                  "buttonFontDefault" : "true", 
+                  "textOnColor" : { 
+                     "H" : "0", 
+                     "S" : "0", 
+                     "V" : "0"
+                  }, 
+                  "textOffColor" : { 
+                     "H" : "0", 
+                     "S" : "0", 
+                     "V" : "0"
+                  }, 
+                  "buttonOnColor" : { 
+                     "H" : "0", 
+                     "S" : "0", 
+                     "V" : "0"
+                  }, 
+                  "buttonOffColor" : { 
+                     "H" : "0", 
+                     "S" : "0", 
+                     "V" : "0"
+                  }, 
+                  "textAlignment" : "MiddleCenter", 
+                  "customButtonOnTextureURL" : "", 
+                  "customButtonOffTextureURL" : "", 
+                  "buttonFont" : "Arial", 
+                  "maxButtonStates" : "1"
+               }, 
+               "pluginVariablesOn" : { 
+                  "pluginVariables" : [ 
+                  ]
+               }, 
+               "pluginVariablesOff" : { 
+                  "pluginVariables" : [ 
+                  ]
+               }
+            }{% endif %}{% if not loop.last %},{% endif %}{% endfor %}
+         ]
+      },
+      {% endfor %}
