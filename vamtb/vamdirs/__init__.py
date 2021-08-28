@@ -66,8 +66,14 @@ def exists_var(dir, varname):
 
 def recurse_dep(dir, var, do_print=False):
     def recdef(var, depth=0):
-        deps = varfile.dep_frommeta(dir, var)
+        try:
+            deps = varfile.dep_frommeta(dir, var)
+        except vamex.VarMetaJson:
+            print(Fore.RED + "%sUnknown dependencies for %s: Couldn't decode json" % (" "*depth, var) + Style.RESET_ALL)
+            return
+
         if not deps:
+            print("%s0 dependencies for %s" % (" "*depth, var))
             return
         if do_print:
             print("%s%s dependencies for %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, deps.keys() or ""))

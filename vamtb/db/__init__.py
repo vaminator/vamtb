@@ -90,6 +90,7 @@ def store_vars(vars_list):
     for var in vars_list:
         logging.debug(f"Analyzing files in var {var}")
         store_var(conn, var)
+    logging.info("Stored %d vars" % len(vars_list) )
     # Commit at the end to speed things up but you need more RAM
     conn.commit()
     conn.close()

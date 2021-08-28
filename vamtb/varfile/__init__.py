@@ -460,8 +460,6 @@ def dep_frommeta(dir, var):
 
     try:
         meta = extract_meta_var(var_file)
-    except vamex.VarMetaJson:
-        raise
     except vamex.NoMetaJson:
         raise
 
