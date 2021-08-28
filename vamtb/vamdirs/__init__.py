@@ -5,6 +5,7 @@ import re
 import os
 import zipfile
 from vamtb import varfile
+from colorama import Fore, Back, Style
 from vamtb import vamex
 
 def is_vamdir(fpath):
@@ -65,20 +66,21 @@ def exists_var(dir, varname):
 
 def recurse_dep(dir, var, do_print=False):
     def recdef(var, depth=0):
-        if do_print:
-            print("%sChecking dependencies of %s" % (" "*depth, var))
-        else:
-            logging.info("%sChecking dependencies of %s" % (" "*depth, var))
-        depth += 1
-
         deps = varfile.dep_frommeta(dir, var)
+        if not deps:
+            return
+        if do_print:
+            print("%s%s dependencies for %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, deps.keys() or ""))
+        else:
+            logging.info("%s%s dependencies of %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, deps.keys() or ""))
+        depth += 2
         for dep in deps:
             try:
                 _ = find_var(dir, dep)
-                logging.debug("%sSearching dep %s: OK"%(" "*depth, dep))
+                logging.debug(Fore.GREEN + "%sSearching dep %s: OK"%(" "*depth, dep) + Style.RESET_ALL)
             except vamex.VarNotFound:
-                logging.debug("%sSearching dep %s: NOT FOUND"%(" "*depth, dep))
-                raise
+                logging.debug(Fore.RED + "%sSearching dep %s: NOT FOUND"%(" "*depth, dep) + Style.RESET_ALL)
+                continue
             if do_print:
                 print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
             try:

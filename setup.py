@@ -24,6 +24,7 @@ setup(
         "Pillow", 
         "piexif",
         "tqdm",
+        "colorama"
       ],
       extras_require={
         'test': [

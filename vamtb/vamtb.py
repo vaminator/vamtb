@@ -1,4 +1,6 @@
 import logging
+import locale
+from colorama import Fore, Back, Style, init
 import os
 import pprint
 import sys
@@ -52,7 +54,12 @@ def cli(ctx, verbose, move, dir, custom, file):
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
     vamtb -vvd d:\VAM dups will scan your vars and for any files already in a ref var, will reref to use that ref var files
     vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dups will reref this var to use external dependencies
+    \b
+    Character encoding on windows:
+    On windows cmd will use cp1252 so you might get some errors displaying international characters.
+    Start vamtb with python -X utf8 vamtb.py <rest of parameters>
     """
+    init()
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
     fh = logging.FileHandler('log-vamtb.txt', mode="w")
@@ -79,7 +86,7 @@ def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
     deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
     for d in sorted(deps, key=str.casefold):
-        print("%-60s : %s" % (d, "Found" if vamdirs.exists_var(ctx.obj['dir'], d) else "Not found"))
+        print("%-60s : %s" % (d, Fore.GREEN + "Found" + Style.RESET_ALL if vamdirs.exists_var(ctx.obj['dir'], d) else Fore.RED + "Not found" + Style.RESET_ALL))
 
 @cli.command('checkdep')
 @click.pass_context

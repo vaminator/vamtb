@@ -439,7 +439,7 @@ def dep_fromvar(dir,var):
                 continue
             varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
             if varnames:
-                logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(varnames)))
+                logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(sorted(varnames))))
             all_deps.extend(varnames)
     all_deps = list(set(all_deps))
     return all_deps
@@ -960,6 +960,7 @@ def get_gridlabel(txt):
     rtxt = rtxt.replace('Nial - ','')
     rtxt = rtxt.replace('[Alter3go] ','')
     rtxt = rtxt.replace('ZRSX - ','')
+    rtxt = rtxt.replace('CosmicFTW - ','')
     rtxt = rtxt.replace('SupaRioAmateur ','')
     rtxt = rtxt.replace('REM ','')
     rtxt = rtxt.replace(' or sort of casual','')
