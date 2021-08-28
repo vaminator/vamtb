@@ -84,9 +84,13 @@ def printdep(ctx):
 @click.pass_context
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
-    deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
-    for d in sorted(deps, key=str.casefold):
-        print("%-60s : %s" % (d, Fore.GREEN + "Found" + Style.RESET_ALL if vamdirs.exists_var(ctx.obj['dir'], d) else Fore.RED + "Not found" + Style.RESET_ALL))
+    try:
+        deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
+    except vamex.VarNotFound:
+        logging.error("Var not found!")
+    else:
+        for d in sorted(deps, key=str.casefold):
+            print("%-60s : %s" % (d, Fore.GREEN + "Found" + Style.RESET_ALL if vamdirs.exists_var(ctx.obj['dir'], d) else Fore.RED + "Not found" + Style.RESET_ALL))
 
 @cli.command('checkdep')
 @click.pass_context

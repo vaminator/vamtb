@@ -70,8 +70,9 @@ def recurse_dep(dir, var, do_print=False):
             deps = varfile.dep_frommeta(dir, var)
         except vamex.VarMetaJson:
             print(Fore.RED + "%sUnknown dependencies for %s: Couldn't decode json" % (" "*depth, var) + Style.RESET_ALL)
+        except vamex.VarNotFound:
+            logging.error("Var not found!")
             return
-
         if not deps:
             print("%s0 dependencies for %s" % (" "*depth, var))
             return
