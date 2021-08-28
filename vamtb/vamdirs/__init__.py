@@ -74,12 +74,12 @@ def recurse_dep(dir, var, do_print=False):
             logging.error("Var not found!")
             return
         if not deps:
-            print("%s0 dependencies for %s" % (" "*depth, var))
+            logging.debug("%s0 dependencies for %s" % (" "*depth, var))
             return
         if do_print:
-            print("%s%s dependencies for %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, deps.keys() or ""))
+            print("%s%s dependencies for %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, ",".join(deps.keys()) or ""))
         else:
-            logging.info("%s%s dependencies of %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, deps.keys() or ""))
+            logging.info("%s%s dependencies of %s: %s" % (" "*depth, "Checking %s"%len(deps) if deps else "No", var, ",".join(deps.keys()) or ""))
         depth += 2
         for dep in deps:
             try:
