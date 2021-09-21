@@ -7,6 +7,7 @@ import zipfile
 from vamtb import varfile
 from colorama import Fore, Back, Style
 from vamtb import vamex
+from vamtb.utils import *
 
 def is_vamdir(fpath):
     logging.debug("Checking if %s is a VAM dir" % fpath)
@@ -24,6 +25,8 @@ def stats_vars(fpath, pattern = None):
 
 def find_var(dir, varname):
     # logging.debug("Searching for var %s in %s" % (varname, dir))
+    if varname.endswith(".var"):
+        varname=varname[0:-4]
     try:
         varfile.is_namecorrect(Path("%s.foo" % varname), checksuffix=False)
     except vamex.VarNameNotCorrect:
@@ -64,15 +67,18 @@ def exists_var(dir, varname):
     logging.root.setLevel(level = mlevel)
     return found
 
-def recurse_dep(dir, var, do_print=False):
+def recurse_dep(dir, var, do_print=False, strict=False):
     def recdef(var, depth=0):
         try:
             deps = varfile.dep_frommeta(dir, var)
         except vamex.VarMetaJson:
-            print(Fore.RED + "%sUnknown dependencies for %s: Couldn't decode json" % (" "*depth, var) + Style.RESET_ALL)
+            print(ucol.redf("%sUnknown dependencies for %s: Couldn't decode json" % (" "*depth, var) ))
         except vamex.VarNotFound:
             logging.error("Var not found!")
-            return
+            if strict:
+                raise
+            else:
+                return
         if not deps:
             logging.debug("%s0 dependencies for %s" % (" "*depth, var))
             return
@@ -84,10 +90,13 @@ def recurse_dep(dir, var, do_print=False):
         for dep in deps:
             try:
                 _ = find_var(dir, dep)
-                logging.debug(Fore.GREEN + "%sSearching dep %s: OK"%(" "*depth, dep) + Style.RESET_ALL)
+                logging.debug(ucol.greenf("%sSearching dep %s: OK"%(" "*depth, dep) ))
             except vamex.VarNotFound:
-                logging.debug(Fore.RED + "%sSearching dep %s: NOT FOUND"%(" "*depth, dep) + Style.RESET_ALL)
-                continue
+                logging.debug(ucol.redf("%sSearching dep %s: NOT FOUND"%(" "*depth, dep) ))
+                if strict:
+                    raise
+                else:
+                    continue
             if do_print:
                 print("%sDep: %s -> %s" % (" "*depth, dep, find_var(dir, dep)))
             try:

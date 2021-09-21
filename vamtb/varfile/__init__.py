@@ -43,7 +43,8 @@ def split_varname(fname, dest_dir):
         pass
     logging.info("Moving %s to %s" % (fname, newname))
     try:
-        fname.rename(newname)
+        shutil.move(fname, newname)
+        #fname.rename(newname)
     except FileExistsError:
         pass
         fcrc = crc32(fname)
@@ -425,9 +426,14 @@ def pattern_var(fname, pattern):
     except BadZipFile as e:
         logging.error(f"{fname} is not a correct zipfile ({e})")
 
-def dep_fromvar(dir,var):
+def dep_fromvar(dir,var,full=False):
+    """
+    Full=True will also return files referenced from the dependent var"""
     all_deps = []
-    var_file = vamdirs.find_var(dir, varname = var)
+    if dir:
+        var_file = vamdirs.find_var(dir, varname = var)
+    else:
+        var_file = var
     with ZipFile(var_file, 'r') as zin:
         for mfile in zin.infolist():
             if mfile.filename.endswith("meta.json"):
@@ -437,10 +443,13 @@ def dep_fromvar(dir,var):
                 deps = dep_fromjson(json_file = None, json_content = content)
             except Exception as e:
                 continue
-            varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
-            if varnames:
-                logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(sorted(varnames))))
-            all_deps.extend(varnames)
+            if not full:
+                varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
+                if varnames:
+                    logging.debug("File %s references vars: %s" % (mfile.filename, ",".join(sorted(varnames))))
+                all_deps.extend(varnames)
+            else:
+                all_deps.extend(deps['var'])
     all_deps = list(set(all_deps))
     return all_deps
 
@@ -476,7 +485,7 @@ def gen_meta(**kwargs):
     output = template.render(**kwargs)
     return output
 
-def dep_fromjson(json_file, json_content = None):
+def dep_fromjson(json_file, json_content = None, Full=False):
 
     def _decode_dict(a_dict):
         for id, ref in a_dict.items():  # pylint: disable=unused-variable
@@ -484,7 +493,7 @@ def dep_fromjson(json_file, json_content = None):
             if type(ref) == str:
                 if ref.startswith("SELF:"):
                     deps['self'].append(ref)
-                elif ":" in ref and not ref.startswith(':'):
+                elif ":" in ref[1:]:
                     name = ref.split(':')[0]
                     ndot = len(name.split('.'))
                     if ndot == 3:
@@ -845,61 +854,6 @@ def search_and_replace_dir(mdir, text, subst, enc):
             os.remove(file)
             os.rename(tempfile, file)
 
-def reref(mdir, var, refvar, license, assocs):
-    """
-    Will modify var to point to refvar. Files to relink are in assocs
-    text to substitute, substitute
-    """
-    logging.debug(f"Rerefing var {var} to point to {refvar} for files: {assocs}")
-    clean_dir_safe('tmp')
-    varfname=vamdirs.find_var(mdir, var)
-    bkpvarfname=f"{varfname}.orig"
-    try:
-        os.unlink(bkpvarfname)
-    except:
-        pass
-    os.rename(varfname, bkpvarfname)
-    logging.debug("Unpacking var...")
-    with ZipFile(bkpvarfname, 'r') as zipObj:
-        for f in zipObj.namelist():
-            to_ext = True
-            for assoc in assocs:
-                file, repl = assoc
-                file = file.removeprefix("SELF:/")
-                if file == f:
-                    to_ext = False
-            if to_ext:
-                zipObj.extract(f, "tmp")
-            else:
-                logging.debug(f"Not extracting {f}")
-    try:
-        meta = json.load(open("tmp/meta.json"))
-    except:
-        logging.error(f"meta.json from var {var} is not pure json. Rename back .var.orig to .var")
-        return
-    for assoc in assocs:
-        text, subst = assoc
-        for enc in ( "utf-8", "cp1252", "latin1", "iso-8859-1" ):  # Fuck you if you didn't use utf-8
-            try:
-                search_and_replace_dir("tmp", text, subst, enc)
-                break
-            except UnicodeDecodeError:
-                # Try with another encoding..
-                continue
-        else:
-            # 
-            logging.error(f"We did not manage to read the input files of {var} due to encoding failures. Rename back .var.orig to .var")
-            return
-        meta['contentList'] = [ i for i in meta['contentList'] if i != text.removeprefix("SELF:/") ]
-    creator, asset, _ = refvar.split(".", 3)
-    refvar_latest = ".".join((creator, asset, "latest"))
-    meta['dependencies'][refvar_latest]={}
-    meta['dependencies'][refvar_latest]['licenseType'] = license
-    meta['description'] += f"\nRerefed on {datetime.now(timezone.utc)}"
-    json_object = json.dumps(meta, indent = 4)
-    with open("tmp/meta.json", "w") as outfile:
-        outfile.write(json_object)
-    vamdirs.zipdir("tmp", varfname)
 
 def onerror(function, path, exc_info):
     # Handle ENOTEMPTY for rmdir

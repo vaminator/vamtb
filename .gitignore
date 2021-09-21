@@ -1,3 +1,5 @@
+**/*.db
+**/*.pdf
 **/*.var
 **/*.jpg
 **/*.zip
@@ -13,6 +15,7 @@ ws.code-workspace
 .vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
+vamtb/db/__pycache__/
 *.py[cod]
 *$py.class
 

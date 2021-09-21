@@ -8,6 +8,12 @@ It's also possible to build from source and install:
 python setup.py install
 ````
 
+To run it under windows, you should force UTF8 for international characters handling on the console:
+
+````
+python -X utf8 vamtb.py <rest of options>
+````
+
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 

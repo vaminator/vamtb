@@ -1,6 +1,5 @@
 import logging
 import locale
-from colorama import Fore, Back, Style, init
 import os
 import pprint
 import sys
@@ -12,15 +11,17 @@ from vamtb import vamdirs
 from vamtb import varfile
 from vamtb import vamex
 from vamtb import db
+from vamtb.utils import *
 
 @click.group()
-@click.option('dir', '-d', default="D:\\VAM", help='VAM directory.')
-@click.option('custom', '-c', default="D:\\VAM", help='VAM custom directory.')
+@click.option('dir', '-d', help='VAM directory.')
+@click.option('custom', '-c', help='VAM custom directory.')
 @click.option('file','-f', help='Var file.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
+@click.option('-a', '--auto/--no-auto', default=True, help="When rerefing, will automatically change reference to known reference creators. Default to true")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
 @click.pass_context
-def cli(ctx, verbose, move, dir, custom, file):
+def cli(ctx, verbose, move, auto, dir, custom, file):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -52,14 +53,14 @@ def cli(ctx, verbose, move, dir, custom, file):
     \b
     Database:
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
-    vamtb -vvd d:\VAM dups will scan your vars and for any files already in a ref var, will reref to use that ref var files
-    vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dups will reref this var to use external dependencies
+    vamtb -vvd d:\VAM dotty will graph your collection
+    vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dotty will graph this var
+    vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dottys will graph each var seperately
     \b
     Character encoding on windows:
     On windows cmd will use cp1252 so you might get some errors displaying international characters.
     Start vamtb with python -X utf8 vamtb.py <rest of parameters>
     """
-    init()
     logger = logging.getLogger()
     logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
     fh = logging.FileHandler('log-vamtb.txt', mode="w")
@@ -67,36 +68,39 @@ def cli(ctx, verbose, move, dir, custom, file):
     # fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
+    logging.info(ucol.greenf("Welcome to vamtb"))
+
     ctx.ensure_object(dict)
     ctx.obj['dir'] = dir
     ctx.obj['custom'] = custom
     ctx.obj['file'] = file
     ctx.obj['move'] = move
+    ctx.obj['auto'] = auto
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 @cli.command('printdep')
 @click.pass_context
 def printdep(ctx):
     """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
-    vamdirs.recurse_dep("%s/AddonPackages" % ctx.obj['dir'], ctx.obj['file'], do_print = True)
+    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = True)
 
 @cli.command('printrealdep')
 @click.pass_context
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
     try:
-        deps = varfile.dep_fromvar(ctx.obj['dir'], ctx.obj['file'])
+        deps = varfile.dep_fromvar(getdir(ctx), ctx.obj['file'])
     except vamex.VarNotFound:
         logging.error("Var not found!")
     else:
         for d in sorted(deps, key=str.casefold):
-            print("%-60s : %s" % (d, Fore.GREEN + "Found" + Style.RESET_ALL if vamdirs.exists_var(ctx.obj['dir'], d) else Fore.RED + "Not found" + Style.RESET_ALL))
+            print("%-60s : %s" % (d, ucol.greenf("Found") if vamdirs.exists_var(ctx.obj['dir'], d) else ucol.redf("Not found")))
 
 @cli.command('checkdep')
 @click.pass_context
 def checkdep(ctx):
     """Check dependencies of a var"""
-    vamdirs.recurse_dep("%s/AddonPackages" % ctx.obj['dir'], ctx.obj['file'], do_print = False)
+    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = False)
 
 @cli.command('dump')
 @click.pass_context
@@ -104,7 +108,7 @@ def dumpvar(ctx):
     """Dump var meta.json"""
     pp = pprint.PrettyPrinter(indent=4)
     try:
-        pp.pprint(varfile.extract_meta_var(vamdirs.find_var(ctx.obj['dir'],ctx.obj['file'])))
+        pp.pprint(varfile.extract_meta_var(vamdirs.find_var(getdir(ctx),ctx.obj['file'])))
     except vamex.VarNotFound as e:
         logging.error(f"Couldn't find var: {e}")
     except Exception as e:
@@ -114,7 +118,7 @@ def dumpvar(ctx):
 @click.pass_context
 def noroot(ctx):
     """Remove root node stored in pose presets"""
-    mdir = ctx.obj['dir']
+    mdir = getdir(ctx)
     mfile = ctx.obj['file']
     var = vamdirs.find_var(mdir, mfile)
     logging.info(f"Removing root node from {var}")
@@ -124,13 +128,11 @@ def noroot(ctx):
 @click.pass_context
 def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator"""
-    dir=ctx.obj['dir']
-    logging.info("Sorting var in %s" % dir)
-    all_files = vamdirs.list_vars(dir, pattern="*")
-    vars_files = vamdirs.list_vars(dir)
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir = getdir(ctx)
+    logging.info("Sorting var in %s" % mdir)
+    all_files = vamdirs.list_vars(mdir, pattern="*")
+    vars_files = vamdirs.list_vars(mdir)
+    mdir=Path(mdir)
     for var_file in vars_files:
         try:
             pass
@@ -156,9 +158,7 @@ def sort_vars(ctx):
 @click.pass_context
 def check_vars(ctx):
     """Check all var files for consistency"""
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir=Path(getdir(ctx))
     logging.info("Checking dir %s for vars" % mdir)
     all_files = vamdirs.list_vars(mdir, pattern="*.var")
     logging.debug("Found %d files in %s" % (len(all_files), mdir))
@@ -175,9 +175,7 @@ def check_vars(ctx):
 @click.pass_context
 def stats_vars(ctx):
     """Get stats on all vars"""
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir=Path(getdir(ctx))
     logging.info("Checking stats for dir %s" % mdir)
     all_files = vamdirs.list_vars(mdir, pattern="*.var")
     creators_file = defaultdict(list)
@@ -196,7 +194,7 @@ def check_deps(ctx):
     This directory can then be moved away from the directory.
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of the directory if they are now valid.
     """
-    dir = Path("%s/AddonPackages" % ctx.obj['dir'])
+    dir = getdir(ctx)
     move = ctx.obj['move']
     if move:
         movepath=Path(dir, "00Dep")
@@ -208,36 +206,34 @@ def check_deps(ctx):
     missing = set()
     for var in sorted(all_vars):
         try:
-            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False)
+            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, strict=True)
         except vamex.VarNotFound as e:
-            logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
+            logging.error(ucol.redf(f'While handing var {var.name}, we got a {type(e).__name__} {e}'))
             missing.add(f"{e}")
             if movepath:
                 Path(var).rename(Path(movepath, var.name))
         except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
-            logging.error(f'While handing var {var.name}, we got {type(e).__name__} {e}')
+            logging.error(ucol.redf(f'While handing var {var.name}, we got {type(e).__name__} {e}'))
             if movepath:
                 Path(var).rename(Path(movepath, var.name))
         except RecursionError:
-            logging.error(f"While handling var {var.name} we got a recursion error. This is pretty bad and the file should be removed.")
+            logging.error(ucol.redf(f"While handling var {var.name} we got a recursion error. This is pretty bad and the file should be removed."))
             exit(1)
         except Exception as e:
-            logging.error(f'While handing var {var.name}, caught exception {e}')
+            logging.error(ucol.redf(f'While handing var {var.name}, caught exception {e}'))
             raise
     if missing:
         nl="\n"
-        logging.error(f'You have missing dependencies:{nl}{ nl.join( sorted(list(missing)) ) }')
+        logging.error(ucol.redf(f'You have missing dependencies:{nl}{ nl.join( sorted(list(missing)) ) }'))
     else:
-        logging.error("You have no missing dependency it seems. Yay!")
+        logging.error(ucol.greenf("You have no missing dependency it seems. Yay!"))
 
 @cli.command('thumb')
 @click.pass_context
 def vars_thumb(ctx):
     """Gen thumbs from var file(s)"""
     basedir="thumb"
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir=Path(getdir(ctx))
     mfile=ctx.obj['file']
     if mfile:
         vars = vamdirs.list_vars(mdir, mfile)
@@ -298,10 +294,8 @@ def var_multiconvert(ctx):
 @click.pass_context
 def autoload(ctx):
     """Check vars having autoloading of morph
-    Each morph is then printed (either creator name as subdir or vmi file)"""
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    """
+    mdir=Path(getdir(ctx))
     vars_files = vamdirs.list_vars(mdir)
     for var_file in vars_files:
         try:
@@ -360,9 +354,7 @@ def var_repack(ctx):
 @click.pass_context
 def renamevar(ctx):
     """Rename var from meta.json"""
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir=Path(getdir(ctx))
     if ctx.obj['file']:
         mfile=ctx.obj['file']
         vars = vamdirs.list_vars(mdir, mfile)
@@ -386,30 +378,37 @@ def dbs(ctx):
     """
     Scan vars and store props in db
     """
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
-    vars_files = sorted(vamdirs.list_vars(mdir))
+    mdir=Path(getdir(ctx))
+    vars_files = sorted(vamdirs.list_vars(mdir))[0:]
     db.store_vars(vars_files)
 
-@cli.command('dups')
+@cli.command('dotty')
 @click.pass_context
-def dups(ctx):
+def dotty(ctx):
     """
-    n2 dup find
+    Gen dot graph of deps
     """
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
-    db.find_dups(do_reref=True, mdir=mdir, var=f"{ctx.obj['file']}.var" if ctx.obj['file'] else None)
+    db.dotty(ctx.obj['file'])
+
+@cli.command('dottys')
+@click.pass_context
+def dottys(ctx):
+    """
+    Gen dot graph of deps, one per var
+    """
+    mdir=Path(ctx.obj['dir'])
+    vars_files = vamdirs.list_vars(mdir)
+    for var_file in vars_files:
+        var_file = Path(var_file).with_suffix('').name
+        logging.info(f"Performing graph for {var_file}")
+        db.dotty(var_file)
+
 
 @cli.command('uiap')
 @click.pass_context
 def uiap(ctx):
     """Gen uia preset from var"""
-    mdir=Path("%s/AddonPackages" % ctx.obj['dir'])
-    if not mdir.exists():
-        mdir=Path(ctx.obj['dir'])
+    mdir=Path(getdir(ctx))
     mfile=ctx.obj['file']
     mvar, = vamdirs.list_vars(mdir, mfile)
     varfile.uiap(mvar)

@@ -8,6 +8,13 @@ class OneParamException(Exception):
     def __str__(self):
         return f'{self.message}'
     
+class BaseDirNotFound(OneParamException):
+    """Exception raised for non existent AddonPackages.
+
+    """
+
+    def __init__(self):
+        super().__init__("", "BaseDirNotfound")
 
 class VarNotFound(OneParamException):
     """Exception raised for not present VAR.
