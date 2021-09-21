@@ -14,14 +14,13 @@ from vamtb import db
 from vamtb.utils import *
 
 @click.group()
-@click.option('dir', '-d', help='VAM directory.')
+@click.option('dir', '-d', help='VAM directory (default cur dir).')
 @click.option('custom', '-c', help='VAM custom directory.')
 @click.option('file','-f', help='Var file.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
-@click.option('-a', '--auto/--no-auto', default=True, help="When rerefing, will automatically change reference to known reference creators. Default to true")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
 @click.pass_context
-def cli(ctx, verbose, move, auto, dir, custom, file):
+def cli(ctx, verbose, move, dir, custom, file):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -40,8 +39,9 @@ def cli(ctx, verbose, move, auto, dir, custom, file):
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1.var thumb
     \b
     Organizing:
-    vamtb -d d:\VAM sortvar  (caution this will reorganize your var directories with <creator>/*)
-    vamtb -d d:\VAM statsvar
+    vamtb -d d:\VAM sortvar  Reorganize your var directories with <creator>/*
+                If a file already exists in that directory, CRC is checked before overwritting.
+    vamtb -d d:\VAM statsvar will dump some statistics    
     \b
     Building:
     vamtb -vvc d:\ToImport\SuperScene convert
@@ -75,7 +75,6 @@ def cli(ctx, verbose, move, auto, dir, custom, file):
     ctx.obj['custom'] = custom
     ctx.obj['file'] = file
     ctx.obj['move'] = move
-    ctx.obj['auto'] = auto
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 @cli.command('printdep')
@@ -386,7 +385,9 @@ def dbs(ctx):
 @click.pass_context
 def dotty(ctx):
     """
-    Gen dot graph of deps
+    \b
+    Gen dot graph of deps.
+    If you only want to graph one var, use -f.
     """
     db.dotty(ctx.obj['file'])
 

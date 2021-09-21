@@ -1,14 +1,13 @@
 '''Vam dir structure'''
 import os
 import logging
-import re
 import sqlite3
 from tqdm import tqdm
 from pathlib import Path
 from vamtb import varfile
 from vamtb import vamex
-from zipfile import ZipFile, BadZipFile
 import subprocess
+from zipfile import ZipFile
 
 def init_dbs(conn):
     conn.execute('''CREATE TABLE IF NOT EXISTS VARS
@@ -302,6 +301,7 @@ def dotty(lvar=None):
 
     direct_graphs=[]
     shapes = []
+    
     conn = sqlite3.connect('vars.db')
     if lvar:
         only_nodes = deps_node(conn, lvar)
@@ -323,16 +323,23 @@ def dotty(lvar=None):
             props = set_props(conn, [var, dep])
             shapes.extend(props)
             direct_graphs.append(f'"{var}" -> "{dep}";')
+
     if direct_graphs:
         dot_lines = shapes 
         dot_lines.extend(sorted(list(set(direct_graphs))))
+
         with open("deps.dot", "w") as f:
             f.write("digraph vardeps {" + "\n" + "\n".join(dot_lines) + "}")
-        if lvar:
-            pdfname = f"{lvar}.pdf"
-        else:
-            pdfname = "deps.pdf"
-        os.system(f'c:\\Graphviz\\bin\\dot.exe -Tpdf -o "{pdfname}" deps.dot')
+
+        pdfname = f"VAM_{lvar}.pdf" if lvar else "VAM_deps.pdf"
+        try:
+            subprocess.check_call(f'c:\\Graphviz\\bin\\dot.exe -Tpdf -o "{pdfname}" deps.dot')
+        except Exception as CalledProcessError:
+            logging.error("You need dot from graphviz installed in c:\\Graphviz\\bin\\dot.exe")
+            os.unlink("deps.dot")
+            exit(0)
         os.unlink("deps.dot")
+        logging.info("Graph generated")
+
     else:
-        logging.warning("No graph!")
+        logging.warning("No graph as no var linked to it")
