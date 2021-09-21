@@ -49,7 +49,7 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database
   vamtb -vvd d:\VAM dotty will graph your collection
   vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dotty will graph this var
-  vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dottys will graph each var seperately
+  vamtb -vvd d:\VAM dottys will graph each var seperately
 
   Character encoding on windows:
   On windows cmd will use cp1252 so you might get some errors displaying international characters.
