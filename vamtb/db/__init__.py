@@ -290,8 +290,10 @@ def deps_node(conn, var):
 def set_props(conn, var_list):
     res = []
     for var in var_list:
-        if not var_exists(conn, var):
-            res.append(f'"{var}" [fillcolor=red, bgcolor=red, color=red];')
+        if var_exists(conn, var):
+            res.append(f'"{var}" [color=blue];')
+        else:
+            res.append(f'"{var}" [color=red];')
         license = get_license(conn, var)
         if license in ("PC", "Questionable"):
             res.append(f'"{var}" [shape=box];')
@@ -329,11 +331,13 @@ def dotty(lvar=None):
         dot_lines.extend(sorted(list(set(direct_graphs))))
 
         with open("deps.dot", "w") as f:
-            f.write("digraph vardeps {" + "\n" + "\n".join(dot_lines) + "}")
+            f.write("digraph vardeps {" + "\n" + 
+            "\n".join(dot_lines) + "\n" + 
+            "}")
 
         pdfname = f"VAM_{lvar}.pdf" if lvar else "VAM_deps.pdf"
         try:
-            subprocess.check_call(f'c:\\Graphviz\\bin\\dot.exe -Tpdf -o "{pdfname}" deps.dot')
+            subprocess.check_call(f'c:\\Graphviz\\bin\\dot.exe -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
         except Exception as CalledProcessError:
             logging.error("You need dot from graphviz installed in c:\\Graphviz\\bin\\dot.exe")
             os.unlink("deps.dot")
