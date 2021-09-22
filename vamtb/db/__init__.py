@@ -85,7 +85,7 @@ def store_var(conn, var):
         db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
         modified_time = os.path.getmtime(var)
         if db_modtime < modified_time:
-            logging.error("Database contains older data for var {varname}. Not updating. Erase database file (or entries) and rerun vamtb dbs")
+            logging.error("Database contains older data for var {varname}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
             logging.error(f"This could also be because you have duplicate vars for {varname} (in that case, use vamtb sortvar) ")
             exit(0)
         else:

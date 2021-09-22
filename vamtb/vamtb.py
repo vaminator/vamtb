@@ -149,6 +149,7 @@ def sort_vars(ctx):
             logging.error(f"File {var_file} doesn't have a meta.json file [{e}].")
             continue
         varfile.split_varname(var_file, dest_dir = mdir)
+# FIXME too slow
 #        jpg = varfile.find_same_jpg(all_files, var_file)
 #        if jpg:
 #            varfile.split_varname(jpg[0], dest_dir = mdir)

@@ -18,6 +18,7 @@ from PIL import Image
 import json
 from vamtb import vamdirs
 from vamtb import vamex
+from vamtb import utils
 import binascii
 
 def crc32c(content):
@@ -650,42 +651,42 @@ def get_type(infile):
     """
     infile = Path(infile)
     if infile.is_dir():
-        return vamex.T_DIR
+        return utils.T_DIR
     suffix = infile.suffix
     if suffix == ".assetbundle" or suffix == ".scene":
-        return vamex.T_ASSET
+        return utils.T_ASSET
     if suffix == ".cs":
-        return vamex.T_SCRIPT
+        return utils.T_SCRIPT
     if suffix == ".json":
         with open(infile, "rt", encoding='utf-8') as f:
             js = json.load(f)
             if "playerHeightAdjust" in js:
-                return vamex.T_SCENE
+                return utils.T_SCENE
             else:
-                return vamex.T_POSE
+                return utils.T_POSE
     if suffix == ".vmi" or suffix == ".vmb":
-        return vamex.T_MORPH
+        return utils.T_MORPH
     if suffix == ".vam":
         with open(infile, "rt", encoding='utf-8') as f:
             js = json.load(f)
             if js['itemType'] == "ClothingFemale":
-                return vamex.T_CLOTH | vamex.T_FEMALE
+                return utils.T_CLOTH | utils.T_FEMALE
             if js['itemType'] == "ClothingMale":
-                return vamex.T_CLOTH | vamex.T_MALE
+                return utils.T_CLOTH | utils.T_MALE
             if js['itemType'] == "HairFemale":
-                return vamex.T_HAIR | vamex.T_FEMALE
+                return utils.T_HAIR | utils.T_FEMALE
             if js['itemType'] == "HairMale":
-                return vamex.T_HAIR | vamex.T_MALE
+                return utils.T_HAIR | utils.T_MALE
     if suffix == ".vaj" or suffix == ".vab":
         return get_type(infile.with_suffix(".vam"))
     if suffix == ".vap":
         logging.warning("Didn't detect type of VAP")
-        return vamex.T_VAP
+        return utils.T_VAP
     if suffix == ".jpg":
         logging.warning("Didn't detect type of JPG")
-        return vamex.T_JPG
+        return utils.T_JPG
     
-    return vamex.T_UNK
+    return utils.T_UNK
 
 def get_reqfile(infile, mtype):
     infile=Path(infile)
@@ -696,11 +697,11 @@ def get_reqfile(infile, mtype):
     pic = list(Path(basedir).glob(f"**/{infile.with_suffix('.jpg').name}"))
     if pic and pic[0].is_file():
         req.add(pic[0])
-    if mtype == vamex.T_ASSET or mtype == vamex.T_SCRIPT:
+    if mtype == utils.T_ASSET or mtype == utils.T_SCRIPT:
         pass
-    elif mtype == vamex.T_SCENE or mtype == vamex.T_POSE:
+    elif mtype == utils.T_SCENE or mtype == utils.T_POSE:
         pass
-    elif mtype & vamex.T_MORPH:
+    elif mtype & utils.T_MORPH:
         vmi = list(Path(basedir).glob(f"**/{infile.with_suffix('.vmi').name}"))[0]
         vmb = list(Path(basedir).glob(f"**/{infile.with_suffix('.vmb').name}"))[0]
         if vmi.is_file() and vmb.is_file():
@@ -709,7 +710,7 @@ def get_reqfile(infile, mtype):
         else:
             logging.error(f"Missing files for {infile}")
             raise vamex.MissingFiles
-    elif mtype & vamex.T_CLOTH or mtype & vamex.T_HAIR:
+    elif mtype & utils.T_CLOTH or mtype & utils.T_HAIR:
         vam = list(Path(basedir).glob(f"**/{infile.with_suffix('.vam').name}"))[0]
         vaj = list(Path(basedir).glob(f"**/{infile.with_suffix('.vaj').name}"))[0]
         vab = list(Path(basedir).glob(f"**/{infile.with_suffix('.vab').name}"))[0]
@@ -720,7 +721,7 @@ def get_reqfile(infile, mtype):
         else:
             logging.error(f"Missing files for {infile}")
             raise vamex.MissingFiles
-    elif mtype == vamex.T_JPG or mtype == vamex.T_VAP:
+    elif mtype == utils.T_JPG or mtype == utils.T_VAP:
         pass
     else:
         logging.error(f"Can't detect required files for {infile} of type {mtype}")
@@ -744,7 +745,7 @@ def prep_tree(file, dir, creator, do_move = False):
     mtype = get_type(file)
     logging.debug(f"Detected file {file} as type {mtype}")
 
-    if mtype == vamex.T_DIR:
+    if mtype == utils.T_DIR:
         # Copy subtree relative to a root (asked to user)
         parents = [ Path(file) ] 
         for p in Path(file).parents:
@@ -768,16 +769,16 @@ def prep_tree(file, dir, creator, do_move = False):
 
     # Create dirstruct
     d = None
-    if mtype == vamex.T_SCENE:
+    if mtype == utils.T_SCENE:
         d = Path(dir,"Saves", "scene")
 
-    if mtype == vamex.T_ASSET:
+    if mtype == utils.T_ASSET:
         d = Path(dir,"Custom", "Assets", creator)
 
-    if mtype & vamex.T_CLOTH:
-        if mtype & vamex.T_FEMALE:
+    if mtype & utils.T_CLOTH:
+        if mtype & utils.T_FEMALE:
             gend = "Female"
-        elif mtype & vamex.T_MALE:
+        elif mtype & utils.T_MALE:
             gend = "Male"
         else:
             assert(False)
@@ -854,21 +855,23 @@ def search_and_replace_dir(mdir, text, subst, enc):
             os.remove(file)
             os.rename(tempfile, file)
 
-
-def onerror(function, path, exc_info):
-    # Handle ENOTEMPTY for rmdir
-    if (function is os.rmdir
-          and issubclass(exc_info[0], OSError)
-          and exc_info[1].errno == errno.ENOTEMPTY):
-        timeout = 0.001
-        while timeout < 2:
-            if not os.listdir(path):
-                return os.rmdir(path)
-            time.sleep(timeout)
-            timeout *= 2
-    raise
-
 def clean_dir_safe(path):
+    """
+    So you can't safely remove a file because explorer is accessing it.
+    """
+    def onerror(function, path, exc_info):
+        # Handle ENOTEMPTY for rmdir
+        if (function is os.rmdir
+            and issubclass(exc_info[0], OSError)
+            and exc_info[1].errno == errno.ENOTEMPTY):
+            timeout = 0.001
+            while timeout < 2:
+                if not os.listdir(path):
+                    return os.rmdir(path)
+                time.sleep(timeout)
+                timeout *= 2
+        raise
+
     try:
         shutil.rmtree(path, onerror=onerror)
     except FileNotFoundError:
@@ -902,6 +905,9 @@ def gen_uia(**kwargs):
     return output
 
 def get_gridlabel(txt):
+    """
+    Keep the SAME ORDER /!\
+    """
     rtxt = txt
     rtxt = rtxt.replace('/',' ')
     rtxt = rtxt.replace('poses ','')
@@ -929,6 +935,9 @@ def get_gridlabel(txt):
     return rtxt
 
 def gridsize(nf):
+    """
+    Fuzzy logic to determine optimal gridsize from full screen proportion
+    """
     col_row = [ [2,2], [2,3], [3,2], [3,3], [3,4], [4,3], [4,4], 
     [4,5], [5,4], [5,5], [5,6], [6,5], [6,6], [7,6], [6,7], [7,7], [8,7], [7,8], [8,8], [9,8], [8,9], [9,9] ]
     c=9
