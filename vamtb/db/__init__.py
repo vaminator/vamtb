@@ -43,10 +43,10 @@ def store_var(conn, var):
 
     cur = conn.cursor()
     cur.execute("SELECT * FROM VARS WHERE VARNAME=?", (varname,))
+
     rows = cur.fetchall()
     if not rows:
-        modified_time = os.path.getmtime(var)
-        creator, version, modified_time,cksum=varfile.get_props(var)
+        creator, version, modified_time,cksum = varfile.get_props(var)
         v_isref="YES" if creator in ref_creators else "UNKNOWN"
 
         meta=varfile.extract_meta_var(var)
@@ -84,7 +84,7 @@ def store_var(conn, var):
         assert( len(rows) == 1 )
         db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
         modified_time = os.path.getmtime(var)
-        if db_modtime < modified_time:
+        if db_modtime < modified_time and db_cksum != varfile.crc32(var):
             logging.error("Database contains older data for var {varname}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
             logging.error(f"This could also be because you have duplicate vars for {varname} (in that case, use vamtb sortvar) ")
             exit(0)
@@ -246,9 +246,15 @@ def dotty(lvar=None):
     conn = sqlite3.connect('vars.db')
     if lvar:
         only_nodes = deps_node(conn, lvar)
+
+    if lvar and not var_exists(conn, lvar):
+        logging.info(f"{lvar} not found in the database, run dbs subcommand?")
+        return
+
     cur = conn.cursor()
     sql="SELECT VAR, DEP FROM DEPS"
     cur.execute(sql)
+
     the_deps = cur.fetchall()
     for var, depf in the_deps:
         dep = None
@@ -285,4 +291,4 @@ def dotty(lvar=None):
         logging.info("Graph generated")
 
     else:
-        logging.warning("No graph as no var linked to {lvar}")
+        logging.warning(f"No graph as no var linked to {lvar}")
