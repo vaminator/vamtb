@@ -108,43 +108,6 @@ def store_vars(vars_list, sync = True):
     conn.commit()
     conn.close()
 
-def find_common_files(conn, dup_varname, ref_varname):
-    """
-    returns a list of [dup_file, ref_file]
-    dup_file is SELF:/path/to/file
-    ref_file is ref_varname:/other/file
-    with ref_varname being .latest
-    """
-    result=list()
-    if not dup_varname.endswith(".var"):
-        dup_varname=f"{dup_varname}.var"
-    if not ref_varname.endswith(".var"):
-        ref_varname=f"{ref_varname}.var"
-    creator, asset, version,_ = ref_varname.split(".", 4)
-    ref_varname_latest = ".".join((creator, asset, "latest"))
-
-    sql="SELECT * FROM FILES WHERE VARNAME == ? AND FILENAME != ? AND CKSUM != ?"
-    row = (dup_varname,"meta.json", "00000000")
-    cur = conn.cursor()
-    cur.execute(sql, row)
-    dup_var_files=cur.fetchall()
-    for dup_var_file in dup_var_files:
-        _, dup_filename, _, _, dup_cksum = dup_var_file
-        dup_filenamebase = Path(dup_filename).name
-        sql = """SELECT * FROM FILES WHERE FILENAME LIKE ? AND CKSUM == ? AND VARNAME == ?"""
-        row = (f"%{dup_filenamebase}%", dup_cksum, ref_varname)
-        cur = conn.cursor()
-        # logging.debug(f"Looking for file {dup_filenamebase} in {ref_varname}")
-        cur.execute(sql, row)
-        ref_var_file=cur.fetchall()
-        if not ref_var_file:
-            continue
-        if len(ref_var_file) != 1:
-            logging.error(f"We found two identical files in the same var file {ref_varname} ... taking first one")
-        _, ref_filename, _, _, _ = ref_var_file[0]
-        elt=(f"SELF:/{dup_filename}", f"{ref_varname_latest}:/{ref_filename}")
-        result.append(elt)
-
 def get_prop_vars(conn, varname, prop_name):
     cur = conn.cursor()
     sql = f"SELECT {prop_name} FROM VARS WHERE VARNAME=?"
