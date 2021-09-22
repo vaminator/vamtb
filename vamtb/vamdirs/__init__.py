@@ -106,16 +106,6 @@ def recurse_dep(dir, var, do_print=False, strict=False):
                 raise
     recdef(var)
 
-def create_dir(infile, newdir):
-    """
-    Create newdir directory
-    Detect from in_file what type of content
-    Create subtree in newdir
-    Copy files linked to infile inside newdir
-    """
-    Path(newdir).mkdir(parents=True, exist_ok=True)
-    logging.debug(f"Directory {newdir} created")
-    
 
 def zipdir(path, zipname):
     logging.debug("Repacking var...")
