@@ -9,7 +9,8 @@ thumb/
 **/*.build
 tmp/
 *.sql
-vars.db
+vars.dbs*
+vamtb.yml
 vamtb.v*/**
 ws.code-workspace
 .vscode/

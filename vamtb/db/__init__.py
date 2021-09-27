@@ -9,27 +9,6 @@ from vamtb import vamex
 import subprocess
 from zipfile import ZipFile
 
-def init_dbs(conn):
-    conn.execute('''CREATE TABLE IF NOT EXISTS VARS
-         (VARNAME TEXT PRIMARY KEY     NOT NULL,
-         ISREF TEXT NOT NULL,
-         CREATOR TEXT NOT NULL,
-         VERSION INT NOT NULL,
-         LICENSE TEXT NOT NULL,
-         MODIFICATION_TIME    INT     NOT NULL,
-         CKSUM   CHAR(4) NOT NULL);''')
-
-    conn.execute('''CREATE TABLE IF NOT EXISTS DEPS
-         (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-         VAR TEXT NOT NULL,
-         DEP TEXT NOT NULL);''')
-
-    conn.execute('''CREATE TABLE IF NOT EXISTS FILES
-         (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-         FILENAME TEXT NOT NULL,
-         ISREF TEXT NOT NULL,
-         VARNAME TEXT NOT NULL,
-         CKSUM   CHAR(4) NOT NULL);''')
 
 ref_creators = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
@@ -37,258 +16,194 @@ ref_creators = (
 "Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 
-def store_var(conn, var):
-    """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
-    varname = var.name
 
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM VARS WHERE VARNAME=?", (varname,))
+class Dbs:
+    __instance = None
+    __conn = None
 
-    rows = cur.fetchall()
-    if not rows:
-        creator, version, modified_time,cksum = varfile.get_props(var)
-        v_isref="YES" if creator in ref_creators else "UNKNOWN"
+    @staticmethod 
+    def getInstance():
+        """ Static access method. """
+        if Dbs.__instance == None:
+            Dbs()
+        return Dbs.__instance
 
-        meta=varfile.extract_meta_var(var)
-        license=meta['licenseType']
+    @staticmethod 
+    def getConn():
+        """ Static access method. """
+        return Dbs.__conn
 
-        cur = conn.cursor()
-        sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,CKSUM) VALUES (?,?,?,?,?,?,?)"""
-        row = (varname, v_isref, creator, version, license, modified_time, cksum)
+    def __init__(self, dbfilename="vars.dbs"):
+        """ Virtually private constructor. """
+        if Dbs.__instance != None:
+            raise Exception("This class is a singleton!")
+        else:
+            Dbs.__conn = sqlite3.connect(dbfilename)
+            self.init_dbs()
+            Dbs.__instance = self
+
+    def init_dbs(self):
+        """
+        Create table if not exist
+        """
+        self.getConn().execute('''CREATE TABLE IF NOT EXISTS VARS
+            (VARNAME TEXT PRIMARY KEY     NOT NULL,
+            ISREF TEXT NOT NULL,
+            CREATOR TEXT NOT NULL,
+            VERSION INT NOT NULL,
+            LICENSE TEXT NOT NULL,
+            MODIFICATION_TIME    INT     NOT NULL,
+            CKSUM   CHAR(4) NOT NULL);''')
+
+        self.getConn().execute('''CREATE TABLE IF NOT EXISTS DEPS
+            (ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            VAR TEXT NOT NULL,
+            DEP TEXT NOT NULL);''')
+
+        self.getConn().execute('''CREATE TABLE IF NOT EXISTS FILES
+            (ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            FILENAME TEXT NOT NULL,
+            ISREF TEXT NOT NULL,
+            VARNAME TEXT NOT NULL,
+            CKSUM   CHAR(4) NOT NULL);''')
+
+    def fetchall(self, sql, row):
+        """
+        Execute query and fetch all results
+        """
+        cur = self.getConn().cursor()
+        if row:
+            cur.execute(sql, row)
+        else:
+            cur.execute(sql)
+        return cur.fetchall()
+
+    def store_var(self, var):
+        """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
+        varname = var.name
+
+        sql = "SELECT * FROM VARS WHERE VARNAME=?"
+        row = (varname, )
+        rows = self.fetchall(sql, row)
+        if not rows:
+            creator, version, modified_time,cksum = varfile.get_props(var)
+            v_isref="YES" if creator in ref_creators else "UNKNOWN"
+
+            meta=varfile.extract_meta_var(var)
+            license=meta['licenseType']
+
+            cur = self.getConn().cursor()
+            sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,CKSUM) VALUES (?,?,?,?,?,?,?)"""
+            row = (varname, v_isref, creator, version, license, modified_time, cksum)
+            cur.execute(sql, row)
+
+            with ZipFile(var, mode='r') as myvar:
+                listOfFileNames = myvar.namelist()
+                for f in listOfFileNames:
+                    with myvar.open(f) as fh:
+                        try:
+                            crcf = varfile.crc32c(fh.read())
+                        except Exception as e:
+                            logging.error(f'{Path(var).name} is a broken zip, chouldnt decompress {f}')
+                            return False
+                    f_isref="YES" if creator in ref_creators else "UNKNOWN"
+
+                    cur = self.getConn().cursor()
+                    sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,CKSUM) VALUES (?,?,?,?,?)"""
+                    row = (None, f, f_isref, varname, crcf)
+                    cur.execute(sql, row)
+
+            logging.debug(f"Stored var {varname} and files in databases")
+            sql = """INSERT INTO DEPS(ID,VAR,DEP) VALUES (?,?,?)"""
+            for dep in varfile.dep_fromvar(dir=None, var=var, full=True):
+                row = (None, varname[0:-4], dep)
+                cur = self.getConn().cursor()
+                cur.execute(sql, row)
+        else:
+            assert( len(rows) == 1 )
+            db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
+            modified_time = os.path.getmtime(var)
+            if db_modtime < modified_time and db_cksum != varfile.crc32(var):
+                logging.error(f"Database contains older data for var {varname}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
+                logging.error(f"This could also be because you have duplicate vars for {varname} (in that case, use vamtb sortvar) ")
+                return False
+            else:
+                logging.debug(f"Var {varname} already in database")
+        return True
+
+    def store_vars(self, vars_list, sync = True):
+        progress_iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=5, ncols=75, unit='var')
+        for var in progress_iterator:
+            logging.debug(f"Checking var {var}")
+            if not self.store_var(var):
+                self.getConn().rollback()
+            elif sync:
+                self.getConn().commit()
+        logging.info(f"{len(vars_list)} var files stored")
+
+        self.getConn().commit()
+
+    def get_prop_vars(self, varname, prop_name):
+
+        cur = self.getConn().cursor()
+        sql = f"SELECT {prop_name} FROM VARS WHERE VARNAME=?"
+        row = (varname,)
         cur.execute(sql, row)
 
-        with ZipFile(var, mode='r') as myvar:
-            listOfFileNames = myvar.namelist()
-            for f in listOfFileNames:
-                with myvar.open(f) as fh:
-                    try:
-                        crcf = varfile.crc32c(fh.read())
-                    except:
-                        #FIXME zlib.error: Error -3 while decompressing data: invalid code lengths set
-                        logging.error(f'Crc computation error on file {var}.')
-                        return
-                f_isref="YES" if creator in ref_creators else "UNKNOWN"
-
-                cur = conn.cursor()
-                sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,CKSUM) VALUES (?,?,?,?,?)"""
-                row = (None, f, f_isref, varname, crcf)
-                cur.execute(sql, row)
-
-        logging.debug(f"Stored var {varname} and files in databases")
-        sql = """INSERT INTO DEPS(ID,VAR,DEP) VALUES (?,?,?)"""
-        for dep in varfile.dep_fromvar(dir=None, var=var, full=True):
-            row = (None, varname[0:-4], dep)
-            cur = conn.cursor()
-            cur.execute(sql, row)
-    else:
-        assert( len(rows) == 1 )
-        db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
-        modified_time = os.path.getmtime(var)
-        if db_modtime < modified_time and db_cksum != varfile.crc32(var):
-            logging.error("Database contains older data for var {varname}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
-            logging.error(f"This could also be because you have duplicate vars for {varname} (in that case, use vamtb sortvar) ")
-            exit(0)
+        res = cur.fetchall()
+        if res:
+            return res[0][0]
         else:
-            logging.debug(f"Var {varname} already in database")
+            return None
 
+    def get_prop_files(self, filename, varname, prop_name):
+        cur = self.getConn().cursor()
+        sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
+        row = (filename, varname)
+        cur.execute(sql, row)
 
-def store_vars(vars_list, sync = True):
-    conn = sqlite3.connect('vars.db')
-    init_dbs(conn)
-    progress_iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=5, ncols=75, unit='var')
-    for var in progress_iterator:
-        logging.debug(f"Checking var {var}")
-        store_var(conn, var)
-        if sync:
-            conn.commit()
-    logging.info(f"{len(vars_list)} var files stored")
+        res = cur.fetchall()
+        if res:
+            return res[0][0]
+        else:
+            return None
 
-    # Commit only at the end to speed things up but you need more RAM
-    conn.commit()
-    conn.close()
+    def get_file_cksum(self, filename, varname):
+        return self.get_prop_files(filename, varname, "CKSUM")
 
-def get_prop_vars(conn, varname, prop_name):
+    def get_license(self, varname):
+        if not varname.endswith(".var"):
+            varname = f"{varname}.var"
+        return self.get_prop_vars(varname, "LICENSE")
 
-    cur = conn.cursor()
-    sql = f"SELECT {prop_name} FROM VARS WHERE VARNAME=?"
-    row = (varname,)
-    cur.execute(sql, row)
+    def get_ref(self, varname):
+        return self.get_prop_vars(varname, "ISREF")
 
-    res = cur.fetchall()
-    if res:
-        return res[0][0]
-    else:
-        return None
+    def var_exists(self, varname):
+        if not varname.endswith(".var"):
+            varname = f"{varname}.var"
+        if varname.endswith(".latest"):
+            return (self.latest(varname) != None)
+        else:
+            return (self.get_prop_vars(varname, "VARNAME") != None)
 
-def get_prop_files(conn, filename, varname, prop_name):
-    cur = conn.cursor()
-    sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
-    row = (filename, varname)
-    cur.execute(sql, row)
+    def latest(self, var):
+        var = ".".join(var.split('.',2)[0:2])
 
-    res = cur.fetchall()
-    if res:
-        return res[0][0]
-    else:
-        return None
+        sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
+        row=(f"{var}%", )
+        res = self.fetchall(sql, row)
+        versions = [ e[0].split('.',3)[2] for e in res ]
+        versions.sort(key=int, reverse=True)
 
-def get_file_cksum(conn, filename, varname):
-    return get_prop_files(conn, filename, varname, "CKSUM")
+        if versions:
+            return f"{var}.{versions[0]}"
+        else:
+            return None
 
-def get_license(conn, varname):
-    if not varname.endswith(".var"):
-        varname = f"{varname}.var"
-    return get_prop_vars(conn, varname, "LICENSE")
+    def get_db_deps(self):
+        return self.fetchall("SELECT VAR, DEP FROM DEPS", None)
 
-def get_ref(conn, varname):
-    return get_prop_vars(conn, varname, "ISREF")
-
-def var_exists(conn, varname):
-    if not varname.endswith(".var"):
-        varname = f"{varname}.var"
-    if varname.endswith(".latest"):
-        return (latest(conn, varname) != None)
-    else:
-        return (get_prop_vars(conn, varname, "VARNAME") != None)
-
-def isfile_invar(conn, mfile, var):
-    cur = conn.cursor()
-    sql="SELECT FILENAME FROM FILES WHERE FILENAME = ? AND VARNAME = ?"
-    cur.execute(sql, (mfile, var))
-    if cur.fetchall():
-        return True
-    else:
-        return False
-
-def latest(conn, var):
-    var = ".".join(var.split('.',2)[0:2])
-
-    cur = conn.cursor()
-    sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
-    row=(f"{var}%", )
-    cur.execute(sql, row)
-
-    versions = [ e[0].split('.',3)[2] for e in cur.fetchall() ]
-    versions.sort(key=int, reverse=True)
-
-    if versions:
-        return f"{var}.{versions[0]}"
-    else:
-        return None
-
-desc_deps=[]
-
-def deps_desc_node(conn, var):
-    global desc_deps
-    uniq = set()
-
-    cur = conn.cursor()
-    sql="SELECT DEP FROM DEPS WHERE VAR = ? COLLATE NOCASE"
-    row = (var, )
-    cur.execute(sql, row)
-
-    for depvar in [ e[0].split(':')[0] for e in cur.fetchall() ]:
-        if "latest" in depvar:
-            ldepvar = latest(conn, depvar)
-            if ldepvar is not None:
-                depvar = ldepvar
-        uniq.add(depvar)
-    desc_deps.extend(uniq)
-
-    for dep in sorted([ v for v in uniq if v not in desc_deps ]):
-        desc_deps.extend(deps_desc_node(conn, dep))
-    return desc_deps
-
-asc_deps=[]
-def deps_asc_node(conn, var):
-    global asc_deps
-
-    cur = conn.cursor()
-    sql = "SELECT DISTINCT VAR FROM DEPS WHERE DEP LIKE ? OR DEP LIKE ? COLLATE NOCASE"
-    var_nov = ".".join(var.split('.')[0:2])
-    row = (f"{var_nov}.latest:%", f"{var}:%")
-    cur.execute(sql, row)
-
-    asc = [ e[0] for e in cur.fetchall() ]
-    asc = [ e for e in asc if not e.endswith(".latest") or latest(conn, e) == e ]
-    asc_deps.extend(set(asc))
-
-    for ascx in sorted([ e for e in asc if e != var and e not in asc_deps ]):
-        asc_deps.extend(deps_asc_node(conn, ascx))
-    return set(asc_deps)
-
-def deps_node(conn, var):
-    """Get dependent and ascendant nodes"""
-    global asc_deps
-    global desc_deps
-    asc_deps=[]
-    desc_deps=[]
-    depd = set(deps_desc_node(conn, var))
-    depa = set(deps_asc_node(conn, var))
-    dep = {var} | depd | depa
-    return sorted(dep, key=str.casefold)
-
-def set_props(conn, var_list):
-    res = []
-    for var in var_list:
-        res.append(f'"{var}" [color={"blue" if var_exists(conn, var) else "red"}];')
-        license = get_license(conn, var)
-        if license in ("PC", "Questionable"):
-            res.append(f'"{var}" [shape=box];')
-    return res
-
-def dotty(lvar=None):
-
-    direct_graphs=[]
-    shapes = []
-    cmddot = "c:\\Graphviz\\bin\\dot.exe"
-    
-    conn = sqlite3.connect('vars.db')
-    if lvar:
-        only_nodes = deps_node(conn, lvar)
-
-    if lvar and not var_exists(conn, lvar):
-        logging.info(f"{lvar} not found in the database, run dbs subcommand?")
-        return
-
-    cur = conn.cursor()
-    sql="SELECT VAR, DEP FROM DEPS"
-    cur.execute(sql)
-
-    the_deps = cur.fetchall()
-    for var, depf in the_deps:
-        dep = None
-        if "latest" in depf:
-            dep = ".".join(depf.split(".", 2)[0:2])
-            dep = latest(conn, dep)
-        if not dep:
-            dep = depf.split(':',1)[0]
-        if lvar and not(dep in only_nodes and var in only_nodes):
-            continue
-        if f'"{var}" -> "{dep}";' not in direct_graphs:
-            logging.debug(f"Adding {var} -> {dep}")
-            props = set_props(conn, [var, dep])
-            shapes.extend(props)
-            direct_graphs.append(f'"{var}" -> "{dep}";')
-
-    if direct_graphs:
-        dot_lines = shapes 
-        dot_lines.extend(sorted(list(set(direct_graphs))))
-
-        with open("deps.dot", "w") as f:
-            f.write("digraph vardeps {" + "\n" + 
-            "\n".join(dot_lines) + "\n" + 
-            "}")
-
-        pdfname = f"VAM_{lvar}.pdf" if lvar else "VAM_deps.pdf"
-        try:
-            subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
-        except Exception as CalledProcessError:
-            logging.error("You need graphviz installed and dot available in {cmddot}")
-            os.unlink("deps.dot")
-            exit(0)
-        os.unlink("deps.dot")
-        logging.info("Graph generated")
-
-    else:
-        logging.warning(f"No graph as no var linked to {lvar}")
+def store_vars(var_files):
+    dbs = Dbs()
+    dbs.store_vars(vars_list=var_files)

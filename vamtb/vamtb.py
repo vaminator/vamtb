@@ -1,17 +1,20 @@
 import logging
-import locale
 import os
-import pprint
 import sys
+import yaml
 from collections import defaultdict
 from pathlib import Path
+
+from jinja2.nodes import Add
+from vamtb.graph import Graph
 import click
 import shutil
-from vamtb import vamdirs
-from vamtb import varfile
+from vamtb.vamdirs import VaM
+from vamtb.varfile import Var
 from vamtb import vamex
 from vamtb import db
 from vamtb.utils import *
+import zlib
 
 @click.group()
 @click.option('dir', '-d', help='VAM directory (default cur dir).')
@@ -61,128 +64,147 @@ def cli(ctx, verbose, move, dir, custom, file):
     On windows cmd will use cp1252 so you might get some errors displaying international characters.
     Start vamtb with python -X utf8 vamtb.py <rest of parameters>
     """
-    logger = logging.getLogger()
-    logging.basicConfig(level=("WARNING","INFO","DEBUG")[verbose], format='%(message)s')
-    fh = logging.FileHandler('log-vamtb.txt', mode="w")
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    # fh.setLevel(logging.DEBUG)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    logging.info(ucol.greenf("Welcome to vamtb"))
+
+    log_setlevel(verbose)
+    info("Welcome to vamtb")
 
     ctx.ensure_object(dict)
-    ctx.obj['dir'] = dir
-    ctx.obj['custom'] = custom
-    ctx.obj['file'] = file
-    ctx.obj['move'] = move
+    ctx.obj['custom']   = custom
+    ctx.obj['file']     = file
+    ctx.obj['move']     = move
+    conf = {}
+    try:
+        with open(C_YAML, 'r') as stream:
+            conf = yaml.load(stream, Loader=yaml.BaseLoader)
+    except FileNotFoundError:
+        pass
+    except yaml.YAMLError as exc:
+        logging.error("YAML error %s", exc)
+
+    if not conf:
+        conf['dir'] = input("Directory of Vam ?:")
+        with open(C_YAML, 'w') as outfile:
+            yaml.dump(conf, outfile, default_flow_style=False)
+        info(f"Created {C_YAML}")
+
+    ctx.obj['dir'] = conf['dir']
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 @cli.command('printdep')
 @click.pass_context
 def printdep(ctx):
     """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
-    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = True)
+    file = ctx.obj['file']
+    dir = ctx.obj['dir']
+    try:
+        var = Var(file, dir)
+    except vamex.VarNotFound:
+        logging.error(f"Var {file} not found!")
+        exit(0)
+    for depvar in var.dep_frommeta():
+        try:
+            var = Var(depvar, dir)
+        except vamex.VarNotFound:
+            mess = red("Not found")
+        else:
+            mess = green("Found")
+        print(f"{depvar:<60}: {mess}")
 
 @cli.command('printrealdep')
 @click.pass_context
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
+    file = ctx.obj['file']
+    dir = ctx.obj['dir']
+
     try:
-        deps = varfile.dep_fromvar(getdir(ctx), ctx.obj['file'])
+        var = Var(fileName=file, dir= dir)
     except vamex.VarNotFound:
-        logging.error("Var not found!")
-    else:
-        for d in sorted(deps, key=str.casefold):
-            print("%-60s : %s" % (d, ucol.greenf("Found") if vamdirs.exists_var(ctx.obj['dir'], d) else ucol.redf("Not found")))
+        logging.error(f"Var {file} not found!")
+        exit(0)
+    deps = var.dep_from_files()
+    for depvar in sorted(deps, key=str.casefold):
+        mess = green("Found")
+        try:
+            var = Var(depvar, dir)
+        except vamex.VarNotFound:
+            mess = red("Not found")
+        else:
+            mess = green("Found")
+        print(f"{depvar:<60}: {mess}")
 
 @cli.command('checkdep')
 @click.pass_context
 def checkdep(ctx):
     """Check dependencies of a var"""
-    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = False)
+    file = ctx.obj['file']
+    dir = ctx.obj['dir']
+    move = ctx.ob
+    with Var(file, dir) as var:
+        var.depend(recurse = True)
 
 @cli.command('dump')
 @click.pass_context
 def dumpvar(ctx):
     """Dump var meta.json"""
-    pp = pprint.PrettyPrinter(indent=4)
     try:
-        pp.pprint(varfile.extract_meta_var(vamdirs.find_var(getdir(ctx),ctx.obj['file'])))
+        with Var(ctx.obj['file'], ctx.obj['dir']) as var:
+            print(prettyjson( var.load_json_file("meta.json") ))
     except vamex.VarNotFound as e:
         logging.error(f"Couldn't find var: {e}")
-    except Exception as e:
-        logging.error(f"Couldn't dump var: {e}")
 
 @cli.command('noroot')
 @click.pass_context
 def noroot(ctx):
     """Remove root node stored in pose presets"""
-    mdir = getdir(ctx)
-    mfile = ctx.obj['file']
-    var = vamdirs.find_var(mdir, mfile)
-    logging.info(f"Removing root node from {var}")
-    varfile.remroot(var)
+    file = ctx.obj['file']
+    dir = ctx.obj['dir']
+    with Var(file, dir) as var:
+        var.remroot()
 
 @cli.command('sortvar')
 @click.pass_context
 def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator"""
-    mdir = getdir(ctx)
-    logging.info("Sorting var in %s" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*")
-    vars_files = vamdirs.list_vars(mdir)
-    mdir=Path(mdir)
-    for var_file in vars_files:
+    dir = ctx.obj['dir']
+    info(f"Sorting var in {dir}")
+    for file in search_files_indir(dir, "*.var"):
         try:
-            pass
-            varfile.is_namecorrect(var_file)
-        except vamex.VarNameNotCorrect:
-            logging.error(f"File {var_file} has incorrect naming.")
-            continue
-        try:
-            pass
-            varfile.extract_meta_var(var_file)
-        except vamex.VarMetaJson as e:
-            logging.error(f"File {var_file} is corrupted [{e}].")
-            continue
-        except vamex.NoMetaJson as e:
-            logging.error(f"File {var_file} doesn't have a meta.json file [{e}].")
-            continue
-        varfile.split_varname(var_file, dest_dir = mdir)
-# FIXME too slow
-#        jpg = varfile.find_same_jpg(all_files, var_file)
-#        if jpg:
-#            varfile.split_varname(jpg[0], dest_dir = mdir)
+            with Var(file, dir) as var:
+                var.move_creator()
+        except zlib.error:
+            error(f"Zip error on var {file}")
 
 @cli.command('checkvars')
 @click.pass_context
 def check_vars(ctx):
     """Check all var files for consistency"""
-    mdir=Path(getdir(ctx))
-    logging.info("Checking dir %s for vars" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*.var")
-    logging.debug("Found %d files in %s" % (len(all_files), mdir))
-    for file in all_files:
+    dir = ctx.obj['dir']
+    info(f"Checking vars in {dir}")
+    for file in search_files_indir(dir, "*.var"):
         try:
-            varfile.is_namecorrect(file)
-            dll = varfile.contains(file, ".dll")
-            if dll:
-                logging.warning(f"Var {file} contains dll files {','.join(dll)}")
-        except vamex.VarNameNotCorrect:
-            logging.error(f"Bad var {file}")
+            with Var(file, dir, zipcheck=True) as var:
+                info(f"{var} is OK")
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            error(f"{file} is not OK [{e}]")
 
 @cli.command('statsvar')
 @click.pass_context
 def stats_vars(ctx):
     """Get stats on all vars"""
-    mdir=Path(getdir(ctx))
-    logging.info("Checking stats for dir %s" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*.var")
+    dir = ctx.obj['dir']
+    info(f"Checking vars in {dir}")
     creators_file = defaultdict(list)
-    for file in all_files:
-        creator, _ = file.name.split(".", 1)
-        creators_file[creator].append(file.name)
-    logging.debug("Found %d files in %s, %d creators" % (len(all_files), mdir, len(creators_file)))
+    for file in search_files_indir(dir, "*.var"):
+        try:
+            with Var(file, dir) as var:
+                creators_file[var.Creator()].append(var.name())
+        except KeyboardInterrupt:
+            return
+        except Exception as e:
+            error(f"{file} is not OK [{e}]")
     for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
         print("Creator %s has %d files" % (k, len(v)))
 
@@ -190,43 +212,28 @@ def stats_vars(ctx):
 @click.pass_context
 def check_deps(ctx):
     """Check dependencies of all var files.
-    When using -x, files considered bad due to Dep not found, Name not correct, meta JSON incorrect will be moved to 00Dep/.
+    When using -x, files considered bad will be moved to directory "00Dep".
     This directory can then be moved away from the directory.
-    You can redo the same dependency check later by moving back the directory and correct vars will be moved out of the directory if they are now valid.
+    You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
-    dir = getdir(ctx)
     move = ctx.obj['move']
+    dir = ctx.obj['dir']
     if move:
         movepath=Path(dir, "00Dep")
         Path(movepath).mkdir(parents=True, exist_ok=True)
-    else:
-        movepath=None
-    logging.info(f'Checking deps for vars in {dir} with moving: {movepath is not None}')
-    all_vars = vamdirs.list_vars(dir)
-    missing = set()
-    for var in sorted(all_vars):
+    for file in search_files_indir(dir, "*.var"):
         try:
-            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, strict=True)
-        except vamex.VarNotFound as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, we got a {type(e).__name__} {e}'))
-            missing.add(f"{e}")
-            if movepath:
-                Path(var).rename(Path(movepath, var.name))
-        except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, we got {type(e).__name__} {e}'))
-            if movepath:
-                Path(var).rename(Path(movepath, var.name))
-        except RecursionError:
-            logging.error(ucol.redf(f"While handling var {var.name} we got a recursion error. This is pretty bad and the file should be removed."))
-            exit(1)
-        except Exception as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, caught exception {e}'))
-            raise
-    if missing:
-        nl="\n"
-        logging.error(ucol.redf(f'You have missing dependencies:{nl}{ nl.join( sorted(list(missing)) ) }'))
-    else:
-        logging.error(ucol.greenf("You have no missing dependency it seems. Yay!"))
+            with Var(file, dir) as var:
+                try:
+                    _ = var.depend(recurse=True)
+                except (vamex.VarNotFound, zlib.error) as e:
+                    error('Missing or wrong dependency for {var} [{e}]')
+                    if move:
+#FIXME Windows retries
+                        var.Path().rename(Path(movepath, var.name()))
+                        error(f"Moved {var} to 00Dep/")
+        except KeyboardInterrupt:
+            return
 
 @cli.command('thumb')
 @click.pass_context
@@ -240,9 +247,9 @@ def vars_thumb(ctx):
     else:
         vars = vamdirs.list_vars(mdir)
     Path(basedir).mkdir(parents=True, exist_ok=True)
-    logging.debug(f'Generating thumbs for vars')
+    debug(f'Generating thumbs for vars')
     for var in vars:
-        logging.debug(f"Extracting thumb from {var}")
+        debug(f"Extracting thumb from {var}")
         try:
             varfile.thumb_var( var, basedir)
         except vamex.VarNotFound as e:
@@ -261,7 +268,7 @@ def var_convert(ctx):
     # dir=Path("%s/AddonPackages" % ctx.obj['dir'])
     file=ctx.obj['file']
     custom=ctx.obj['custom']
-    logging.debug(f'Converting {custom} to var')
+    debug(f'Converting {custom} to var')
 
     try:
         varfile.make_var(custom, file, outdir="newvar")
@@ -280,7 +287,7 @@ def var_multiconvert(ctx):
     For each subfolder, a var with Creator.Content.1 will be created.
     """
     custom=ctx.obj['custom']
-    logging.debug(f'Converting {custom} to var')
+    debug(f'Converting {custom} to var')
 
     creatorName = input("Give creator name:")
     for p in Path(custom).glob('*'):
@@ -337,12 +344,12 @@ def var_repack(ctx):
         if file:
             if file.startswith('"') and file.endswith('"'):
                 file=file[1:-1]
-            logging.debug(f'Converting {file} to var')
+            debug(f'Converting {file} to var')
             varfile.prep_tree(file, custom, creatorName, do_move=move)
         else:
             break
 
-    logging.debug(f"Generating var from directory {custom}")
+    debug(f"Generating var from directory {custom}")
 
     try:
         varfile.make_var(custom, file, creatorName=creatorName, outdir="newvar")
@@ -360,15 +367,15 @@ def renamevar(ctx):
         vars = vamdirs.list_vars(mdir, mfile)
     else:
         vars = vamdirs.list_vars(mdir)
-    logging.debug(f'Renaming vars')
+    debug(f'Renaming vars')
     for var in vars:
-        logging.debug(f"Checking {var}")
+        debug(f"Checking {var}")
         creator, asset, version, _ = var.name.split('.', 4)
         js = varfile.extract_meta_var(var)
         rcreator, rasset = js['creatorName'],js['packageName']
         if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
             rfile = Path(os.path.dirname(var), f"{rcreator}.{rasset}.{version}.var".replace(" ", "_"))
-            logging.info(f"Renaming {var} to {rfile}")
+            info(f"Renaming {var} to {rfile}")
             os.rename(var, rfile)
 
 
@@ -390,7 +397,8 @@ def dotty(ctx):
     Gen dot graph of deps.
     If you only want to graph one var, use -f.
     """
-    db.dotty(ctx.obj['file'])
+    graph = Graph()
+    graph.dotty(ctx.obj['file'])
 
 @cli.command('dottys')
 @click.pass_context
@@ -402,7 +410,7 @@ def dottys(ctx):
     vars_files = vamdirs.list_vars(mdir)
     for var_file in vars_files:
         var_file = Path(var_file).with_suffix('').name
-        logging.info(f"Performing graph for {var_file}")
+        info(f"Performing graph for {var_file}")
         db.dotty(var_file)
 
 
