@@ -101,7 +101,7 @@ def printdep(ctx):
     except vamex.VarNotFound:
         logging.error(f"Var {file} not found!")
         exit(0)
-    for depvar in var.dep_frommeta():
+    for depvar in sorted(var.dep_frommeta(), key=str.casefold):
         try:
             var = Var(depvar, dir)
         except vamex.VarNotFound:
