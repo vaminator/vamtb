@@ -14,9 +14,68 @@ from vamtb import vamex
 from vamtb.utils import *
 from vamtb.file import FileName
 
-class Var:
+class VarFile:
 
-    def __init__(self, fileName, dir=None, zipcheck=False):
+    def __init__(self, inputName) -> None:
+        self.__Creator = ""
+        self.__Resource = ""
+        # Version as string 1, latest, min
+        self.__sVersion = ""
+        # integer version or 0
+        self._iVersion = 0
+
+        if not isinstance(inputName, Path):
+            inputName = Path(inputName)
+
+        f_basename = inputName.name
+        try:
+            self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
+        except ValueError:
+            error(f"Var {inputName} has incorrect format")
+            raise vamex.VarNameNotCorrect(inputName)
+        try:
+            self.__iVersion = int(self.__sVersion)
+        except ValueError:
+            if self.__sVersion != "latest" and not self.__sVersion.startswith('min'):
+                error(f"Var {inputName} has incorrect extension {self.__sVersion}" )
+                raise vamex.VarVersionNotCorrect(inputName)
+        try:
+            _, _, _, ext = f_basename.split('.',4)
+        except ValueError:
+            pass
+        else:
+            if ext != "var":
+                raise vamex.VarExtNotCorrect(inputName)
+
+    @property
+    def var(self) -> str:
+        return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}"
+    
+    @property
+    def file(self) -> str:
+        return self.var + ".var"
+
+    @property
+    def creator(self) -> str:
+        return self.__Creator
+
+    @property
+    def resource(self) -> str:
+        return self.__Resource
+
+    @property
+    def version(self) -> str:
+        return self.__sVersion
+
+class Var(VarFile):
+
+    def __init__(self, multiFileName, dir=None, zipcheck=False):
+        """
+        multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
+        in the two first cases, dir is required to find the var on disk
+        zipcheck will extract the zip to a temporary directory
+        """
+        VarFile.__init__(self, multiFileName)
 
         # AddonDir if specified
         if dir:
@@ -24,36 +83,43 @@ class Var:
             if dir.name == "AddonPackages":
                 self.__AddonDir = dir
             else:
-                self.__AddonDir = Path(dir, "AddonPackages")
+                self.__AddonDir = dir / "AddonPackages"
+        else:
+            self.__AddonDir = None
 
         # Full path pointing to existing file 
         self.__modified_time = 0
         self.__cksum = 0
 
-        self.__Creator = ""
-        self.__Resource = ""
-        # Version as string 1, latest, min
-        self.__sVersion = ""
-        # integer version or 0
-        self.__iVersion = 0
-
         # tempdir to extracted var
-        self.__tmpDir = ""
+        self.__tmpDir = None
 
         # Meta as dict
-        self.meta = None
+        self._meta = None
 
         # Associated Path .jpg
         self.__thumb = None
 
-        # Verify and search var on disk
-        self.__Path = self.__initvar(fileName)
+        # Verify and resolve var on disk
+        self._path = self.__resolvevar(multiFileName)
 
         if zipcheck:
             self.extract()
 
-        if self.__Path.with_suffix(".jpg").exists():
-            self.__thumb = self.__Path.with_suffix(".jpg")
+        if self._path.with_suffix(".jpg").exists():
+            self.__thumb = self.path.with_suffix(".jpg")
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    @property
+    def meta(self) -> dict:
+        return self._meta()
+
+    @property
+    def crc(self):
+        return FileName(self.path).crc
 
     def __enter__(self):
         return self
@@ -67,97 +133,57 @@ class Var:
             self.__tmpTempDir.cleanup()
         pass
 
-    def Creator(self):
-        return self.__Creator
-
-    def Path(self):
-        return self.__Path
-
-    def name(self):
-        return ".".join([ self.Creator(), self.__Resource, str(self.__iVersion) if self.__iVersion else self.__sVersion ])
-
     def search(self, pattern)-> Path:
         fpath = self.__AddonDir
-        debug(f"Searching for var...")
-        if Path(fpath, self.Creator(), pattern).exists():
-            debug(f"Found..")
-            return [ Path(fpath, self.Creator(), pattern) ]
         debug(f"Listing files pattern **/{pattern} in {fpath}")
         pattern = re.sub(r'([\[\]])','[\\1]',pattern)
         return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
 
-    def __initvar(self, varname):
-        f_varname = Path(varname)
-        f_basename = f_varname.name
+    def __resolvevar(self, multiname):
+        if Path(multiname).exists() and Path(multiname).is_file():
+            return Path(multiname)
 
-        try:
-            self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
-        except ValueError:
-            error(f"Var {varname} has incorrect format")
-            raise vamex.VarNameNotCorrect(varname)
-        try:
-            self.__iVersion = int(self.__sVersion)
-        except ValueError:
-            if self.__sVersion != "latest" and not self.__sVersion.startswith('min'):
-                error(f"Var {varname} has incorrect extension {self.__sVersion}" )
-                raise vamex.VarVersionNotCorrect(varname)
-        try:
-            _, _, _, ext = f_basename.split('.',4)
-        except ValueError:
-            ext = "var"
-
-        if ext != "var":
-            raise vamex.VarExtNotCorrect(varname)
-
-        debug(f"Var {self.name()} is correct")
-        # Search var on disk
-        if Path(varname).exists() and Path(varname).is_file():
-            return Path(varname)
-        
-        if varname.endswith(".var"):
-            varname = varname[0:-4]
-
+        # Not a full path var, search var on disk
         if self.__iVersion:
-            pattern = f"{varname}.var"
+            pattern = self.file
         else:
-            pattern = f"{self.Creator()}.{self.__Resource}.*.var"
+            pattern = self.creator + "." + self.resource + ".*.var"
+
         vars = self.search(pattern = pattern)
-        debug(f"Found {self.name()} in { '.'.join( [str(e) for e in vars ] )}")
-
         if not vars:
-            raise vamex.VarNotFound(varname)
+            raise vamex.VarNotFound(self.var)
 
-        # Extract .name prop
         vars = list(reversed(sorted(vars)))
 
         if len(vars) > 1:
-            debug(f"Using {vars[0]} for {self.name()}")
+            debug(f"Using {vars[0]} for {self.var}")
 
         return vars[0]
 
     def __repr__(self) -> str:
-        return f"{self.name()} [path : {self.__Path}]"
+        return f"{self.var} [path : {self.path}]"
 
     def set_fprops(self):
-        self.__modified_time = os.path.getmtime(self.__Path)
-        self.__cksum = FileName(self.__Path).crc()
+        self.__modified_time = os.path.getmtime(self.path)
+        self.__cksum = FileName(self.path).crc()
 
     def extract(self):
         self.__tmpTempDir = tempfile.TemporaryDirectory(prefix="vamtb_temp_")
         tmpPathdir = Path(self.__tmpTempDir.name)
         try:
-            debug(f"Extracting zip {self.name()}...")
-            ZipFile(self.__Path).extractall(tmpPathdir)
+            debug(f"Extracting zip {self.var}...")
+            with ZipFile(self.path) as z:
+                z.extractall(tmpPathdir)
             debug(f"Done...")
         except Exception as e:
             self.__del__()
             raise
         else:
             self.__tmpDir = tmpPathdir
-            debug(f"Extracted {self.name()} to {self.__tmpDir}")
+            debug(f"Extracted {self.var} to {self.__tmpDir}")
 
     def unzip(func):
-        """Decorate to extract zip"""
+        """Decorator to extract zip"""
         def inner(self, *args, **kwargs):
             if not self.__tmpDir:
                 self.extract()
@@ -174,15 +200,6 @@ class Var:
         return res
 
     @unzip
-    def contains(self, pattern):
-        """ Unzip var and returns list of crc of files matching name """
-        matches = []
-        for f in utils.search_files_indir(self.__tmpDir, pattern):
-            debug(f"{f} matches contains('{pattern}')")
-            matches.append(f"{FileName(f, calc_crc=True)}")
-        return matches
-
-    @unzip
     def open_file(self, fname):
         fn = FileName(Path(self.__tmpDir, fname))
         return fn.open()
@@ -196,7 +213,49 @@ class Var:
         return self.meta['dependencies']
     
     @unzip
-    def files(self, path=None, with_meta = False):
+    def dep_fromfiles(self):
+        all_deps = []
+        for file in self.files():
+            try:
+                deps = file.jsonDeps()
+            except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                continue
+
+            varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
+            if varnames:
+                debug(f"File {self.var} references vars: {','.join(sorted(varnames))}")
+            all_deps.extend(varnames)
+        all_deps = [ e for e in list(set(all_deps)) if e != self.var ]
+        return all_deps
+
+    depend_node = []
+
+    @unzip
+    def depend(self, recurse = False, init = True, check = True):
+        global depend_node
+
+        # For dependency loop tracking, init nodes
+        if init:
+            depend_node = [ self.var ]
+        for dep in self.dep_fromfiles():
+            print(dep)
+            if dep not in depend_node:
+                depend_node.append(dep)
+                try:
+                    with  Var(dep, self.__AddonDir) as var:
+                        debug(f"{self.var} depends on {var}")
+                        if recurse:
+                            var.depend(recurse=True, init = False, check = check)
+                except vamex.VarNotFound as e:
+                    if check:
+                        error(f"{dep} Not found")
+                    raise
+            else:
+                debug(f"Avoiding loop from {self.var} with {dep}")
+        return depend_node
+
+    @unzip
+    def files(self, with_meta=False, path=None):
         if not path:
             path = self.__tmpDir
         for entry in os.scandir(path):
@@ -207,52 +266,9 @@ class Var:
                     yield FileName(entry, calc_crc=False)
 
     @unzip
-    def dep_from_files(self, full=False):
-        """
-        Full=True will also return files referenced from the dependent var"""
-        all_deps = []
-        for file in self.files():
-            try:
-                deps = file.jsonDeps()
-            except Exception as e:
-                continue
-            if not full:
-                varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
-                if varnames:
-                    debug(f"File {self.name()} references vars: {','.join(sorted(varnames))}")
-                all_deps.extend(varnames)
-            else:
-                all_deps.extend(deps['var'])
-        all_deps = list(set(all_deps))
-        return all_deps
-
-    depend_node = []
-    @unzip
-    def depend(self, recurse = False, init = True, check = True):
-        global depend_node
-
-        # For dependency loop tracking, init nodes
-        if init:
-            depend_node = [ self.name() ]
-        for dep in self.dep_from_files():
-            if dep not in depend_node:
-                depend_node.append(dep)
-                try:
-                    with  Var(dep, self.__AddonDir) as var:
-                        info(f"{self.name()} depends on {var}")
-                        if recurse:
-                            var.depend(recurse=True, init = False, check = check)
-                except vamex.VarNotFound as e:
-                    if check:
-                        error(f"{dep} Not found")
-            else:
-                info(f"Detected loop from {self.name()} with {dep}")
-        return depend_node
-
-    @unzip
     def remroot(self):
 
-        debug(f"Removing root from {self.name()}")
+        debug(f"Removing root from {self.var}")
         tmpfd, tmpname = tempfile.mkstemp(dir=self.__AddonDir)
         os.close(tmpfd)
 
@@ -276,12 +292,12 @@ class Var:
                     zout.writestr(rel_file, json.dumps(jvap, indent=4))
                 else:
                     zout.writestr(rel_file, file.read())
-        shutil.move( tmpname, f"{self.name()}.var" )
+        shutil.move( tmpname, self.file )
 
     def move_creator(self):
 
 
-        files_to_move = [ self.__Path ]
+        files_to_move = [ self.path ]
         if self.__thumb:
             files_to_move.append(self.__thumb)
 
@@ -290,7 +306,7 @@ class Var:
                         f"{file_to_move.name}")
 
             if str(file_to_move).lower() == str(newpath).lower():
-                debug(f"Not moving {self.__Path}")
+                debug(f"Not moving {self.path}")
                 return
             try:
                 os.makedirs(newpath.parent)

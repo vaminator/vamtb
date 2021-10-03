@@ -57,7 +57,7 @@ class VaM:
         found = True
         try:
             self.find_var(dir, varname)
-        except:
+        except vamex.VarNotFound:
             found = False
         logging.root.setLevel(level = mlevel)
         return found

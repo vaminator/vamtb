@@ -10,6 +10,8 @@ import os
 import re
 import logging
 import binascii
+import shutil
+import errno
 
 # Conf
 C_YAML = "vamtb.yml"
@@ -223,7 +225,7 @@ def make_var(self, in_dir, in_zipfile, creatorName=None, packageName=None, packa
                 if not packageVersion:
                     packageVersion = 1
                 packageVersion = int(packageVersion)
-            except:
+            except ValueError:
                 print("Noo, I need an integer")
             else:
                 break
@@ -409,6 +411,11 @@ def get_reqfile(self, infile, mtype):
 
     return list(req)
 
+def var_to_filename(var):
+    if var.endswith(".var"):
+        var = var[0:-4]
+    var = var + ".var"
+    return var
 
 def crc32c(content):
     buf = (binascii.crc32(content) & 0xFFFFFFFF)

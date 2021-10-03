@@ -17,27 +17,26 @@ class FileName:
     def __str__(self) -> str:
         return f"{self.__fname}"
 
+    @property
     def path(self):
         return self.__fname
     
+    @property
     def name(self):
         return self.__fname.name
 
-    def read(self):
-        return open(self.__fname,'rb').read()
-
-    def open(self):
-        return open(self.__fname)
-
+    @property
     def crc(self):
         if not self.__crc:
             self.__crc = crc32c(self.read())
         return self.__crc
 
+    @property
     def json(self, **kwargs):
         with self.open() as fh:
             return json.load(fh, **kwargs)
 
+    @property
     def jsonDeps(self):
         deps = { 'embed': [], 'var': [] , 'self': [] }
         def _decode_dict(a_dict):
@@ -59,3 +58,9 @@ class FileName:
         self.json(object_hook=_decode_dict)
         # logging.debug(f"Decoded json from {self.name()}, deps={deps}")
         return deps
+
+    def read(self):
+        return open(self.__fname,'rb').read()
+
+    def open(self):
+        return open(self.__fname)
