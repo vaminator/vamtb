@@ -1,14 +1,11 @@
 '''Vam dir structure'''
-import os
-import logging
 import sqlite3
+from vamtb.file import FileName
 from tqdm import tqdm
-from pathlib import Path
-from vamtb import varfile
+from vamtb.varfile import Var, VarFile
 from vamtb import vamex
-import subprocess
-from zipfile import ZipFile
-
+import zlib
+from vamtb.utils import *
 
 ref_creators = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
@@ -53,12 +50,14 @@ class Dbs:
             VERSION INT NOT NULL,
             LICENSE TEXT NOT NULL,
             MODIFICATION_TIME    INT     NOT NULL,
+            SIZE    INT     NOT NULL,
             CKSUM   CHAR(4) NOT NULL);''')
 
         self.getConn().execute('''CREATE TABLE IF NOT EXISTS DEPS
             (ID INTEGER PRIMARY KEY AUTOINCREMENT,
             VAR TEXT NOT NULL,
-            DEP TEXT NOT NULL);''')
+            DEPVAR TEXT NOT NULL,
+            DEPFILE TEXT NOT NULL);''')
 
         self.getConn().execute('''CREATE TABLE IF NOT EXISTS FILES
             (ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,68 +77,69 @@ class Dbs:
             cur.execute(sql)
         return cur.fetchall()
 
-    def store_var(self, var):
+    def store_var(self, varfile):
         """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
-        varname = var.name
+        try:
+            with Var(varfile) as var:
+                sql = "SELECT * FROM VARS WHERE VARNAME=?"
+                row = (var.var, )
+                rows = self.fetchall(sql, row)
+                if not rows:
+                    creator, version, modified_time, cksum = (var.creator, var.version, var.mtime, var.crc)
+                    size = FileName(var.path).size
+                    v_isref="YES" if creator in ref_creators else "UNKNOWN"
 
-        sql = "SELECT * FROM VARS WHERE VARNAME=?"
-        row = (varname, )
-        rows = self.fetchall(sql, row)
-        if not rows:
-            creator, version, modified_time,cksum = varfile.get_props(var)
-            v_isref="YES" if creator in ref_creators else "UNKNOWN"
-
-            meta=varfile.extract_meta_var(var)
-            license=meta['licenseType']
-
-            cur = self.getConn().cursor()
-            sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,CKSUM) VALUES (?,?,?,?,?,?,?)"""
-            row = (varname, v_isref, creator, version, license, modified_time, cksum)
-            cur.execute(sql, row)
-
-            with ZipFile(var, mode='r') as myvar:
-                listOfFileNames = myvar.namelist()
-                for f in listOfFileNames:
-                    with myvar.open(f) as fh:
-                        try:
-                            crcf = varfile.crc32c(fh.read())
-                        except Exception as e:
-                            logging.error(f'{Path(var).name} is a broken zip, chouldnt decompress {f}')
-                            return False
-                    f_isref="YES" if creator in ref_creators else "UNKNOWN"
+                    meta = var.meta()
+                    license=meta['licenseType']
 
                     cur = self.getConn().cursor()
-                    sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,CKSUM) VALUES (?,?,?,?,?)"""
-                    row = (None, f, f_isref, varname, crcf)
+                    sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
+                    row = (var.var, v_isref, creator, version, license, modified_time, size, cksum)
                     cur.execute(sql, row)
 
-            logging.debug(f"Stored var {varname} and files in databases")
-            sql = """INSERT INTO DEPS(ID,VAR,DEP) VALUES (?,?,?)"""
-            for dep in varfile.dep_fromvar(dir=None, var=var, full=True):
-                row = (None, varname[0:-4], dep)
-                cur = self.getConn().cursor()
-                cur.execute(sql, row)
-        else:
-            assert( len(rows) == 1 )
-            db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_cksum = rows[0]
-            modified_time = os.path.getmtime(var)
-            if db_modtime < modified_time and db_cksum != varfile.crc32(var):
-                logging.error(f"Database contains older data for var {varname}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
-                logging.error(f"This could also be because you have duplicate vars for {varname} (in that case, use vamtb sortvar) ")
-                return False
-            else:
-                logging.debug(f"Var {varname} already in database")
+                    for f in var.files(with_meta=True):
+                        crcf = f.crc
+                        f_isref="YES" if creator in ref_creators else "UNKNOWN"
+
+                        cur = self.getConn().cursor()
+                        sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,CKSUM) VALUES (?,?,?,?,?)"""
+                        row = (None, var.ziprel(f.path), f_isref, var.var, crcf)
+                        cur.execute(sql, row)
+
+                    debug(f"Stored var {var.var} and files in databases")
+                    sql = """INSERT INTO DEPS(ID,VAR,DEPVAR,DEPFILE) VALUES (?,?,?,?)"""
+                    for dep in var.dep_fromfiles(with_file=True):
+                        depvar, depfile = dep.split(':')
+                        # Remove first /
+                        depfile = depfile[1:]
+                        row = (None, var.var, depvar, depfile)
+                        cur = self.getConn().cursor()
+                        cur.execute(sql, row)
+                else:
+                    assert( len(rows) == 1 )
+                    db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_size, db_cksum = rows[0]
+                    modified_time = FileName(var.path).mtime
+                    
+                    if db_modtime < modified_time and db_cksum != FileName(var.path).crc:
+                        error(f"Database contains older data for var {var.var}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
+                        error(f"This could also be because you have duplicate vars for {var.var} (in that case, use vamtb sortvar) ")
+                        return False
+                    else:
+                        debug(f"Var {var.var} already in database")
+        except (zlib.error, vamex.VarExtNotCorrect, vamex.VarMetaJson, vamex.VarVersionNotCorrect, vamex.VarNameNotCorrect) as e:
+            #error(f"Var {var} generated error {e}")
+            return False
         return True
 
     def store_vars(self, vars_list, sync = True):
         progress_iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=5, ncols=75, unit='var')
-        for var in progress_iterator:
-            logging.debug(f"Checking var {var}")
-            if not self.store_var(var):
+        for varfile in progress_iterator:
+            debug(f"Checking var {varfile}")
+            if not self.store_var(varfile):
                 self.getConn().rollback()
             elif sync:
                 self.getConn().commit()
-        logging.info(f"{len(vars_list)} var files stored")
+        info(f"{len(vars_list)} var files stored")
 
         self.getConn().commit()
 
@@ -156,6 +156,7 @@ class Dbs:
         else:
             return None
 
+    #TODO
     def get_prop_files(self, filename, varname, prop_name):
         cur = self.getConn().cursor()
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
@@ -171,6 +172,7 @@ class Dbs:
     def get_file_cksum(self, filename, varname):
         return self.get_prop_files(filename, varname, "CKSUM")
 
+    #TODO
     def get_license(self, varname):
         if not varname.endswith(".var"):
             varname = f"{varname}.var"
@@ -179,6 +181,7 @@ class Dbs:
     def get_ref(self, varname):
         return self.get_prop_vars(varname, "ISREF")
 
+    #TODO
     def var_exists(self, varname):
         if not varname.endswith(".var"):
             varname = f"{varname}.var"
@@ -188,10 +191,8 @@ class Dbs:
             return (self.get_prop_vars(varname, "VARNAME") != None)
 
     def latest(self, var):
-        var = ".".join(var.split('.',2)[0:2])
-
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
-        row=(f"{var}%", )
+        row=(f"{VarFile(var).var_nov}%", )
         res = self.fetchall(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions.sort(key=int, reverse=True)
