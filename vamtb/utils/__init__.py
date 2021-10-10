@@ -1,4 +1,4 @@
-#from colorama import Fore, Back, Style, init
+from json import encoder
 from vamtb import vamex
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -81,12 +81,20 @@ class CustomFormatter(logging.Formatter):
     format = "%(levelname)8s : %(message)s"
 
     FORMATS = {
-        logging.DEBUG: blue + format + reset,
-        logging.INFO: green + format + reset,
-        logging.WARNING: cyan + format + reset,
-        logging.ERROR: red + format + reset,
-        logging.CRITICAL: bold_red + format + reset
-    }
+         logging.DEBUG: blue + format + reset,
+         logging.INFO: green + format + reset,
+         logging.WARNING: cyan + format + reset,
+         logging.ERROR: red + format + reset,
+         logging.CRITICAL: bold_red + format + reset
+     }
+
+    # FORMATS = {
+    #     logging.DEBUG: format,
+    #     logging.INFO: format,
+    #     logging.WARNING: format,
+    #     logging.ERROR: format,
+    #     logging.CRITICAL: format
+    # }
 
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)

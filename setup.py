@@ -10,14 +10,17 @@ setup(
       version='0.11',
       author_email='foo@bar.com',
       long_description=_read('README.rst'),
+      test_suite='vamtb.test.testall.suite',
       packages=[
         'vamtb',
         'vamtb.vamdirs',
         'vamtb.varfile',
         'vamtb.graph',
         'vamtb.utils',
+        'vamtb.file',
         'vamtb.thumb',
         'vamtb.vamex',
+        'vamtb.test',
         'vamtb.db',
       ],
       package_data={},
@@ -30,8 +33,9 @@ setup(
         "colorama"
       ],
       extras_require={
-        'test': [
-        ],
+         'test': [
+            'pytest',
+        ],     
       },   
       entry_points={
         'console_scripts': [

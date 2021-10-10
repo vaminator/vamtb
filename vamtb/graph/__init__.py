@@ -16,11 +16,11 @@ class Graph:
     def deps_desc_node(self, var):
         uniq = set()
 
-        sql="SELECT DEP FROM DEPS WHERE VAR = ? COLLATE NOCASE"
+        sql="SELECT DEPVAR FROM DEPS WHERE VAR = ? COLLATE NOCASE"
         row = (var, )
         res = Graph.__dbs.fetchall(sql, row)
 
-        for depvar in [ e[0].split(':')[0] for e in res ]:
+        for depvar in res:
             if "latest" in depvar:
                 ldepvar = Graph.__dbs.latest(depvar)
                 if ldepvar is not None:
@@ -33,13 +33,12 @@ class Graph:
         return self.__desc_deps
 
     def deps_asc_node(self, var):
-        sql = "SELECT DISTINCT VAR FROM DEPS WHERE DEP LIKE ? OR DEP LIKE ? COLLATE NOCASE"
+        sql = "SELECT DISTINCT VAR FROM DEPS WHERE DEPVAR = ? OR DEPVAR = ? COLLATE NOCASE"
         var_nov = ".".join(var.split('.')[0:2])
-        row = (f"{var_nov}.latest:%", f"{var}:%")
+        row = (f"{var_nov}.latest", f"{var}")
         res = Graph.__dbs.fetchall(sql, row)
 
-        asc = [ e[0] for e in res ]
-        asc = [ e for e in asc if not e.endswith(".latest") or self.latest(e) == e ]
+        asc = [ e for e in res if not e.endswith(".latest") or self.latest(e) == e ]
         self.__asc_deps.extend(set(asc))
 
         for ascx in sorted([ e for e in asc if e != var and e not in asc_deps ]):

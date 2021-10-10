@@ -21,10 +21,11 @@ import zlib
 @click.option('dir', '-d', help='VAM directory (default cur dir).')
 @click.option('custom', '-c', help='VAM custom directory.')
 @click.option('file','-f', help='Var file.')
+@click.option('-c', '--color/--no-color', default=False, help="Add colors to log messages")
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
 @click.pass_context
-def cli(ctx, verbose, move, dir, custom, file):
+def cli(ctx, verbose, move, dir, custom, file, color):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -139,15 +140,15 @@ def printrealdep(ctx):
             mess = green("Found")
         print(f"{depvar:<60}: {mess}")
 
-@cli.command('checkdep')
-@click.pass_context
-def checkdep(ctx):
-    """Check dependencies of a var"""
-    file = ctx.obj['file']
-    dir = ctx.obj['dir']
-    move = ctx.ob
-    with Var(file, dir) as var:
-        var.depend(recurse = True)
+#@cli.command('checkdep')
+#@click.pass_context
+#def checkdep(ctx):
+#    """Check dependencies of a var"""
+#    file = ctx.obj['file']
+#    dir = ctx.obj['dir']
+#    move = ctx.ob
+#    with Var(file, dir) as var:
+#        var.depend(recurse = True)
 
 @cli.command('dump')
 @click.pass_context
@@ -244,29 +245,67 @@ def checkdeps(ctx):
     else:
         pattern = "*.var"
     for file in search_files_indir(dir, pattern):
-        with Var(file, dir) as var:
-            try:
-                _ = var.depend(recurse=True)
-            except (vamex.VarNotFound, zlib.error) as e:
-                error(f'Missing or wrong dependency for {var} [{e}]')
-                if move:
-                    try:
-                        shutil.copy(var.path, str(full_bad_dir))
-                    except shutil.SameFileError:
-                        dvar = Path(full_bad_dir) / var.file
-                        scrc = var.crc
-                        dcrc = FileName(dvar).crc
-                        if scrc == dcrc:
-                            os.remove(var.path)
-                        else:
-                            logging.error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
+        try:
+            with Var(file, dir) as var:
+                try:
+                    _ = var.depend(recurse=True)
+                except (vamex.VarNotFound, zlib.error) as e:
+                    error(f'Missing or wrong dependency for {var} [{e}]')
+                    if move:
+                        try:
+                            shutil.copy(var.path, str(full_bad_dir))
+                        except shutil.SameFileError:
+                            dvar = Path(full_bad_dir) / var.file
+                            scrc = var.crc
+                            dcrc = FileName(dvar).crc
+                            if scrc == dcrc:
+                                os.remove(var.path)
+                            else:
+                                logging.error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
 
-                    except shutil.Error:
-                        # File is already there
-                        pass
-                        raise
-                    else:
-                        print(f"Moved {var} to {full_bad_dir}")
+                        except shutil.Error:
+                            # File is already there
+                            pass
+                            raise
+                        else:
+                            print(f"Moved {var} to {full_bad_dir}")
+        except (vamex.VarExtNotCorrect, vamex.VarMetaJson, vamex.VarNameNotCorrect, vamex.VarVersionNotCorrect):
+            pass
+
+
+@cli.command('dbs')
+@click.pass_context
+def dbs(ctx):
+    """
+    Scan vars and store props in db
+    """
+    dir = ctx.obj['dir']
+    file = ctx.obj['file']
+    if file:
+        pattern = VarFile(file).file
+    else:
+        pattern = "*.var"
+    db.store_vars(search_files_indir(dir, pattern))
+
+@cli.command('dotty')
+@click.pass_context
+def dotty(ctx):
+    """
+    \b
+    Gen dot graph of deps.
+    If you only want to graph one var, use -f.
+    """
+    dir = ctx.obj['dir']
+    file = ctx.obj['file']
+    if file:
+        pattern = VarFile(file).file
+    else:
+        pattern = "*.var"
+    for file in search_files_indir(dir, pattern):
+        graph = Graph()
+        graph.dotty(file)
+
+
 
 # @cli.command('thumb')
 # @click.pass_context
@@ -411,27 +450,6 @@ def checkdeps(ctx):
 #             info(f"Renaming {var} to {rfile}")
 #             os.rename(var, rfile)
 
-
-# @cli.command('dbs')
-# @click.pass_context
-# def dbs(ctx):
-#     """
-#     Scan vars and store props in db
-#     """
-#     mdir=Path(getdir(ctx))
-#     vars_files = sorted(vamdirs.list_vars(mdir))[0:]
-#     db.store_vars(vars_files)
-
-# @cli.command('dotty')
-# @click.pass_context
-# def dotty(ctx):
-#     """
-#     \b
-#     Gen dot graph of deps.
-#     If you only want to graph one var, use -f.
-#     """
-#     graph = Graph()
-#     graph.dotty(ctx.obj['file'])
 
 # @cli.command('dottys')
 # @click.pass_context

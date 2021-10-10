@@ -1,5 +1,4 @@
 import json
-import logging
 from vamtb import utils
 from pathlib import Path
 from vamtb.utils import *
@@ -32,9 +31,18 @@ class FileName:
         return self.__crc
 
     @property
-    def json(self, **kwargs):
-        with self.open() as fh:
-            return json.load(fh, **kwargs)
+    def mtime(self):
+        self.__mtime = os.path.getmtime(self.path)
+        return self.__mtime
+
+    @property
+    def size(self):
+        self.__size = os.path.getsize(self.path)
+        return self.__size
+
+    @property
+    def json(self):
+        return json.loads(self.read())
 
     @property
     def jsonDeps(self):
@@ -55,7 +63,7 @@ class FileName:
                         # String not containing ":" ending with these extensions
                         deps['embed'].append(ref)
 
-        self.json(object_hook=_decode_dict)
+        _ = json.loads(self.read(), object_hook=_decode_dict)
         # logging.debug(f"Decoded json from {self.name()}, deps={deps}")
         return deps
 

@@ -5,7 +5,6 @@ import os
 import re
 import shutil
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
 
@@ -22,7 +21,7 @@ class VarFile:
         # Version as string 1, latest, min
         self.__sVersion = ""
         # integer version or 0
-        self._iVersion = 0
+        self.__iVersion = 0
 
         if not isinstance(inputName, Path):
             inputName = Path(inputName)
@@ -52,6 +51,10 @@ class VarFile:
         return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}"
     
     @property
+    def var_nov(self) -> str:
+        return f"{self.__Creator}.{self.__Resource}"
+
+    @property
     def file(self) -> str:
         return self.var + ".var"
 
@@ -67,6 +70,10 @@ class VarFile:
     def version(self) -> str:
         return self.__sVersion
 
+    @property
+    def iversion(self) -> int:
+        return self.__iVersion
+
 class Var(VarFile):
 
     def __init__(self, multiFileName, dir=None, zipcheck=False):
@@ -75,6 +82,9 @@ class Var(VarFile):
         in the two first cases, dir is required to find the var on disk
         zipcheck will extract the zip to a temporary directory
         """
+        # tempdir to extracted var
+        self.__tmpDir = None
+
         VarFile.__init__(self, multiFileName)
 
         # AddonDir if specified
@@ -86,13 +96,6 @@ class Var(VarFile):
                 self.__AddonDir = dir / "AddonPackages"
         else:
             self.__AddonDir = None
-
-        # Full path pointing to existing file 
-        self.__modified_time = 0
-        self.__cksum = 0
-
-        # tempdir to extracted var
-        self.__tmpDir = None
 
         # Meta as dict
         self._meta = None
@@ -114,12 +117,12 @@ class Var(VarFile):
         return self._path
 
     @property
-    def meta(self) -> dict:
-        return self._meta()
-
-    @property
     def crc(self):
         return FileName(self.path).crc
+
+    @property
+    def mtime(self):
+        return FileName(self.path).mtime
 
     def __enter__(self):
         return self
@@ -128,8 +131,8 @@ class Var(VarFile):
         pass
 
     def __del__(self):
-        debug(f"Erasing directory {self.__tmpDir}")
         if self.__tmpDir:
+            debug(f"Erasing directory {self.__tmpDir}")
             self.__tmpTempDir.cleanup()
         pass
 
@@ -140,11 +143,12 @@ class Var(VarFile):
         return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
 
     def __resolvevar(self, multiname):
+        debug(f"Resolving var {multiname}")
         if Path(multiname).exists() and Path(multiname).is_file():
             return Path(multiname)
 
         # Not a full path var, search var on disk
-        if self.__iVersion:
+        if self.iversion:
             pattern = self.file
         else:
             pattern = self.creator + "." + self.resource + ".*.var"
@@ -163,10 +167,6 @@ class Var(VarFile):
     def __repr__(self) -> str:
         return f"{self.var} [path : {self.path}]"
 
-    def set_fprops(self):
-        self.__modified_time = os.path.getmtime(self.path)
-        self.__cksum = FileName(self.path).crc()
-
     def extract(self):
         self.__tmpTempDir = tempfile.TemporaryDirectory(prefix="vamtb_temp_")
         tmpPathdir = Path(self.__tmpTempDir.name)
@@ -176,11 +176,16 @@ class Var(VarFile):
                 z.extractall(tmpPathdir)
             debug(f"Done...")
         except Exception as e:
-            self.__del__()
+#            self.__del__()
             raise
         else:
             self.__tmpDir = tmpPathdir
             debug(f"Extracted {self.var} to {self.__tmpDir}")
+
+    def meta(self) -> dict:
+        if not self._meta:
+            self._meta = self.load_json_file("meta.json")
+        return self._meta
 
     def unzip(func):
         """Decorator to extract zip"""
@@ -193,11 +198,8 @@ class Var(VarFile):
         return inner
 
     @unzip
-    def load_json_file(self, filename):
-        res = FileName(Path(self.__tmpDir, filename)).json()
-        if filename == "meta.json":
-            self.meta = res
-        return res
+    def load_json_file(self, filename) -> dict:
+        return FileName(Path(self.__tmpDir, filename)).json
 
     @unzip
     def open_file(self, fname):
@@ -206,21 +208,22 @@ class Var(VarFile):
 
     @unzip
     def dep_frommeta(self):
-        self.meta = self.load_json_file("meta.json")
-        if not( self.meta and "dependencies" in self.meta and self.meta['dependencies']):
+        if not( self.meta() and "dependencies" in self.meta() and self.meta()['dependencies']):
             return []
 
-        return self.meta['dependencies']
+        return self.meta()['dependencies']
     
     @unzip
-    def dep_fromfiles(self):
+    def dep_fromfiles(self, with_file = False):
         all_deps = []
         for file in self.files():
             try:
-                deps = file.jsonDeps()
+                deps = file.jsonDeps
             except (UnicodeDecodeError, json.decoder.JSONDecodeError):
                 continue
 
+            if with_file:
+                return deps['var']
             varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
             if varnames:
                 debug(f"File {self.var} references vars: {','.join(sorted(varnames))}")
@@ -238,7 +241,6 @@ class Var(VarFile):
         if init:
             depend_node = [ self.var ]
         for dep in self.dep_fromfiles():
-            print(dep)
             if dep not in depend_node:
                 depend_node.append(dep)
                 try:
@@ -254,13 +256,16 @@ class Var(VarFile):
                 debug(f"Avoiding loop from {self.var} with {dep}")
         return depend_node
 
+    def ziprel(self, fname):
+        return Path(os.path.relpath(fname, self.__tmpDir)).as_posix()
+
     @unzip
     def files(self, with_meta=False, path=None):
         if not path:
             path = self.__tmpDir
         for entry in os.scandir(path):
             if entry.is_dir(follow_symlinks=False):
-                yield from self.files(entry.path)
+                yield from self.files(with_meta=with_meta, path=entry.path)
             if entry.is_file():
                 if with_meta or entry.name != "meta.json":
                     yield FileName(entry, calc_crc=False)
