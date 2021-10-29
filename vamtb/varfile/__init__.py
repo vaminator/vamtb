@@ -43,11 +43,10 @@ def split_varname(fname, dest_dir):
     except FileExistsError:
         pass
     logging.info("Moving %s to %s" % (fname, newname))
-    try:
-        shutil.move(fname, newname)
-        #fname.rename(newname)
-    except FileExistsError:
-        pass
+    # Python is just a joke on windows. Major bug not corrected for nearly a year.
+    # https://bugs.python.org/issue42929
+    # so don't rely on documentation, DIY
+    if Path(newname).exists():
         fcrc = crc32(fname)
         ncrc = crc32(newname)
         if fcrc == ncrc:
@@ -59,6 +58,10 @@ def split_varname(fname, dest_dir):
                 logging.error(f"Couldnt remove {fname}")
         else:
             logging.error(f"File {fname} and {newname} have same name but crc differ {fcrc} , {ncrc}. Remove yourself.") 
+    else:
+        shutil.move(fname, newname)
+        print(f"Done {fname} to {newname}")
+        #fname.rename(newname)
 
 def contains(var, pattern):
     lc = []
