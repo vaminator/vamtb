@@ -30,7 +30,7 @@ class Dbs:
         """ Static access method. """
         return Dbs.__conn
 
-    def __init__(self, dbfilename="vars.dbs"):
+    def __init__(self, dbfilename="vars.db"):
         """ Virtually private constructor. """
         if Dbs.__instance != None:
             raise Exception("This class is a singleton!")
