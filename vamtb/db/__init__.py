@@ -71,6 +71,7 @@ class Dbs:
         Execute query and fetch all results
         """
         cur = self.getConn().cursor()
+        debug(f"Params={row}, Exec={sql}")
         if row:
             cur.execute(sql, row)
         else:
@@ -156,8 +157,9 @@ class Dbs:
         else:
             return None
 
-    #TODO
     def get_prop_files(self, filename, varname, prop_name):
+        if varname.endswith(".var"):
+            varname = varname[0:-4]
         cur = self.getConn().cursor()
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
         row = (filename, varname)
@@ -172,19 +174,17 @@ class Dbs:
     def get_file_cksum(self, filename, varname):
         return self.get_prop_files(filename, varname, "CKSUM")
 
-    #TODO
     def get_license(self, varname):
-        if not varname.endswith(".var"):
-            varname = f"{varname}.var"
+        if varname.endswith(".var"):
+            varname = varname[0:-4]
         return self.get_prop_vars(varname, "LICENSE")
 
     def get_ref(self, varname):
         return self.get_prop_vars(varname, "ISREF")
 
-    #TODO
     def var_exists(self, varname):
-        if not varname.endswith(".var"):
-            varname = f"{varname}.var"
+        if varname.endswith(".var"):
+            varname = varname[0:-4]
         if varname.endswith(".latest"):
             return (self.latest(varname) != None)
         else:
@@ -192,18 +192,36 @@ class Dbs:
 
     def latest(self, var):
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
-        row=(f"{VarFile(var).var_nov}%", )
+        var_nov = VarFile(var).var_nov
+        row=(f"{var_nov}%", )
         res = self.fetchall(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions.sort(key=int, reverse=True)
 
         if versions:
-            return f"{var}.{versions[0]}"
+            return f"{var_nov}.{versions[0]}"
+        else:
+            return None
+
+    def min(self, var):
+        varf = VarFile(var)
+        assert(varf.version.startswith("min"))
+        minver = varf.minversion
+        sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
+        var_nov = varf.var_nov
+        row=(f"{var_nov}%", )
+        res = self.fetchall(sql, row)
+        versions = [ e[0].split('.',3)[2] for e in res ]
+        versions = [ int(v) for v in versions if int(v) >= minver ]
+        versions.sort(key=int, reverse=True)
+
+        if versions:
+            return f"{var_nov}.{versions[0]}"
         else:
             return None
 
     def get_db_deps(self):
-        return self.fetchall("SELECT VAR, DEP FROM DEPS", None)
+        return self.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
 
 def store_vars(var_files):
     dbs = Dbs()

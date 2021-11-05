@@ -2,6 +2,8 @@ import logging
 from vamtb import db
 import subprocess
 import os
+from vamtb.utils import *
+from vamtb.varfile import VarFile
 
 class Graph:
     __desc_deps=[]
@@ -14,29 +16,42 @@ class Graph:
         Graph.__dbs = dbs
 
     def deps_desc_node(self, var):
+        """
+        Returns vars on which var depends
+        """
         uniq = set()
 
-        sql="SELECT DEPVAR FROM DEPS WHERE VAR = ? COLLATE NOCASE"
+        sql="SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR = ? COLLATE NOCASE"
         row = (var, )
         res = Graph.__dbs.fetchall(sql, row)
-
+        # flatten tuple with 1 element
+        res = [ e[0] for e in res ]
         for depvar in res:
-            if "latest" in depvar:
+            v = depvar.split('.')[2]
+            if v == "latest":
                 ldepvar = Graph.__dbs.latest(depvar)
+                if ldepvar is not None:
+                    depvar = ldepvar
+            elif v.startswith("min"):
+                ldepvar = Graph.__dbs.min(depvar)
                 if ldepvar is not None:
                     depvar = ldepvar
             uniq.add(depvar)
         self.__desc_deps.extend(uniq)
 
-        for dep in sorted([ v for v in uniq if v not in desc_deps ]):
-            self.__desc_deps.extend(self.deps_desc_node(dep))
+#        for dep in sorted([ v for v in uniq if v not in desc_deps ]):
+#            self.__desc_deps.extend(self.deps_desc_node(dep))
         return self.__desc_deps
 
     def deps_asc_node(self, var):
+        """
+        Returns vars depending on var
+        """
         sql = "SELECT DISTINCT VAR FROM DEPS WHERE DEPVAR = ? OR DEPVAR = ? COLLATE NOCASE"
-        var_nov = ".".join(var.split('.')[0:2])
-        row = (f"{var_nov}.latest", f"{var}")
+        row = (f"{VarFile(var).var_nov}.latest", f"{var}")
         res = Graph.__dbs.fetchall(sql, row)
+        # flatten tuple with 1 element
+        res = [ e[0] for e in res ]
 
         asc = [ e for e in res if not e.endswith(".latest") or self.latest(e) == e ]
         self.__asc_deps.extend(set(asc))
@@ -70,26 +85,43 @@ class Graph:
         direct_graphs=[]
         shapes = []
         cmddot = "c:\\Graphviz\\bin\\dot.exe"
-        
+
+        if isinstance(lvar, os.PathLike):
+            lvar = VarFile(lvar).var
+
         if lvar:
             only_nodes = self.deps_node(lvar)
+            debug(f"only_nodes={only_nodes}")
 
         if lvar and not Graph.__dbs.var_exists(lvar):
-            logging.info(f"{lvar} not found in the database, run dbs subcommand?")
+            info(f"{lvar} not found in the database, run dbs subcommand?")
             return
 
         the_deps = Graph.__dbs.get_db_deps()
-        for var, depf in the_deps:
+        debug(f"deps={the_deps}")
+
+        for varv, depv in the_deps:
             dep = None
-            if "latest" in depf:
-                dep = ".".join(depf.split(".", 2)[0:2])
-                dep = Graph.__dbs.latest(dep)
+            var = None
+            depvers = depv.split('.')[2]
+            varvers = varv.split('.')[2]
+            if depvers == "latest":
+                dep = Graph.__dbs.latest(depv)
+            if varvers == "latest":
+                var = Graph.__dbs.latest(varv)
+            if depvers.startswith("min"):
+                dep = Graph.__dbs.min(depv)
+            if varvers.startswith("min"):
+                var = Graph.__dbs.min(varv)
             if not dep:
-                dep = depf.split(':',1)[0]
-            if lvar and not(dep in only_nodes and var in only_nodes):
+                dep = depv
+            if not var:
+                var = varv
+#            if lvar and dep not in only_nodes and var not in only_nodes:
+            if lvar and lvar not in (dep, var):
                 continue
             if f'"{var}" -> "{dep}";' not in direct_graphs:
-                logging.debug(f"Adding {var} -> {dep}")
+                info(f"Adding {var} -> {dep}")
                 props = self.set_props([var, dep])
                 shapes.extend(props)
                 direct_graphs.append(f'"{var}" -> "{dep}";')
@@ -107,11 +139,11 @@ class Graph:
             try:
                 subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
             except Exception as CalledProcessError:
-                logging.error("You need graphviz installed and dot available in {cmddot}")
+                error("You need graphviz installed and dot available in {cmddot}")
                 os.unlink("deps.dot")
                 exit(0)
             os.unlink("deps.dot")
-            logging.info("Graph generated")
+            info("Graph generated")
 
         else:
-            logging.warning(f"No graph as no var linked to {lvar}")
+            warning(f"No graph as no var linked to {lvar}")

@@ -125,11 +125,11 @@ def printrealdep(ctx):
     dir = ctx.obj['dir']
 
     try:
-        var = Var(fileName=file, dir= dir)
+        var = Var(multiFileName=file, dir= dir)
     except vamex.VarNotFound:
         logging.error(f"Var {file} not found!")
         exit(0)
-    deps = var.dep_from_files()
+    deps = var.dep_fromfiles()
     for depvar in sorted(deps, key=str.casefold):
         mess = green("Found")
         try:
@@ -212,7 +212,7 @@ def stats_vars(ctx):
     for file in search_files_indir(dir, "*.var"):
         try:
             with Var(file, dir) as var:
-                creators_file[var.Creator()].append(var.name())
+                creators_file[var.creator].append(var.var)
         except KeyboardInterrupt:
             return
         except Exception as e:
@@ -303,9 +303,21 @@ def dotty(ctx):
         pattern = "*.var"
     for file in search_files_indir(dir, pattern):
         graph = Graph()
-        graph.dotty(file)
+        with Var(file) as var:
+            graph.dotty(var.var)
 
 
+@cli.command('dottys')
+@click.pass_context
+def dottys(ctx):
+    """
+    Gen dot graph of deps, one per var
+    """
+    mdir=Path(ctx.obj['dir'])
+    graph = Graph()
+    for var_file in search_files_indir(mdir, "*.var"):
+        info(f"Calculating dependency graph of {VarFile(var_file).var}")
+        graph.dotty(var_file)
 
 # @cli.command('thumb')
 # @click.pass_context
@@ -450,19 +462,6 @@ def dotty(ctx):
 #             info(f"Renaming {var} to {rfile}")
 #             os.rename(var, rfile)
 
-
-# @cli.command('dottys')
-# @click.pass_context
-# def dottys(ctx):
-#     """
-#     Gen dot graph of deps, one per var
-#     """
-#     mdir=Path(ctx.obj['dir'])
-#     vars_files = vamdirs.list_vars(mdir)
-#     for var_file in vars_files:
-#         var_file = Path(var_file).with_suffix('').name
-#         info(f"Performing graph for {var_file}")
-#         db.dotty(var_file)
 
 
 # @cli.command('uiap')

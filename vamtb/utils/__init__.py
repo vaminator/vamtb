@@ -482,6 +482,9 @@ def error(message):
 def warn(message):
     __log.warn(message)
 
+def warning(message):
+    __log.warn(message)
+
 def critical(message, doexit=False):
     __log.critical(message)
     if doexit:

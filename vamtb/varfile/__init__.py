@@ -22,6 +22,8 @@ class VarFile:
         self.__sVersion = ""
         # integer version or 0
         self.__iVersion = 0
+        # Min version or 0
+        self.__iMinVer = 0
 
         if not isinstance(inputName, Path):
             inputName = Path(inputName)
@@ -35,7 +37,11 @@ class VarFile:
         try:
             self.__iVersion = int(self.__sVersion)
         except ValueError:
-            if self.__sVersion != "latest" and not self.__sVersion.startswith('min'):
+            if self.__sVersion == "latest":
+                pass
+            elif self.__sVersion.startswith('min'):
+                self.__iMinVer = int(self.__sVersion[3:])
+            else:
                 error(f"Var {inputName} has incorrect extension {self.__sVersion}" )
                 raise vamex.VarVersionNotCorrect(inputName)
         try:
@@ -45,11 +51,12 @@ class VarFile:
         else:
             if ext != "var":
                 raise vamex.VarExtNotCorrect(inputName)
+        debug(f"Var {inputName} is compliant")
 
     @property
     def var(self) -> str:
         return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}"
-    
+
     @property
     def var_nov(self) -> str:
         return f"{self.__Creator}.{self.__Resource}"
@@ -74,6 +81,10 @@ class VarFile:
     def iversion(self) -> int:
         return self.__iVersion
 
+    @property
+    def minversion(self) -> int:
+        return self.__iMinVer
+
 class Var(VarFile):
 
     def __init__(self, multiFileName, dir=None, zipcheck=False):
@@ -84,7 +95,6 @@ class Var(VarFile):
         """
         # tempdir to extracted var
         self.__tmpDir = None
-
         VarFile.__init__(self, multiFileName)
 
         # AddonDir if specified
@@ -104,7 +114,7 @@ class Var(VarFile):
         self.__thumb = None
 
         # Verify and resolve var on disk
-        self._path = self.__resolvevar(multiFileName)
+        self._path = Path(self.__resolvevar(multiFileName))
 
         if zipcheck:
             self.extract()
@@ -112,9 +122,16 @@ class Var(VarFile):
         if self._path.with_suffix(".jpg").exists():
             self.__thumb = self.path.with_suffix(".jpg")
 
+        debug(f"Var {multiFileName} is found as {self._path}")
+
     @property
     def path(self) -> str:
         return self._path
+
+    @property
+    def evar(self) -> str:
+        """ var from pathname (latest and min resolved) """
+        return f"{Path(self.path).with_suffix('').name}"
 
     @property
     def crc(self):
@@ -143,26 +160,34 @@ class Var(VarFile):
         return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
 
     def __resolvevar(self, multiname):
-        debug(f"Resolving var {multiname}")
+        """This will return the real var as an existing Path"""
         if Path(multiname).exists() and Path(multiname).is_file():
             return Path(multiname)
 
         # Not a full path var, search var on disk
-        if self.iversion:
+        if self.iversion :
             pattern = self.file
-        else:
+        elif self.version == "latest" or self.minversion:
             pattern = self.creator + "." + self.resource + ".*.var"
+        else:
+            assert(False)
 
         vars = self.search(pattern = pattern)
         if not vars:
             raise vamex.VarNotFound(self.var)
 
-        vars = list(reversed(sorted(vars)))
-
-        if len(vars) > 1:
-            debug(f"Using {vars[0]} for {self.var}")
-
-        return vars[0]
+        if self.version == "latest":
+            rsortedvars = list(reversed(sorted(vars, key=lambda x: int(x.name.split('.')[2]))))
+            return rsortedvars[0]
+        elif self.minversion :
+            vars = [ e for e in vars if int(e.name.split('.')[2]) >= self.minversion ]
+            sortedvars = list(sorted(vars, key=lambda x: int(x.name.split('.')[2])))
+            if not sortedvars:
+                raise vamex.VarNotFound(self.var)
+            return sortedvars[0]
+        else:
+            assert(len(vars) == 1)
+            return vars[0]
 
     def __repr__(self) -> str:
         return f"{self.var} [path : {self.path}]"
@@ -280,9 +305,9 @@ class Var(VarFile):
         with ZipFile(tmpname, 'w') as zout:
             zout.comment = b""
             for file in self.files(with_meta=True):
-                rel_file = str(file.path().relative_to(self.__tmpDir).as_posix())
+                rel_file = str(file.path.relative_to(self.__tmpDir).as_posix())
                 if rel_file.endswith(".vap") and rel_file.startswith("Custom/Atom/Person/Pose/"):
-                    jvap = file.json()
+                    jvap = file.json
                     jvap_storables = jvap['storables']
                     jvap_storables_noroot = []
 
@@ -300,14 +325,12 @@ class Var(VarFile):
         shutil.move( tmpname, self.file )
 
     def move_creator(self):
-
-
         files_to_move = [ self.path ]
         if self.__thumb:
             files_to_move.append(self.__thumb)
 
         for file_to_move in files_to_move:
-            newpath = Path(self.__AddonDir, self.Creator(), 
+            newpath = Path(self.__AddonDir, self.creator,
                         f"{file_to_move.name}")
 
             if str(file_to_move).lower() == str(newpath).lower():
