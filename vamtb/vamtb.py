@@ -123,37 +123,6 @@ def noroot(ctx):
     logging.info(f"Removing root node from {var}")
     varfile.remroot(var)
 
-@cli.command('sortvar')
-@click.pass_context
-def sort_vars(ctx):
-    """Moves vars to subdirectory named by its creator"""
-    mdir = getdir(ctx)
-    logging.info("Sorting var in %s" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*")
-    vars_files = vamdirs.list_vars(mdir)
-    mdir=Path(mdir)
-    for var_file in vars_files:
-        try:
-            pass
-            varfile.is_namecorrect(var_file)
-        except vamex.VarNameNotCorrect:
-            logging.error(f"File {var_file} has incorrect naming.")
-            continue
-        try:
-            pass
-            varfile.extract_meta_var(var_file)
-        except vamex.VarMetaJson as e:
-            logging.error(f"File {var_file} is corrupted [{e}].")
-            continue
-        except vamex.NoMetaJson as e:
-            logging.error(f"File {var_file} doesn't have a meta.json file [{e}].")
-            continue
-        varfile.split_varname(var_file, dest_dir = mdir)
-# FIXME too slow
-#        jpg = varfile.find_same_jpg(all_files, var_file)
-#        if jpg:
-#            varfile.split_varname(jpg[0], dest_dir = mdir)
-
 @cli.command('checkvars')
 @click.pass_context
 def check_vars(ctx):
