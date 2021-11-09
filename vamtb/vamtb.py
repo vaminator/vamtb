@@ -411,6 +411,12 @@ def dottys(ctx):
 def uiap(ctx):
     """Gen uia preset from var"""
     mdir=Path(getdir(ctx))
+    print(mdir)
     mfile=ctx.obj['file']
-    mvar, = vamdirs.list_vars(mdir, mfile)
-    varfile.uiap(mvar)
+    mvars = vamdirs.list_vars(fpath=mdir, pattern=mfile)
+#    if len(mvars) == 1 and vars[0]:
+#        var_path = mvars[0]
+#    else:
+#        logging.error("var not found")
+#        exit(0)
+    varfile.uiap(mvars[0])

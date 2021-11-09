@@ -16,7 +16,9 @@ def is_vamdir(fpath):
 def list_vars(fpath, pattern = "*.var"):
     # logging.debug(f"Listing files pattern **/{pattern} in {fpath}")
     pattern = re.sub(r'([\[\]])','[\\1]',pattern)
-    return list( x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file())
+    l = Path(fpath).glob(f"**/{pattern}*")
+    lfile = [ x for x in l if x.is_file()]
+    return lfile
 
 def stats_vars(fpath, pattern = None):
     # logging.debug("Listing files pattern %s/%s" % (fpath, pattern))

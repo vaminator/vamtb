@@ -903,7 +903,6 @@ def gen_uia(**kwargs):
     file_loader = FileSystemLoader('vamtb/tpl')
     env = Environment(loader=file_loader)
     template = env.get_template('uiap.j2')
-
     output = template.render(**kwargs)
     return output
 
@@ -956,19 +955,105 @@ def gridsize(nf):
     if r>=5 and c>=6:
         bsize="Medium"
     if r>3 or c>3:
-        bsize="Small"    
+        bsize="Small"
     return c, r, bsize
 
+# At which screen should the first pose screen be
+# Number of screens not related : 1, 2, 3
+# Pointer page (that one) : 4
+# <Screen Offset> : 5
+screen_offset = 5
+
+to_point = [
+    { 
+        'pose_label': 'Bestof Bestof1', 'pointer_label': 'Bestof', }, {
+        'pose_label': 'Bondage Pose', 'pointer_label': 'Bondage',  }, {
+        'pose_label': 'Yoga', 'pointer_label': 'Yoga Cosmic',  }, {
+        'pose_label': 'High Heels', 'pointer_label': 'High heels',  }, {
+        'pose_label': 'Dancing 001', 'pointer_label': 'Dancing',  }, {
+        'pose_label': 'Lying and prone 001', 'pointer_label': 'Lying and prone', }, { 
+        'pose_label': 'Pole 001', 'pointer_label': 'Pole',  }, {
+        'pose_label': 'Sitting 001', 'pointer_label': 'Sitting', }, { 
+        'pose_label': 'Standing 001', 'pointer_label': 'Standing',  }, {
+        'pose_label': 'Nial 3some MMF', 'pointer_label': 'Nial',  }, {
+        'pose_label': 'Pin-up', 'pointer_label': 'Pin-up', }, {
+        'pose_label': 'Porn', 'pointer_label': 'Porn', }, {
+        'pose_label': 'F CRAWL crawling', 'pointer_label': 'F Crawl', }, {
+        'pose_label': 'F KNEEL hand down', 'pointer_label': 'F Kneel', }, {
+        'pose_label': 'F LIE PRONE neutral', 'pointer_label': 'F Lie', }, {
+        'pose_label': 'F SIT CHAIR knees apart', 'pointer_label': 'F Sit', }, {
+        'pose_label': 'F SQUAT crab', 'pointer_label': 'F Squat', }, {
+        'pose_label': 'F STAND BENT OVER knees apart', 'pointer_label': 'F Stand', }, {
+        'pose_label': 'F SUPORTED pole', 'pointer_label': 'F Supported', }, {
+        'pose_label': 'M CHAIR', 'pointer_label': 'M Chair', }, {
+        'pose_label': 'M KNEEL hips back', 'pointer_label': 'M Kneel', }, {
+        'pose_label': 'M LIE PRONE', 'pointer_label': 'M Lie', }, {
+        'pose_label': 'M SIT', 'pointer_label': 'M Sit', }, {
+        'pose_label': 'M STAND legs apart', 'pointer_label': 'M Stand', }, {
+        'pose_label': 'Yoga', 'pointer_label': 'Yoga 400', }, {
+        'pose_label': 'Casual standing', 'pointer_label': 'Casual standing', }, {
+        'pose_label': 'Lying on ground', 'pointer_label': 'Lying on ground', }, {
+        'pose_label': 'On the knees', 'pointer_label': 'On the knees', }, {
+        'pose_label': 'Posing', 'pointer_label': 'Posing', }, {
+        'pose_label': 'Sitting on something', 'pointer_label': 'Sitting on something', }, {
+        'pose_label': 'Sitting on the ground', 'pointer_label': 'Sitting on the ground', }, {
+        'pose_label': 'Supported', 'pointer_label': 'Supported', }, {
+        'pose_label': 'Navy Stool', 'pointer_label': 'Navy Stool', }, {
+        'pose_label': 'BDSM', 'pointer_label': 'BDSM', }, {
+        'pose_label': 'VAMasutra', 'pointer_label': 'VAMasutra', }, {
+        'pose_label': 'Dungeon interactive', 'pointer_label': 'Dungeon', }, {
+        'pose_label': 'Studio collection 1.3', 'pointer_label': 'Studio collection', }
+]
+
+def pose_gender(directory, file):
+    """
+    """
+    cat, target = ("Gaze Selected Atom", "Last viewed Person")
+    if "Nial" in directory and "ml" in file:
+            (cat, target) = ("Gaze Selected Atom", "Last viewed Male")
+    if "Nial" in directory and "fm" in file:
+            (cat, target) = ("Gaze Selected Atom", "Last viewed Female")
+    if "FEMALE POSES" in directory:
+        (cat, target) = ("Gaze Selected Atom", "Last viewed Female")
+    elif "MALE POSES" in directory:
+        (cat, target) = ("Gaze Selected Atom", "Last viewed Male")
+    elif "VAMasutra" in directory and "_M" in file:
+            (cat, target) = ("Gaze Selected Atom", "Last viewed Male")
+    elif "VAMasutra" in directory and "_F" in file:
+            (cat, target) = ("Gaze Selected Atom", "Last viewed Female")
+
+    return cat, target
+        
+
 def fill_grid(grid):
-    nf = len(grid['files'])
+    nf = len(grid['elements'])
     c, r, bsize = gridsize(nf)
     npad = r * c  -nf
     for i in range(npad):
-        grid['files'].append("")
+        grid['elements'].append("")
     grid['bsize'] = bsize
     grid['col'] = c
     grid['row'] = r
 
+
+def gen_uia_p(grids):
+    c_screen = screen_offset
+    pointer_grid = { "label": "Poses", "elements" : [] }
+
+    for grid in grids:
+        for p in range(0,len(to_point)):
+            if grid['label'] == to_point[p]['pose_label']:
+                to = to_point.pop(p)
+                pointer_grid['elements'].append({"label": to['pointer_label'], "screen": c_screen})
+                break
+        c_screen += 1
+
+    fill_grid(pointer_grid)
+    file_loader = FileSystemLoader('vamtb/tpl')
+    env = Environment(loader=file_loader)
+    template = env.get_template('uiap_p.j2')
+    output = template.render(grid = pointer_grid)
+    return output
 
 def uiap(varfile):
     lmax=7;cmax=6
@@ -987,16 +1072,18 @@ def uiap(varfile):
                 vfile = Path(mfile.filename).name
                 posedir = mfile.filename[len("Custom/Atom/Person/Pose/"):-len(vfile)-1]
                 gridlabel = get_gridlabel(posedir)
-                if posedir != lastdir or len(grids[-1]['files']) == lmax * cmax:
+                if posedir != lastdir or len(grids[-1]['elements']) == lmax * cmax:
                     if lastdir is not None:
                         fill_grid(grids[-1])
                     if ngmax and ngrid >= ngmax:
                         break
-                    grids.append({"label": gridlabel, "files": []})
+                    grids.append({"label": gridlabel, "elements": []})
                     lastdir = posedir
                     ngrid += 1
-                grids[-1]['files'].append("/" + mfile.filename)
+                cat, target = pose_gender(posedir, vfile)
+                grids[-1]['elements'].append({ "file" : "/" + mfile.filename, "cat" : cat, "target" : target})
     fill_grid(grids[-1])
-    uiap = gen_uia(varfile = varfile.name[:-4], grids = grids)
+    uiap_p = gen_uia_p(grids = grids)
+    uiap = gen_uia(varfile = varfile.name[:-4], grids = grids, uiap_pointers = uiap_p)
     with open("out.uiap", "w") as f:
         f.write(uiap)

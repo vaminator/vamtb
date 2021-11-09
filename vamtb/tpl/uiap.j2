@@ -1,3 +1,4 @@
+{{ uiap_pointers }}
       {% for grid in grids -%}
       { 
          "gridColumns" : "{{grid.col}}", 
@@ -7,7 +8,7 @@
          "maxButtonRow" : "4",
          "gridLabel" : "{{grid.label}}", 
          "quickLaunchBar" : "false", 
-         "Buttons" : [{% for presetfile in grid.files -%}
+         "Buttons" : [{% for presetfile in grid.elements -%}
             {% if presetfile == "" %}
             { 
                "buttonCategory" : "Miscellaneous", 
@@ -16,12 +17,12 @@
             { 
                "buttonCategory" : "Presets", 
                "buttonType" : "Load Pose Preset", 
-               "targetCategory" : "Gaze Selected Atom", 
-               "targetName" : "Last viewed Female", 
+               "targetCategory" : "{{presetfile.cat}}", 
+               "targetName" : "{{presetfile.target}}", 
                "targetParamNameOn" : "", 
                "targetParamNameOff" : "", 
                "pluginType" : "", 
-               "presetFilePath" : "{{varfile}}:{{presetfile}}", 
+               "presetFilePath" : "{{varfile}}:{{presetfile.file}}", 
                "preset2FilePath" : "", 
                "preset3FilePath" : "", 
                "preset1Type" : "Single File", 
