@@ -346,8 +346,8 @@ class Var(VarFile):
                 shutil.move(file_to_move, newpath)
                 continue
 
-            fcrc = FileName(file_to_move, calc_crc=True).crc()
-            ncrc = FileName(newpath, calc_crc=True).crc()
+            fcrc = FileName(file_to_move, calc_crc=True).crc
+            ncrc = FileName(newpath, calc_crc=True).crc
 
             if fcrc == ncrc:
                 info("Exact same file exists, removing duplicate")

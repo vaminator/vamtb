@@ -8,7 +8,7 @@ class FileName:
         self.__fname = Path(fname)
         self.__crc = 0
         if calc_crc:
-            self.__crc = self.crc()
+            self.__crc = self.crc
 
     def __repr__(self) -> str:
         return f"{self.__fname} [CRC {self.__crc}]"
