@@ -248,12 +248,16 @@ class Var(VarFile):
                 continue
 
             if with_file:
-                return deps['var']
-            varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
-            if varnames:
-                debug(f"File {self.var} references vars: {','.join(sorted(varnames))}")
-            all_deps.extend(varnames)
-        all_deps = [ e for e in list(set(all_deps)) if e != self.var ]
+                elements = deps['var']
+            else:
+                elements = list(set([ v.split(':')[0] for v in deps['var'] ]))
+            if elements:
+                debug(f"File {self.var} references vars: {','.join(sorted(elements))}")
+                all_deps.extend(elements)
+        if with_file:
+            all_deps = [ e for e in list(set(all_deps)) if e.split(':')[0] != self.var ]
+        else:
+            all_deps = [ e for e in list(set(all_deps)) if e != self.var ]
         return all_deps
 
     depend_node = []

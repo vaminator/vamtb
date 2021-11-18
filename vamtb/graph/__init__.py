@@ -15,7 +15,7 @@ class Graph:
             dbs = db.Dbs()
         Graph.__dbs = dbs
 
-    def deps_desc_node(self, var):
+    def deps_desc_node(self, var, deep = True):
         """
         Returns vars on which var depends
         """
@@ -39,11 +39,12 @@ class Graph:
             uniq.add(depvar)
         self.__desc_deps.extend(uniq)
 
-#        for dep in sorted([ v for v in uniq if v not in desc_deps ]):
-#            self.__desc_deps.extend(self.deps_desc_node(dep))
+        if deep:
+            for dep in sorted([ v for v in uniq if v not in desc_deps ]):
+                self.__desc_deps.extend(self.deps_desc_node(dep))
         return self.__desc_deps
 
-    def deps_asc_node(self, var):
+    def deps_asc_node(self, var, deep=True):
         """
         Returns vars depending on var
         """
@@ -56,8 +57,9 @@ class Graph:
         asc = [ e for e in res if not e.endswith(".latest") or self.latest(e) == e ]
         self.__asc_deps.extend(set(asc))
 
-        for ascx in sorted([ e for e in asc if e != var and e not in asc_deps ]):
-            self.__asc_deps.extend(self.deps_asc_node(ascx))
+        if deep:
+            for ascx in sorted([ e for e in asc if e != var and e not in asc_deps ]):
+                self.__asc_deps.extend(self.deps_asc_node(ascx))
         return set(self.__asc_deps)
 
     def deps_node(self, var):
@@ -117,8 +119,9 @@ class Graph:
                 dep = depv
             if not var:
                 var = varv
-#            if lvar and dep not in only_nodes and var not in only_nodes:
-            if lvar and lvar not in (dep, var):
+            #FIXME we get more vars than the ones on the path
+            if lvar and dep not in only_nodes and var not in only_nodes:
+#            if lvar and lvar not in (dep, var):
                 continue
             if f'"{var}" -> "{dep}";' not in direct_graphs:
                 info(f"Adding {var} -> {dep}")
