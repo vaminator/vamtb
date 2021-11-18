@@ -77,42 +77,6 @@ def cli(ctx, verbose, move, dir, custom, file):
     ctx.obj['move'] = move
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
-@cli.command('printdep')
-@click.pass_context
-def printdep(ctx):
-    """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
-    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = True)
-
-@cli.command('printrealdep')
-@click.pass_context
-def printrealdep(ctx):
-    """Print dependencies of a var from inspecting all json files. Not recursive"""
-    try:
-        deps = varfile.dep_fromvar(getdir(ctx), ctx.obj['file'])
-    except vamex.VarNotFound:
-        logging.error("Var not found!")
-    else:
-        for d in sorted(deps, key=str.casefold):
-            print("%-60s : %s" % (d, ucol.greenf("Found") if vamdirs.exists_var(ctx.obj['dir'], d) else ucol.redf("Not found")))
-
-@cli.command('checkdep')
-@click.pass_context
-def checkdep(ctx):
-    """Check dependencies of a var"""
-    vamdirs.recurse_dep(getdir(ctx), ctx.obj['file'], do_print = False)
-
-@cli.command('dump')
-@click.pass_context
-def dumpvar(ctx):
-    """Dump var meta.json"""
-    pp = pprint.PrettyPrinter(indent=4)
-    try:
-        pp.pprint(varfile.extract_meta_var(vamdirs.find_var(getdir(ctx),ctx.obj['file'])))
-    except vamex.VarNotFound as e:
-        logging.error(f"Couldn't find var: {e}")
-    except Exception as e:
-        logging.error(f"Couldn't dump var: {e}")
-
 @cli.command('noroot')
 @click.pass_context
 def noroot(ctx):
@@ -122,80 +86,6 @@ def noroot(ctx):
     var = vamdirs.find_var(mdir, mfile)
     logging.info(f"Removing root node from {var}")
     varfile.remroot(var)
-
-@cli.command('checkvars')
-@click.pass_context
-def check_vars(ctx):
-    """Check all var files for consistency"""
-    mdir=Path(getdir(ctx))
-    logging.info("Checking dir %s for vars" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*.var")
-    logging.debug("Found %d files in %s" % (len(all_files), mdir))
-    for file in all_files:
-        try:
-            varfile.is_namecorrect(file)
-            dll = varfile.contains(file, ".dll")
-            if dll:
-                logging.warning(f"Var {file} contains dll files {','.join(dll)}")
-        except vamex.VarNameNotCorrect:
-            logging.error(f"Bad var {file}")
-
-@cli.command('statsvar')
-@click.pass_context
-def stats_vars(ctx):
-    """Get stats on all vars"""
-    mdir=Path(getdir(ctx))
-    logging.info("Checking stats for dir %s" % mdir)
-    all_files = vamdirs.list_vars(mdir, pattern="*.var")
-    creators_file = defaultdict(list)
-    for file in all_files:
-        creator, _ = file.name.split(".", 1)
-        creators_file[creator].append(file.name)
-    logging.debug("Found %d files in %s, %d creators" % (len(all_files), mdir, len(creators_file)))
-    for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
-        print("Creator %s has %d files" % (k, len(v)))
-
-@cli.command('checkdeps')
-@click.pass_context
-def check_deps(ctx):
-    """Check dependencies of all var files.
-    When using -x, files considered bad due to Dep not found, Name not correct, meta JSON incorrect will be moved to 00Dep/.
-    This directory can then be moved away from the directory.
-    You can redo the same dependency check later by moving back the directory and correct vars will be moved out of the directory if they are now valid.
-    """
-    dir = getdir(ctx)
-    move = ctx.obj['move']
-    if move:
-        movepath=Path(dir, "00Dep")
-        Path(movepath).mkdir(parents=True, exist_ok=True)
-    else:
-        movepath=None
-    logging.info(f'Checking deps for vars in {dir} with moving: {movepath is not None}')
-    all_vars = vamdirs.list_vars(dir)
-    missing = set()
-    for var in sorted(all_vars):
-        try:
-            vamdirs.recurse_dep(dir, var.with_suffix('').name, do_print= False, strict=True)
-        except vamex.VarNotFound as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, we got a {type(e).__name__} {e}'))
-            missing.add(f"{e}")
-            if movepath:
-                Path(var).rename(Path(movepath, var.name))
-        except (vamex.NoMetaJson, vamex.VarNameNotCorrect, vamex.VarMetaJson, vamex.VarExtNotCorrect, vamex.VarVersionNotCorrect) as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, we got {type(e).__name__} {e}'))
-            if movepath:
-                Path(var).rename(Path(movepath, var.name))
-        except RecursionError:
-            logging.error(ucol.redf(f"While handling var {var.name} we got a recursion error. This is pretty bad and the file should be removed."))
-            exit(1)
-        except Exception as e:
-            logging.error(ucol.redf(f'While handing var {var.name}, caught exception {e}'))
-            raise
-    if missing:
-        nl="\n"
-        logging.error(ucol.redf(f'You have missing dependencies:{nl}{ nl.join( sorted(list(missing)) ) }'))
-    else:
-        logging.error(ucol.greenf("You have no missing dependency it seems. Yay!"))
 
 @cli.command('thumb')
 @click.pass_context
@@ -339,41 +229,6 @@ def renamevar(ctx):
             rfile = Path(os.path.dirname(var), f"{rcreator}.{rasset}.{version}.var".replace(" ", "_"))
             logging.info(f"Renaming {var} to {rfile}")
             os.rename(var, rfile)
-
-
-#@cli.command('dbs')
-#@click.pass_context
-#def dbs(ctx):
-#    """
-#    Scan vars and store props in db
-#    """
-#    mdir=Path(getdir(ctx))
-#    vars_files = sorted(vamdirs.list_vars(mdir))[0:]
-#    db.store_vars(vars_files)
-
-#@cli.command('dotty')
-#@click.pass_context
-#def dotty(ctx):
-#    """
-#    \b
-#    Gen dot graph of deps.
-#    If you only want to graph one var, use -f.
-#    """
-#    db.dotty(ctx.obj['file'])
-
-@cli.command('dottys')
-@click.pass_context
-def dottys(ctx):
-    """
-    Gen dot graph of deps, one per var
-    """
-    mdir=Path(ctx.obj['dir'])
-    vars_files = vamdirs.list_vars(mdir)
-    for var_file in vars_files:
-        var_file = Path(var_file).with_suffix('').name
-        logging.info(f"Performing graph for {var_file}")
-        db.dotty(var_file)
-
 
 @cli.command('uiap')
 @click.pass_context
