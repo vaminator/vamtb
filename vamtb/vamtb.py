@@ -341,25 +341,25 @@ def renamevar(ctx):
             os.rename(var, rfile)
 
 
-@cli.command('dbs')
-@click.pass_context
-def dbs(ctx):
-    """
-    Scan vars and store props in db
-    """
-    mdir=Path(getdir(ctx))
-    vars_files = sorted(vamdirs.list_vars(mdir))[0:]
-    db.store_vars(vars_files)
+#@cli.command('dbs')
+#@click.pass_context
+#def dbs(ctx):
+#    """
+#    Scan vars and store props in db
+#    """
+#    mdir=Path(getdir(ctx))
+#    vars_files = sorted(vamdirs.list_vars(mdir))[0:]
+#    db.store_vars(vars_files)
 
-@cli.command('dotty')
-@click.pass_context
-def dotty(ctx):
-    """
-    \b
-    Gen dot graph of deps.
-    If you only want to graph one var, use -f.
-    """
-    db.dotty(ctx.obj['file'])
+#@cli.command('dotty')
+#@click.pass_context
+#def dotty(ctx):
+#    """
+#    \b
+#    Gen dot graph of deps.
+#    If you only want to graph one var, use -f.
+#    """
+#    db.dotty(ctx.obj['file'])
 
 @cli.command('dottys')
 @click.pass_context
