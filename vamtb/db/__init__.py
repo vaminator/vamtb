@@ -64,6 +64,7 @@ class Dbs:
             FILENAME TEXT NOT NULL,
             ISREF TEXT NOT NULL,
             VARNAME TEXT NOT NULL,
+            SIZE    INT     NOT NULL,
             CKSUM   CHAR(4) NOT NULL);''')
 
     def fetchall(self, sql, row):
@@ -100,11 +101,12 @@ class Dbs:
 
                     for f in var.files(with_meta=True):
                         crcf = f.crc
+                        sizef = f.size
                         f_isref="YES" if creator in ref_creators else "UNKNOWN"
 
                         cur = self.getConn().cursor()
-                        sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,CKSUM) VALUES (?,?,?,?,?)"""
-                        row = (None, var.ziprel(f.path), f_isref, var.var, crcf)
+                        sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
+                        row = (None, var.ziprel(f.path), f_isref, var.var, sizef, crcf)
                         cur.execute(sql, row)
 
                     debug(f"Stored var {var.var} and files in databases")
