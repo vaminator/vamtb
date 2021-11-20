@@ -182,6 +182,9 @@ class Dbs:
             varname = varname[0:-4]
         return self.get_prop_vars(varname, "LICENSE")
 
+    def get_var_size(self, varname):
+        return self.get_prop_vars(varname, "SIZE")
+
     def get_ref(self, varname):
         return self.get_prop_vars(varname, "ISREF")
 

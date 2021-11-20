@@ -491,7 +491,10 @@ def critical(message, doexit=False):
         exit(0)
 
 def debug(message):
-    __log.debug(message)
+    try:
+        __log.debug(message)
+    except:
+        pass
 
 def green(message):
     return __col.greenf(message)

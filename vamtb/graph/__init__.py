@@ -33,7 +33,8 @@ class Graph:
         """
         td_vars = {}
         def rec(var):
-            td_vars[var] = []
+            td_vars[var] = { 'dep':[], 'size':0, 'totsize':0 }
+            td_vars[var]['size'] = Graph.__dbs.get_var_size(var)
             for dep in Graph.__dbs.get_dep(var):
                 #Descend for that depend if it exists
                 vers = dep.split('.')[2]
@@ -48,12 +49,26 @@ class Graph:
                     rdep = Graph.__dbs.min(dep)
                     if rdep:
                         dep = rdep
-                td_vars[var].append(dep)
+                td_vars[var]['dep'].append(dep)
                 if dep and Graph.__dbs.var_exists(dep):
+                    if dep == var:
+                        error(f"There is a recursion from {var} to itself, avoiding")
+                        continue
+                    td_vars[var]['totsize'] += Graph.__dbs.get_var_size(dep)
                     rec(dep)
         td_vars = {}
         rec(var)
         return td_vars
+
+    def set_size(self, tree):
+        res = []
+        for var in tree:
+            size = int(tree[var]['size']/1024/1024)
+            totsize = int(tree[var]['totsize']/1024/1024)
+            if size:
+                amsg = f" {totsize}MB" if totsize else ""
+                res.append(f'"{var}" [xlabel="{size}MB{amsg}"];')
+        return res
 
     def dotty(self, lvar=None):
 
@@ -64,32 +79,44 @@ class Graph:
             lvar = VarFile(lvar).var
 
         tree = self.treedown(lvar)
-        if not len(tree[lvar]):
+        if not len(tree[lvar]['dep']):
             info("No deps, no graph")
             return
         for var in tree:
-            for dep in tree[var]:
+            for dep in tree[var]['dep']:
                 direct_graphs.append(f'"{var}" -> "{dep}";')
 
         all_vars=[]
         for var in tree:
             all_vars.append(var)
-            all_vars.extend(tree[var])
+            all_vars.extend(tree[var]['dep'])
         all_vars = list(set(all_vars))
+
         dot_lines = self.set_props(all_vars)
-
+        # Calculate real size of top var
+        tree[lvar]['totsize'] = 0
+        for v in all_vars:
+            if v in tree:
+                tree[lvar]['totsize'] += tree[v]['size']
+        labels = self.set_size(tree)
         dot_lines.extend(list(set(direct_graphs)))
+        dot_lines.extend(labels)
 
-        with open("deps.dot", "w") as f:
-            f.write("digraph vardeps {" + "\n" + 
-            "\n".join(dot_lines) + "\n" + 
-            "}")
+        try:
+            with open("deps.dot", "w") as f:
+                f.write("digraph vardeps {" + "\n" +
+                "\n".join(dot_lines) + "\n" +
+                "}")
+        except UnicodeEncodeError:
+            #FIXME
+            return
 
         pdfname = f"VAM_{lvar}.pdf" if lvar else "VAM_deps.pdf"
         try:
             subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
         except Exception as CalledProcessError:
             error("You need graphviz installed and dot available in {cmddot}")
+            exit(0)
             os.unlink("deps.dot")
             exit(0)
         os.unlink("deps.dot")
