@@ -5,6 +5,7 @@
 **/*.zip
 log-vamtb.txt
 thumb/
+graph/
 **/*.dist
 **/*.build
 tmp/

@@ -19,11 +19,10 @@ import zlib
 @click.group()
 @click.option('file','-f', help='Var file to act on.')
 @click.option('dir', '-d', help='Use a specific VAM directory.')
-@click.option('-c', '--color/--no-color', default=False, help="Add colors to log messages")
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.pass_context
-def cli(ctx, verbose, move, dir, file, color):
+def cli(ctx, verbose, move, dir, file):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
