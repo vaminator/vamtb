@@ -6,11 +6,9 @@ import yaml
 from collections import defaultdict
 from pathlib import Path
 
-from jinja2.nodes import Add
 from vamtb.graph import Graph
 import click
 import shutil
-from vamtb.vamdirs import VaM
 from vamtb.varfile import (Var, VarFile)
 from vamtb import vamex
 from vamtb import db
