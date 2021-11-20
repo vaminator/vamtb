@@ -11,7 +11,7 @@ graph/
 **/*.build
 tmp/
 *.sql
-vars.dbs*
+vars.db*
 vamtb.yml
 vamtb.v*/**
 ws.code-workspace
