@@ -146,12 +146,9 @@ class Dbs:
 
     def get_prop_vars(self, varname, prop_name):
 
-        cur = self.getConn().cursor()
         sql = f"SELECT {prop_name} FROM VARS WHERE VARNAME=?"
         row = (varname,)
-        cur.execute(sql, row)
-
-        res = cur.fetchall()
+        res = self.fetchall(sql, row)
         if res:
             return res[0][0]
         else:
@@ -160,16 +157,22 @@ class Dbs:
     def get_prop_files(self, filename, varname, prop_name):
         if varname.endswith(".var"):
             varname = varname[0:-4]
-        cur = self.getConn().cursor()
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
         row = (filename, varname)
-        cur.execute(sql, row)
-
-        res = cur.fetchall()
+        res = self.fetchall(sql, row)
         if res:
             return res[0][0]
         else:
             return None
+
+    def get_dep(self, varname):
+        if varname.endswith(".var"):
+            varname = varname[0:-4]
+        sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
+        row = (varname,)
+        res = self.fetchall(sql, row)
+        res = [ e[0] for e in res]
+        return res if res else []
 
     def get_file_cksum(self, filename, varname):
         return self.get_prop_files(filename, varname, "CKSUM")
