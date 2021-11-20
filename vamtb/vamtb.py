@@ -9,8 +9,8 @@ from pathlib import Path
 from vamtb.graph import Graph
 import click
 import shutil
-from vamtb.varfile import (Var, VarFile)
-from vamtb import vamex
+from vamtb.varfile import Var, VarFile
+from vamtb.vamex import *
 from vamtb import db
 from vamtb.log import *
 from vamtb.utils import *
@@ -67,7 +67,7 @@ def cli(ctx, verbose, move, dir, file):
     except FileNotFoundError:
         pass
     except yaml.YAMLError as exc:
-        logging.error("YAML error %s", exc)
+        error("YAML error %s", exc)
 
     if not conf:
         conf['dir'] = input("Directory of Vam ?:")
@@ -83,22 +83,42 @@ def cli(ctx, verbose, move, dir, file):
 
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
+""" def catch_exception(func=None, *, handle):
+    if not func:
+        return partial(catch_exception, handle=handle)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except handle as e:
+            raise click.ClickException(e)
+
+    return wrapper
+ """
+def catch_exception(func=None):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except VarNotFound as e:
+            error(f"Var not found:{e}")
+        except VarFileNameIncorrect as e:
+            error(f"Var filename incorrect:{e}")
+    return wrapper
+
 @cli.command('printdep')
+@catch_exception
 @click.pass_context
 def printdep(ctx):
     """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
-    try:
-        var = Var(file, dir)
-    except vamex.VarNotFound:
-        logging.error(f"Var {file} not found!")
-        exit(0)
+    var = Var(file, dir)
     for depvar in sorted(var.dep_frommeta(), key=str.casefold):
         try:
             var = Var(depvar, dir)
-        except vamex.VarNotFound:
+        except VarNotFound:
             mess = red("Not found")
         else:
             mess = green("Found")
@@ -106,23 +126,20 @@ def printdep(ctx):
 
 @cli.command('printrealdep')
 @click.pass_context
+@catch_exception
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
 
-    try:
-        var = Var(multiFileName=file, dir= dir)
-    except vamex.VarNotFound:
-        logging.error(f"Var {file} not found!")
-        exit(0)
+    var = Var(multiFileName=file, dir= dir)
     deps = var.dep_fromfiles()
     for depvar in sorted(deps, key=str.casefold):
         mess = green("Found")
         try:
             var = Var(depvar, dir)
-        except vamex.VarNotFound:
+        except VarNotFound:
             mess = red("Not found")
         else:
             mess = green("Found")
@@ -140,19 +157,18 @@ def printrealdep(ctx):
 
 @cli.command('dump')
 @click.pass_context
+@catch_exception
 def dumpvar(ctx):
     """Dump var meta.json"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
-    try:
-        with Var(file, dir) as var:
-            print(prettyjson( var.load_json_file("meta.json") ))
-    except vamex.VarNotFound as e:
-        logging.error(f"Couldn't find var: {e}")
+    with Var(file, dir) as var:
+        print(prettyjson( var.load_json_file("meta.json") ))
 
 @cli.command('noroot')
 @click.pass_context
+@catch_exception
 def noroot(ctx):
     """Remove root node stored in pose presets"""
     file = ctx.obj['file']
@@ -163,6 +179,7 @@ def noroot(ctx):
 
 @cli.command('sortvar')
 @click.pass_context
+@catch_exception
 def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator"""
     dir = ctx.obj['dir']
@@ -176,6 +193,7 @@ def sort_vars(ctx):
 
 @cli.command('checkvars')
 @click.pass_context
+@catch_exception
 def check_vars(ctx):
     """Check all var files for consistency"""
     dir = ctx.obj['dir']
@@ -196,6 +214,7 @@ def check_vars(ctx):
 
 @cli.command('statsvar')
 @click.pass_context
+@catch_exception
 def stats_vars(ctx):
     """Get stats on all vars"""
     dir = ctx.obj['dir']
@@ -214,6 +233,7 @@ def stats_vars(ctx):
 
 @cli.command('checkdeps')
 @click.pass_context
+@catch_exception
 def checkdeps(ctx):
     """Check dependencies of all var files.
     When using -x, files considered bad will be moved to directory "00Dep".
@@ -239,7 +259,7 @@ def checkdeps(ctx):
             with Var(file, dir) as var:
                 try:
                     _ = var.depend(recurse=True)
-                except (vamex.VarNotFound, zlib.error) as e:
+                except (VarNotFound, zlib.error) as e:
                     error(f'Missing or wrong dependency for {var} [{e}]')
                     if move:
                         try:
@@ -251,7 +271,7 @@ def checkdeps(ctx):
                             if scrc == dcrc:
                                 os.remove(var.path)
                             else:
-                                logging.error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
+                                error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
 
                         except shutil.Error:
                             # File is already there
@@ -259,12 +279,13 @@ def checkdeps(ctx):
                             raise
                         else:
                             print(f"Moved {var} to {full_bad_dir}")
-        except (vamex.VarExtNotCorrect, vamex.VarMetaJson, vamex.VarNameNotCorrect, vamex.VarVersionNotCorrect):
+        except (VarExtNotCorrect, VarMetaJson, VarNameNotCorrect, VarVersionNotCorrect):
             pass
 
 
 @cli.command('dbs')
 @click.pass_context
+@catch_exception
 def dbs(ctx):
     """
     Scan vars and store props in db
@@ -279,6 +300,7 @@ def dbs(ctx):
 
 @cli.command('dotty')
 @click.pass_context
+@catch_exception
 def dotty(ctx):
     """
     Gen dot graph of deps, one per var

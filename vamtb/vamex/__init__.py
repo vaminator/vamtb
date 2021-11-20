@@ -1,4 +1,4 @@
-class OneParamException(Exception):
+class OneParamException(BaseException):
     """Exception having one parameter whose message is that parameter
        Exception description can be set and returned on will
     """
@@ -51,6 +51,7 @@ class VarVersionNotCorrect(Exception):
     def __init__(self, varname):
         super().__init__(varname, "VarVersionNotCorrect")
 
+VarFileNameIncorrect = (VarExtNotCorrect, VarNameNotCorrect, VarVersionNotCorrect)
 
 class VarMetaJson(Exception):
     """Exception raised for bad json.

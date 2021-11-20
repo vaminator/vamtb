@@ -13,6 +13,7 @@ Open windows terminal (rather than cmd.exe) and run the batch file:
 ```
 vtb --help
 ```
+To interrupt, hit twice ctrl-c.
 
 Calling it with python:
 ````

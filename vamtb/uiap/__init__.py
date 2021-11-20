@@ -1,7 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
-import logging
 from pathlib import Path
 from zipfile import ZipFile
+from vamtb.log import *
 
 class Uiap:
     def __init__(self):
@@ -44,7 +44,7 @@ class Uiap:
 
         rtxt = rtxt[0].upper() + rtxt[1:]
         if txt != rtxt:
-            logging.info("Renaming button grid from %s to %s, will be displayed as %s" % (txt, rtxt, rtxt[0:15]))
+            info("Renaming button grid from %s to %s, will be displayed as %s" % (txt, rtxt, rtxt[0:15]))
         return rtxt
 
     @classmethod
@@ -85,7 +85,7 @@ class Uiap:
     def uiap(self, varfile):
         lmax=7;cmax=6
         ngmax = 0
-        logging.debug("Generating uia presets for %s" % varfile)
+        debug("Generating uia presets for %s" % varfile)
         based=Path("")
         for p in Path(varfile).parents:
             if p.stem == "AddonPackages":

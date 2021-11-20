@@ -65,7 +65,7 @@ class FileName:
                         deps['embed'].append(ref)
 
         _ = json.loads(self.read(), object_hook=_decode_dict)
-        # logging.debug(f"Decoded json from {self.name()}, deps={deps}")
+        # debug(f"Decoded json from {self.name()}, deps={deps}")
         return deps
 
     def read(self):
