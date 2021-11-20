@@ -14,38 +14,40 @@ from vamtb.vamdirs import VaM
 from vamtb.varfile import (Var, VarFile)
 from vamtb import vamex
 from vamtb import db
+from vamtb.log import *
 from vamtb.utils import *
 import zlib
 
 @click.group()
-@click.option('dir', '-d', help='VAM directory (default cur dir).')
-@click.option('custom', '-c', help='VAM custom directory.')
-@click.option('file','-f', help='Var file.')
+@click.option('file','-f', help='Var file to act on.')
+@click.option('dir', '-d', help='Use a specific VAM directory.')
 @click.option('-c', '--color/--no-color', default=False, help="Add colors to log messages")
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
-@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep. When repacking, move files rather than copying")
+@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.pass_context
-def cli(ctx, verbose, move, dir, custom, file, color):
+def cli(ctx, verbose, move, dir, file, color):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
     \b
-    Dependency handling:
+    Dependency handling (from disk)
     vamtb -d d:\VAM -v checkdeps
     vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
     vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printrealdep
     \b
-    Meta json handling:
+    Meta json handling (from disk)
     vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
     \b
-    Organizing:
+    Organizing (from disk)
     vamtb -d d:\VAM sortvar  Reorganize your var directories with <creator>/*
                 If a file already exists in that directory, CRC is checked before overwritting.
     vamtb -d d:\VAM statsvar will dump some statistics    
     \b
     Database:
     vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
+    \b
+    Dependency graph (uses database)
     vamtb -vvd d:\VAM dotty will graph your collection one graph per var
     vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dotty will graph this var
     vamtb -vvd d:\VAM -f sapuzex.* dotty will graph vars matching
@@ -59,7 +61,6 @@ def cli(ctx, verbose, move, dir, custom, file, color):
     info("Welcome to vamtb")
 
     ctx.ensure_object(dict)
-    ctx.obj['custom']   = custom
     ctx.obj['file']     = file
     ctx.obj['move']     = move
     conf = {}
@@ -226,13 +227,11 @@ def checkdeps(ctx):
     dir = ctx.obj['dir']
     file = ctx.obj['file']
 
-    C_bad_dir = "00Dep"
-
-    full_bad_dir = Path(dir) / C_bad_dir
+    full_bad_dir = Path(dir) / C_BAD_DIR
 
     if move:
         list_move = []
-        movepath = Path(dir, C_bad_dir)
+        movepath = Path(dir, C_BAD_DIR)
         Path(movepath).mkdir(parents=True, exist_ok=True)
     if file:
         pattern = VarFile(file).file

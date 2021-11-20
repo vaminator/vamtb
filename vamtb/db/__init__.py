@@ -6,13 +6,13 @@ from vamtb.varfile import Var, VarFile
 from vamtb import vamex
 import zlib
 from vamtb.utils import *
+from vamtb.log import *
 
 ref_creators = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
 "bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
 "Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
-
 
 class Dbs:
     __instance = None
@@ -156,6 +156,7 @@ class Dbs:
 
     def get_prop_files(self, filename, varname, prop_name):
         if varname.endswith(".var"):
+            assert(False)
             varname = varname[0:-4]
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
         row = (filename, varname)
@@ -167,6 +168,7 @@ class Dbs:
 
     def get_dep(self, varname):
         if varname.endswith(".var"):
+            assert(False)
             varname = varname[0:-4]
         sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
         row = (varname,)
@@ -179,6 +181,7 @@ class Dbs:
 
     def get_license(self, varname):
         if varname.endswith(".var"):
+            assert(False)
             varname = varname[0:-4]
         return self.get_prop_vars(varname, "LICENSE")
 
@@ -190,6 +193,7 @@ class Dbs:
 
     def var_exists(self, varname):
         if varname.endswith(".var"):
+            assert(False)
             varname = varname[0:-4]
         if varname.endswith(".latest"):
             return (self.latest(varname) != None)

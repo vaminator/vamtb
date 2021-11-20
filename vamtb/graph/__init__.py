@@ -3,6 +3,7 @@ from vamtb import db
 import subprocess
 import os
 from vamtb.utils import *
+from vamtb.log import *
 from vamtb.varfile import VarFile
 
 class Graph:
@@ -42,7 +43,7 @@ class Graph:
                 if vers == "latest":
                     rdep = Graph.__dbs.latest(dep)
                     # If var found, we use that one
-                    # otherwise we'll keep the .latest one as end leaf
+                    # otherwise we'll keep the .latest one as leaf
                     if rdep:
                         dep = rdep
                 elif vers.startswith("min"):
@@ -101,6 +102,7 @@ class Graph:
             if v in tree and v != lvar:
                 tree[lvar]['totsize'] += tree[v]['size']
         labels = self.set_size(tree)
+        
         dot_lines.extend(list(set(direct_graphs)))
         dot_lines.extend(labels)
 
@@ -113,11 +115,14 @@ class Graph:
             #FIXME
             return
 
-        pdfname = f"VAM_{lvar}.pdf" if lvar else "VAM_deps.pdf"
+        pdfname = f"{C_DDIR}\{lvar}.pdf" if lvar else f"{C_DDIR}\deps.pdf"
+        if not os.path.exists(C_DDIR):
+            os.makedirs(C_DDIR)
         try:
             subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
         except Exception as CalledProcessError:
-            error("You need graphviz installed and dot available in {cmddot}")
+            error(f"Graphiz Error. Make sure you have graphviz installed in {cmddot} and a correct dot file.")
+            error([line.strip() for line in open("deps.dot")])
             os.unlink("deps.dot")
             exit(0)
         os.unlink("deps.dot")

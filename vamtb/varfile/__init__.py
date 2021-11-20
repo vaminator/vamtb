@@ -11,6 +11,7 @@ from zipfile import ZipFile, BadZipFile
 import json
 from vamtb import vamex
 from vamtb.utils import *
+from vamtb.log import *
 from vamtb.file import FileName
 
 class VarFile:
@@ -384,79 +385,6 @@ def mcopytree(src, dst):
         ]    
     shutil.copytree(f"{src}", f"{dst}", ignore=ignore, dirs_exist_ok=True)
 
-
-def prep_tree(file, dir, creator, do_move = False):
-
-    # Get type
-    mtype = get_type(file)
-    debug(f"Detected file {file} as type {mtype}")
-
-    if mtype == utils.T_DIR:
-        # Copy subtree relative to a root (asked to user)
-        parents = [ Path(file) ] 
-        for p in Path(file).parents:
-            parents.append(p)
-        for i, p in enumerate(parents, start=1):
-            tab='\t'
-            print(f"{i}{tab}{p}")
-        root = int(input("Select relative root dir:")) - 1
-        reldir = parents[root]
-        # FIXME this copies all directories at the same level, not only the selected one
-        shutil.copytree(reldir, dir, dirs_exist_ok = True)
-        if do_move:
-            shutil.rmtree(file)
-            
-        return
-
-    # Require some files
-    reqfiles = get_reqfile(file, mtype)
-    nl = '\n'
-    debug(f"List of files:{nl}{nl.join(list(map(lambda x:x.as_posix(), reqfiles)))}")
-
-    # Create dirstruct
-    d = None
-    if mtype == utils.T_SCENE:
-        d = Path(dir,"Saves", "scene")
-
-    if mtype == utils.T_ASSET:
-        d = Path(dir,"Custom", "Assets", creator)
-
-    if mtype & utils.T_CLOTH:
-        if mtype & utils.T_FEMALE:
-            gend = "Female"
-        elif mtype & utils.T_MALE:
-            gend = "Male"
-        else:
-            assert(False)
-        d = Path(dir,"Custom", "Clothing", gend, creator)
-
-    if not d:
-        listdirs = []
-        for p in Path(dir).glob("**/*"):
-            if p.is_dir():
-                listdirs.append(Path(os.path.relpath(p, dir)))
-
-        for i, ldir in enumerate(listdirs, start=1):
-            tab='\t'
-            print(f"{i}{tab}{ldir}")
-        cd = input("Choose directory to copy that to (or type new dir relative to var root):") 
-        try:
-            idx = int(i)-1
-            d = list(listdirs)[idx]
-        except ValueError:
-            d = Path(dir, cd).resolve()
-        finally:
-            d = Path(dir, d)
-
-    debug(f"Puting file in {d.resolve()}")
-    d.mkdir(parents=True, exist_ok=True)
-
-    # Copy or Move files
-    for f in reqfiles:
-        if do_move:
-            shutil.move(f"{f}", f"{d}")
-        else:
-            shutil.copy(f, d)
 
 def search_and_replace_dir(mdir, text, subst, enc):
     text=Path(text.removeprefix("SELF:/")).name
