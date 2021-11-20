@@ -64,6 +64,9 @@ class Graph:
             lvar = VarFile(lvar).var
 
         tree = self.treedown(lvar)
+        if not len(tree[lvar]):
+            info("No deps, no graph")
+            return
         for var in tree:
             for dep in tree[var]:
                 direct_graphs.append(f'"{var}" -> "{dep}";')
