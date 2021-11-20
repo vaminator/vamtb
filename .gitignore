@@ -6,6 +6,7 @@
 log-vamtb.txt
 thumb/
 graph/
+**/deps.dot
 **/*.dist
 **/*.build
 tmp/

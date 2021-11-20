@@ -1,0 +1,1 @@
+@python -X utf8 vamtb.py %*

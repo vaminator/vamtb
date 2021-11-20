@@ -1,17 +1,25 @@
-# vamtb
-Vam toolbox
+# VamTB
 
-Build from source and install:
+-- VamToolBox --
+
+## Install
+Build from source and install dependencies:
 ````
 python setup.py install
 ````
 
-To run it under windows, you should force UTF8 for international characters handling on the console:
+## Usage
+Open windows terminal (rather than cmd.exe) and run the batch file:
+```
+vtb --help
+```
 
+Calling it with python:
 ````
 python -X utf8 vamtb.py <rest of options>
 ````
 
+## Options
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
@@ -63,6 +71,7 @@ Commands:
   sortvar       Moves vars to subdirectory named by its creator
   statsvar      Get stats on all vars
 ```
+## Tips
 When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files insude with any tool compatible, like [sqlitebrowser](https://sqlitebrowser.org/).
 
 For dotty subcommand to work, you will need dot from [graphiz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
