@@ -63,11 +63,13 @@ class Graph:
     def set_size(self, tree):
         res = []
         for var in tree:
-            size = int(tree[var]['size']/1024/1024)
+            size = f"{int(tree[var]['size']/1024/1024)}MB"
+            if size == "0MB":
+                size = f"{int(tree[var]['size']/1024)}KB"
             totsize = int(tree[var]['totsize']/1024/1024)
-            if size:
+            if size or totsize:
                 amsg = f" {totsize}MB" if totsize else ""
-                res.append(f'"{var}" [xlabel="{size}MB{amsg}"];')
+                res.append(f'"{var}" [xlabel="{size}{amsg}"];')
         return res
 
     def dotty(self, lvar=None):
@@ -94,9 +96,9 @@ class Graph:
 
         dot_lines = self.set_props(all_vars)
         # Calculate real size of top var
-        tree[lvar]['totsize'] = 0
+        tree[lvar]['totsize'] = tree[lvar]['size']
         for v in all_vars:
-            if v in tree:
+            if v in tree and v != lvar:
                 tree[lvar]['totsize'] += tree[v]['size']
         labels = self.set_size(tree)
         dot_lines.extend(list(set(direct_graphs)))
@@ -116,7 +118,6 @@ class Graph:
             subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
         except Exception as CalledProcessError:
             error("You need graphviz installed and dot available in {cmddot}")
-            exit(0)
             os.unlink("deps.dot")
             exit(0)
         os.unlink("deps.dot")
