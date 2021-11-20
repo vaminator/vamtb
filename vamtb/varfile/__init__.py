@@ -16,6 +16,7 @@ from vamtb.file import FileName
 class VarFile:
 
     def __init__(self, inputName) -> None:
+        inputName or critical("Tried to create a var but gave no filename", doexit=True)
         self.__Creator = ""
         self.__Resource = ""
         # Version as string 1, latest, min
@@ -94,6 +95,7 @@ class Var(VarFile):
         zipcheck will extract the zip to a temporary directory
         """
         # tempdir to extracted var
+        multiFileName or critical("Tried to create a var but gave no filename", doexit=True)
         self.__tmpDir = None
         VarFile.__init__(self, multiFileName)
 

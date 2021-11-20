@@ -103,6 +103,7 @@ def printdep(ctx):
     """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
+    file or critical("Need a file parameter", doexit=True)
     try:
         var = Var(file, dir)
     except vamex.VarNotFound:
@@ -123,6 +124,7 @@ def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. Not recursive"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
+    file or critical("Need a file parameter", doexit=True)
 
     try:
         var = Var(multiFileName=file, dir= dir)
@@ -154,8 +156,11 @@ def printrealdep(ctx):
 @click.pass_context
 def dumpvar(ctx):
     """Dump var meta.json"""
+    file = ctx.obj['file']
+    dir = ctx.obj['dir']
+    file or critical("Need a file parameter", doexit=True)
     try:
-        with Var(ctx.obj['file'], ctx.obj['dir']) as var:
+        with Var(file, dir) as var:
             print(prettyjson( var.load_json_file("meta.json") ))
     except vamex.VarNotFound as e:
         logging.error(f"Couldn't find var: {e}")
@@ -166,6 +171,7 @@ def noroot(ctx):
     """Remove root node stored in pose presets"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
+    file or critical("Need a file parameter", doexit=True)
     with Var(file, dir) as var:
         var.remroot()
 
