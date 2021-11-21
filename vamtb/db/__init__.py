@@ -194,6 +194,7 @@ class Dbs:
         if varname.endswith(".var"):
             assert(False)
             varname = varname[0:-4]
+        #TODO min
         if varname.endswith(".latest"):
             return (Dbs.latest(varname) != None)
         else:

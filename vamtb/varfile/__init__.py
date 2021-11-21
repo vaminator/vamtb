@@ -5,14 +5,14 @@ import os
 import re
 import shutil
 import tempfile
+import json
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
 
-import json
-from vamtb import vamex
+from vamtb.file import FileName
+from vamtb.vamex import *
 from vamtb.utils import *
 from vamtb.log import *
-from vamtb.file import FileName
 
 class VarFile:
 
@@ -35,24 +35,27 @@ class VarFile:
             self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
         except ValueError:
             error(f"Var {inputName} has incorrect format")
-            raise vamex.VarNameNotCorrect(inputName)
+            raise VarNameNotCorrect(inputName)
         try:
             self.__iVersion = int(self.__sVersion)
         except ValueError:
             if self.__sVersion == "latest":
                 pass
             elif self.__sVersion.startswith('min'):
-                self.__iMinVer = int(self.__sVersion[3:])
+                try:
+                    self.__iMinVer = int(self.__sVersion[3:])
+                except ValueError:
+                    raise VarExtNotCorrect(inputName)
             else:
                 error(f"Var {inputName} has incorrect extension {self.__sVersion}" )
-                raise vamex.VarVersionNotCorrect(inputName)
+                raise VarExtNotCorrect(inputName)
         try:
             _, _, _, ext = f_basename.split('.',4)
         except ValueError:
             pass
         else:
             if ext != "var":
-                raise vamex.VarExtNotCorrect(inputName)
+                raise VarExtNotCorrect(inputName)
         debug(f"Var {inputName} is compliant")
 
     @property
@@ -177,7 +180,7 @@ class Var(VarFile):
 
         vars = self.search(pattern = pattern)
         if not vars:
-            raise vamex.VarNotFound(self.var)
+            raise VarNotFound(self.var)
 
         if self.version == "latest":
             rsortedvars = list(reversed(sorted(vars, key=lambda x: int(x.name.split('.')[2]))))
@@ -186,7 +189,7 @@ class Var(VarFile):
             vars = [ e for e in vars if int(e.name.split('.')[2]) >= self.minversion ]
             sortedvars = list(sorted(vars, key=lambda x: int(x.name.split('.')[2])))
             if not sortedvars:
-                raise vamex.VarNotFound(self.var)
+                raise VarNotFound(self.var)
             return sortedvars[0]
         else:
             assert(len(vars) == 1)
@@ -280,7 +283,7 @@ class Var(VarFile):
                         debug(f"{self.var} depends on {var}")
                         if recurse:
                             var.depend(recurse=True, init = False, check = check)
-                except vamex.VarNotFound as e:
+                except VarNotFound as e:
                     if check:
                         error(f"{dep} Not found")
                     raise

@@ -82,19 +82,6 @@ def cli(ctx, verbose, move, dir, file):
 
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
-""" def catch_exception(func=None, *, handle):
-    if not func:
-        return partial(catch_exception, handle=handle)
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except handle as e:
-            raise click.ClickException(e)
-
-    return wrapper
- """
 def catch_exception(func=None):
     def wrapper(*args, **kwargs):
         try:
@@ -113,6 +100,7 @@ def printdep(ctx):
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
+
     var = Var(file, dir)
     for depvar in sorted(var.dep_frommeta(), key=str.casefold):
         try:
@@ -132,7 +120,7 @@ def printrealdep(ctx):
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
 
-    var = Var(multiFileName=file, dir= dir)
+    var = Var(file, dir)
     deps = var.dep_fromfiles()
     for depvar in sorted(deps, key=str.casefold):
         mess = green("Found")
@@ -143,16 +131,6 @@ def printrealdep(ctx):
         else:
             mess = green("Found")
         print(f"{depvar:<60}: {mess}")
-
-#@cli.command('checkdep')
-#@click.pass_context
-#def checkdep(ctx):
-#    """Check dependencies of a var"""
-#    file = ctx.obj['file']
-#    dir = ctx.obj['dir']
-#    move = ctx.ob
-#    with Var(file, dir) as var:
-#        var.depend(recurse = True)
 
 @cli.command('dump')
 @click.pass_context
