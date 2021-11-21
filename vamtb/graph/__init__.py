@@ -27,9 +27,7 @@ class Graph:
     def treedown(self, var):
         """
         Return down dependency graph
-        If dependency is not found, the graph will record this missing var but will stop there
         Depth first
-        Returns {"var_name": [Deps], "other_var": [Deps]}
         """
         td_vars = {}
         def rec(var):
