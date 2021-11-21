@@ -116,9 +116,10 @@ class Graph:
         if not os.path.exists(C_DDIR):
             os.makedirs(C_DDIR)
         try:
-            subprocess.check_call(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot')
-        except Exception as CalledProcessError:
-            error(f"Graphiz Error. Make sure you have graphviz installed in {cmddot} and a correct dot file.")
+            subprocess.run(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot', check=True, capture_output=True, encoding="utf-8")
+        except subprocess.CalledProcessError as e:
+            error(f"Graphiz returned: {e.stderr.rstrip()}")
+            error(f"Make sure you have graphviz installed in {cmddot} and a correct dot file.")
             error([line.strip() for line in open("deps.dot")])
             os.unlink("deps.dot")
             exit(0)
