@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
-from vamtb.utils import *
 import os
+from vamtb.utils import *
 
 class FileName:
     def __init__(self, fname, calc_crc = False) -> None:

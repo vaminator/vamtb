@@ -1,30 +1,23 @@
-from vamtb import db
 import subprocess
 import os
+from vamtb.varfile import VarFile
+from vamtb.db import Dbs
 from vamtb.utils import *
 from vamtb.log import *
-from vamtb.varfile import VarFile
 
 class Graph:
-    __desc_deps=[]
-    __asc_deps=[]
-    __dbs=None
-
-    def __init__(self, dbs=None):
-        if not dbs:
-            dbs = db.Dbs()
-        Graph.__dbs = dbs
-
-    def set_props(self, var_list):
+    @staticmethod
+    def set_props(var_list):
         res = []
         for var in var_list:
-            res.append(f'"{var}" [color={"blue" if Graph.__dbs.var_exists(var) else "red"}];')
-            license = Graph.__dbs.get_license(var)
+            res.append(f'"{var}" [color={"blue" if Dbs.var_exists(var) else "red"}];')
+            license = Dbs.get_license(var)
             if license in ("PC", "Questionable"):
                 res.append(f'"{var}" [shape=box];')
         return res
 
-    def treedown(self, var):
+    @staticmethod
+    def treedown(var):
         """
         Return down dependency graph
         Depth first
@@ -32,33 +25,34 @@ class Graph:
         td_vars = {}
         def rec(var):
             td_vars[var] = { 'dep':[], 'size':0, 'totsize':0 }
-            td_vars[var]['size'] = Graph.__dbs.get_var_size(var)
-            for dep in Graph.__dbs.get_dep(var):
+            td_vars[var]['size'] = Dbs.get_var_size(var)
+            for dep in Dbs.get_dep(var):
                 #Descend for that depend if it exists
                 vers = dep.split('.')[2]
                 rdep = ""
                 if vers == "latest":
-                    rdep = Graph.__dbs.latest(dep)
+                    rdep = Dbs.latest(dep)
                     # If var found, we use that one
                     # otherwise we'll keep the .latest one as leaf
                     if rdep:
                         dep = rdep
                 elif vers.startswith("min"):
-                    rdep = Graph.__dbs.min(dep)
+                    rdep = Dbs.min(dep)
                     if rdep:
                         dep = rdep
                 td_vars[var]['dep'].append(dep)
-                if dep and Graph.__dbs.var_exists(dep):
+                if dep and Dbs.var_exists(dep):
                     if dep == var:
                         error(f"There is a recursion from {var} to itself, avoiding")
                         continue
-                    td_vars[var]['totsize'] += Graph.__dbs.get_var_size(dep)
+                    td_vars[var]['totsize'] += Dbs.get_var_size(dep)
                     rec(dep)
         td_vars = {}
         rec(var)
         return td_vars
 
-    def set_size(self, tree):
+    @staticmethod
+    def set_size(tree):
         res = []
         for var in tree:
             size = f"{int(tree[var]['size']/1024/1024)}MB"
@@ -70,7 +64,8 @@ class Graph:
                 res.append(f'"{var}" [xlabel="{size}{amsg}"];')
         return res
 
-    def dotty(self, lvar=None):
+    @staticmethod
+    def dotty(lvar=None):
 
         direct_graphs=[]
         cmddot = "c:\\Graphviz\\bin\\dot.exe"
@@ -78,7 +73,7 @@ class Graph:
         if isinstance(lvar, os.PathLike):
             lvar = VarFile(lvar).var
 
-        tree = self.treedown(lvar)
+        tree = Graph.treedown(lvar)
         if not len(tree[lvar]['dep']):
             info("No deps, no graph")
             return
@@ -92,25 +87,21 @@ class Graph:
             all_vars.extend(tree[var]['dep'])
         all_vars = list(set(all_vars))
 
-        dot_lines = self.set_props(all_vars)
+        dot_lines = Graph.set_props(all_vars)
         # Calculate real size of top var
         tree[lvar]['totsize'] = tree[lvar]['size']
         for v in all_vars:
             if v in tree and v != lvar:
                 tree[lvar]['totsize'] += tree[v]['size']
-        labels = self.set_size(tree)
+        labels = Graph.set_size(tree)
         
         dot_lines.extend(list(set(direct_graphs)))
         dot_lines.extend(labels)
 
-        try:
-            with open("deps.dot", "w") as f:
-                f.write("digraph vardeps {" + "\n" +
-                "\n".join(dot_lines) + "\n" +
-                "}")
-        except UnicodeEncodeError:
-            #FIXME
-            return
+        with open("deps.dot", "w") as f:
+            f.write("digraph vardeps {" + "\n" +
+            "\n".join(dot_lines) + "\n" +
+            "}")
 
         pdfname = f"{C_DDIR}\{lvar}.pdf" if lvar else f"{C_DDIR}\deps.pdf"
         if not os.path.exists(C_DDIR):
@@ -125,3 +116,6 @@ class Graph:
             exit(0)
         os.unlink("deps.dot")
         info("Graph generated")
+
+# Global variable as singleton 
+__graph = Graph()

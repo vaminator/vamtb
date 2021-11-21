@@ -7,7 +7,11 @@ from pathlib import Path
 C_YAML = "vamtb.yml"
 C_DDIR = "graph"
 C_BAD_DIR = "00Dep"
-
+C_REF_CREATORS = (
+"50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
+"bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
+"Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
+"Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)

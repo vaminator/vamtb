@@ -1,19 +1,19 @@
 import os
 import sys
-from vamtb.file import FileName
 import yaml
+import zlib
+import click
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
 from vamtb.graph import Graph
-import click
-import shutil
+from vamtb.db import Dbs
 from vamtb.varfile import Var, VarFile
+from vamtb.file import FileName
 from vamtb.vamex import *
-from vamtb import db
 from vamtb.log import *
 from vamtb.utils import *
-import zlib
 
 @click.group()
 @click.option('file','-f', help='Var file to act on.')
@@ -295,7 +295,7 @@ def dbs(ctx):
         pattern = VarFile(file).file
     else:
         pattern = "*.var"
-    db.store_vars(search_files_indir(dir, pattern))
+    Dbs.store_vars(search_files_indir(dir, pattern))
 
 @cli.command('dotty')
 @click.pass_context
@@ -304,13 +304,12 @@ def dotty(ctx):
     """
     Gen dot graph of deps, one per var
     """
-    mdir=Path(ctx.obj['dir'])
+    dir=Path(ctx.obj['dir'])
     file = ctx.obj['file']
     if file:
         pattern = f"*{file}*"
     else:
         pattern = "*.var"
-    graph = Graph()
-    for var_file in search_files_indir(mdir, pattern):
+    for var_file in search_files_indir(dir, pattern):
         info(f"Calculating dependency graph of {VarFile(var_file).var}")
-        graph.dotty(var_file)
+        Graph.dotty(var_file)
