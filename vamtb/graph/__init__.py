@@ -1,4 +1,3 @@
-import logging 
 from vamtb import db
 import subprocess
 import os

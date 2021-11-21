@@ -1,4 +1,3 @@
-from json import encoder
 from vamtb import vamex
 from zipfile import ZipFile
 import os
