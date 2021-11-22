@@ -12,8 +12,7 @@ class Dbs:
     __instance = None
     __conn = None
 
-    def __init__(self, dbfilename="vars.db"):
-        """ Virtually private constructor. """
+    def __init__(self, dbfilename=C_DB):
         if not Dbs.__instance:
             Dbs.__conn = sqlite3.connect(dbfilename)
             Dbs.init_dbs()
@@ -21,7 +20,6 @@ class Dbs:
 
     @staticmethod 
     def getConn():
-        """ Static access method. """
         return Dbs.__conn
 
     @staticmethod
@@ -31,27 +29,27 @@ class Dbs:
         """
         Dbs.getConn().execute('''CREATE TABLE IF NOT EXISTS VARS
             (VARNAME TEXT PRIMARY KEY     NOT NULL,
-            ISREF TEXT NOT NULL,
-            CREATOR TEXT NOT NULL,
-            VERSION INT NOT NULL,
-            LICENSE TEXT NOT NULL,
+            ISREF                TEXT NOT NULL,
+            CREATOR              TEXT NOT NULL,
+            VERSION              INT NOT NULL,
+            LICENSE              TEXT NOT NULL,
             MODIFICATION_TIME    INT     NOT NULL,
-            SIZE    INT     NOT NULL,
-            CKSUM   CHAR(4) NOT NULL);''')
+            SIZE                 INT     NOT NULL,
+            CKSUM                CHAR(4) NOT NULL);''')
 
         Dbs.getConn().execute('''CREATE TABLE IF NOT EXISTS DEPS
             (ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            VAR TEXT NOT NULL,
-            DEPVAR TEXT NOT NULL,
+            VAR     TEXT NOT NULL,
+            DEPVAR  TEXT NOT NULL,
             DEPFILE TEXT NOT NULL);''')
 
         Dbs.getConn().execute('''CREATE TABLE IF NOT EXISTS FILES
             (ID INTEGER PRIMARY KEY AUTOINCREMENT,
             FILENAME TEXT NOT NULL,
-            ISREF TEXT NOT NULL,
-            VARNAME TEXT NOT NULL,
-            SIZE    INT     NOT NULL,
-            CKSUM   CHAR(4) NOT NULL);''')
+            ISREF    TEXT NOT NULL,
+            VARNAME  TEXT NOT NULL,
+            SIZE     INT     NOT NULL,
+            CKSUM    CHAR(4) NOT NULL);''')
 
     @staticmethod
     def fetchall(sql, row):
@@ -64,7 +62,9 @@ class Dbs:
             cur.execute(sql, row)
         else:
             cur.execute(sql)
-        return cur.fetchall()
+        res = cur.fetchall()
+        debug(f"Fetchall={res}")
+        return res
 
     @staticmethod
     def store_var(varfile):
@@ -80,7 +80,7 @@ class Dbs:
                     v_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
 
                     meta = var.meta()
-                    license=meta['licenseType']
+                    license = meta['licenseType']
 
                     cur = Dbs.getConn().cursor()
                     sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
@@ -90,7 +90,7 @@ class Dbs:
                     for f in var.files(with_meta=True):
                         crcf = f.crc
                         sizef = f.size
-                        f_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
+                        f_isref = "YES" if creator in C_REF_CREATORS else "UNKNOWN"
 
                         cur = Dbs.getConn().cursor()
                         sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
@@ -148,9 +148,6 @@ class Dbs:
 
     @staticmethod
     def get_prop_files(filename, varname, prop_name):
-        if varname.endswith(".var"):
-            assert(False)
-            varname = varname[0:-4]
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
         row = (filename, varname)
         res = Dbs.fetchall(sql, row)
@@ -161,13 +158,10 @@ class Dbs:
 
     @staticmethod
     def get_dep(varname):
-        if varname.endswith(".var"):
-            assert(False)
-            varname = varname[0:-4]
         sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
         row = (varname,)
         res = Dbs.fetchall(sql, row)
-        res = [ e[0] for e in res]
+        res = [ e[0] for e in res ]
         return res if res else []
 
     @staticmethod
@@ -176,9 +170,6 @@ class Dbs:
 
     @staticmethod
     def get_license(varname):
-        if varname.endswith(".var"):
-            assert(False)
-            varname = varname[0:-4]
         return Dbs.get_prop_vars(varname, "LICENSE")
 
     @staticmethod
@@ -191,9 +182,6 @@ class Dbs:
 
     @staticmethod
     def var_exists(varname):
-        if varname.endswith(".var"):
-            assert(False)
-            varname = varname[0:-4]
         #TODO min
         if varname.endswith(".latest"):
             return (Dbs.latest(varname) != None)
@@ -204,7 +192,7 @@ class Dbs:
     def latest(var):
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
         var_nov = VarFile(var).var_nov
-        row=(f"{var_nov}%", )
+        row = (f"{var_nov}%", )
         res = Dbs.fetchall(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions.sort(key=int, reverse=True)
@@ -221,7 +209,7 @@ class Dbs:
         minver = varf.minversion
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
         var_nov = varf.var_nov
-        row=(f"{var_nov}%", )
+        row = (f"{var_nov}%", )
         res = Dbs.fetchall(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions = [ int(v) for v in versions if int(v) >= minver ]

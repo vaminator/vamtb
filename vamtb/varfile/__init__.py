@@ -205,7 +205,7 @@ class Var(VarFile):
             debug(f"Extracting zip {self.var}...")
             with ZipFile(self.path) as z:
                 z.extractall(tmpPathdir)
-            debug(f"Done...")
+            debug(f"Extracting done...")
         except Exception as e:
 #            self.__del__()
             raise

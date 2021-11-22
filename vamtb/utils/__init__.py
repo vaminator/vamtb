@@ -12,6 +12,7 @@ C_REF_CREATORS = (
 "bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
 "Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
+C_DB = "vars.db"
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)

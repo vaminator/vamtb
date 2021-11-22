@@ -3,12 +3,12 @@ import logging
 
 # Logging
 class __Color:
-    __instance = None
     
     def __init__(self):
         logging.debug("Color class initialized")
     
-    def col_clear(self):
+    @staticmethod
+    def col_clear():
         return colorama.Style.RESET_ALL
 
     def dec_cl(func):
@@ -17,11 +17,11 @@ class __Color:
         return inner
 
     @dec_cl
-    def redf(self, msg):
+    def redf(msg):
         return colorama.Fore.RED + msg
 
     @dec_cl
-    def greenf(self, msg):
+    def greenf(msg):
         return colorama.Fore.GREEN + msg
 
 class CustomFormatter(logging.Formatter):
@@ -84,7 +84,8 @@ class __Log():
 
         return logger
 
-    def toLevel(self, level):
+    @staticmethod
+    def toLevel(level):
         levels = {
             "WARNING": logging.WARNING,
             "INFO": logging.INFO,
