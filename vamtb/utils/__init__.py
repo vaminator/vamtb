@@ -1,7 +1,10 @@
 import json
 import re
+import os
+import zipfile
 import binascii
 from pathlib import Path
+from vamtb.log import *
 
 # Conf
 C_YAML = "vamtb.yml"
@@ -24,3 +27,12 @@ def search_files_indir(fpath, pattern):
 def crc32c(content):
     buf = (binascii.crc32(content) & 0xFFFFFFFF)
     return "%08X" % buf
+
+def zipdir(path, zipname):
+    debug("Repacking var...")
+    with zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                zipf.write(os.path.join(root, file), 
+                        os.path.relpath(os.path.join(root, file), 
+                                        os.path.join(path, '.')))

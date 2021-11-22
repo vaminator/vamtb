@@ -302,5 +302,10 @@ def reref(ctx):
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
-    with Var(file, dir, zipcheck=True) as var:
-        ref.reref_var(var)
+    if file:
+        pattern = f"*{file}*"
+    else:
+        pattern = "*.var"
+    for var_file in search_files_indir(dir, pattern):
+        with Var(var_file, dir, zipcheck=True) as var:
+            ref.reref_var(var)
