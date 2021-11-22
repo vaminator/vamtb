@@ -169,6 +169,27 @@ class Dbs:
         return Dbs.get_prop_files(filename, varname, "CKSUM")
 
     @staticmethod
+    def get_files(varname):
+        sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
+        row = (varname,)
+        res = Dbs.fetchall(sql, row)
+        if res:
+            return [ e[0] for e in res ]
+        else:
+            return None
+
+    @staticmethod
+    def get_refvar_forfile(filename, varname):
+        cksum = Dbs.get_file_cksum(filename, varname)
+        sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME!=? AND FILENAME LIKE ? GROUP BY VARNAME"
+        row = (cksum,varname,f"%{Path(filename).name}")
+        res = Dbs.fetchall(sql, row)
+        if res:
+            return res
+        else:
+            return None
+
+    @staticmethod
     def get_license(varname):
         return Dbs.get_prop_vars(varname, "LICENSE")
 

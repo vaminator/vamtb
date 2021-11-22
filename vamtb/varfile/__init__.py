@@ -218,6 +218,10 @@ class Var(VarFile):
             self._meta = self.load_json_file("meta.json")
         return self._meta
 
+    @property
+    def tmpDir(self):
+        return self.__tmpDir
+
     def unzip(func):
         """Decorator to extract zip"""
         def inner(self, *args, **kwargs):
@@ -307,7 +311,6 @@ class Var(VarFile):
 
     @unzip
     def remroot(self):
-
         debug(f"Removing root from {self.var}")
         tmpfd, tmpname = tempfile.mkstemp(dir=self.__AddonDir)
         os.close(tmpfd)
@@ -373,7 +376,7 @@ def pattern_var(fname, pattern):
     info(f"Searching thumb for {fname}")
     try:
         with ZipFile(fname, mode='r') as myvar:
-            listOfFileNames = [f for f in myvar.namelist() if re.search(pattern, f) is not None]
+            listOfFileNames = [ f for f in myvar.namelist() if re.search(pattern, f) is not None ]
             return listOfFileNames
     except BadZipFile as e:
         error(f"{fname} is not a correct zipfile ({e})")

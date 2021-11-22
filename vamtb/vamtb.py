@@ -11,6 +11,7 @@ from vamtb.graph import Graph
 from vamtb.db import Dbs
 from vamtb.varfile import Var, VarFile
 from vamtb.file import FileName
+from vamtb import ref
 from vamtb.vamex import *
 from vamtb.log import *
 from vamtb.utils import *
@@ -282,7 +283,7 @@ def dotty(ctx):
     """
     Gen dot graph of deps, one per var
     """
-    dir=Path(ctx.obj['dir'])
+    dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
     if file:
         pattern = f"*{file}*"
@@ -291,3 +292,15 @@ def dotty(ctx):
     for var_file in search_files_indir(dir, pattern):
         info(f"Calculating dependency graph of {VarFile(var_file).var}")
         Graph.dotty(var_file)
+
+@cli.command('reref')
+@click.pass_context
+@catch_exception
+def reref(ctx):
+    """
+    Reref var: embedded content is removed, its reference is converted to real reference and dependency on the reference is added.
+    """
+    dir =Path(ctx.obj['dir'])
+    file = ctx.obj['file']
+    with Var(file, dir, zipcheck=True) as var:
+        ref.reref_var(var)
