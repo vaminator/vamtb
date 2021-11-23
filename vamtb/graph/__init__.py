@@ -6,6 +6,12 @@ from vamtb.utils import *
 from vamtb.log import *
 
 class Graph:
+    __instance = None
+
+    def __init__(self):
+        if not Graph.__instance:
+            Graph.__instance = self
+    
     @staticmethod
     def set_props(var_list):
         res = []
@@ -68,7 +74,6 @@ class Graph:
     def dotty(lvar=None):
 
         direct_graphs=[]
-        cmddot = "c:\\Graphviz\\bin\\dot.exe"
 
         if isinstance(lvar, os.PathLike):
             lvar = VarFile(lvar).var
@@ -107,15 +112,14 @@ class Graph:
         if not os.path.exists(C_DDIR):
             os.makedirs(C_DDIR)
         try:
-            subprocess.run(f'{cmddot} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot', check=True, capture_output=True, encoding="utf-8")
+            subprocess.run(f'{C_DOT} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot', check=True, capture_output=True, encoding="utf-8")
         except subprocess.CalledProcessError as e:
             error(f"Graphiz returned: {e.stderr.rstrip()}")
-            error(f"Make sure you have graphviz installed in {cmddot} and a correct dot file.")
             error([line.strip() for line in open("deps.dot")])
             os.unlink("deps.dot")
             exit(0)
         os.unlink("deps.dot")
         info("Graph generated")
 
-# Global variable as singleton 
+# Singleton as Global variable 
 __graph = Graph()

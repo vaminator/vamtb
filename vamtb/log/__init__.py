@@ -1,7 +1,6 @@
 import colorama
 import logging
 
-# Logging
 class __Color:
     
     def __init__(self):
@@ -17,12 +16,18 @@ class __Color:
         return inner
 
     @dec_cl
-    def redf(msg):
+    def redf(self, msg):
         return colorama.Fore.RED + msg
 
     @dec_cl
-    def greenf(msg):
+    def greenf(self, msg):
         return colorama.Fore.GREEN + msg
+
+def green(message):
+    return __col.greenf(message)
+
+def red(message):
+    return __col.redf(message)
 
 class CustomFormatter(logging.Formatter):
 
@@ -34,7 +39,7 @@ class CustomFormatter(logging.Formatter):
     bold_red    = colorama.Fore.RED
     reset       = colorama.Style.RESET_ALL
 
-#    format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    #format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
     format = "%(levelname)8s : %(message)s"
 
     FORMATS = {
@@ -45,25 +50,21 @@ class CustomFormatter(logging.Formatter):
          logging.CRITICAL: bold_red + format + reset
      }
 
-    # FORMATS = {
-    #     logging.DEBUG: format,
-    #     logging.INFO: format,
-    #     logging.WARNING: format,
-    #     logging.ERROR: format,
-    #     logging.CRITICAL: format
-    # }
-
     def format(self, record):
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
-class __Log():
+class Log():
    
+    __instance = None
+
     def __init__(self):
-        self.__ch = None
-        self.__fh = None
-        self.__logger = self.init_logging()
+        if not Log.__instance:
+            self.__ch = None
+            self.__fh = None
+            self.__logger = self.init_logging()
+            Log.__instance = self
 
     def init_logging(self):
         logger = logging.getLogger("vamtb")
@@ -141,18 +142,8 @@ def critical(message, doexit=False):
         exit(0)
 
 def debug(message):
-    try:
-        __log.debug(message)
-    except:
-        pass
+     __log.debug(message)
 
-def green(message):
-    return __col.greenf(message)
-
-def red(message):
-    return __col.redf(message)
-
-# GLobal objects as singletons
+# Singleton as Global variables
 __col = __Color()
-__log = __Log()
-
+__log = Log()

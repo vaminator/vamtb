@@ -30,7 +30,7 @@ def vmb_vmi(refi):
             refo[fn] = refi[fn]
     return refo
 
-def modify_files(var, newref):
+def reref_files(var, newref):
     tdir = var.tmpDir
     for globf in search_files_indir(tdir, "*"):
         if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".tif", ".jpg", ".png", ".dll"):
@@ -38,8 +38,7 @@ def modify_files(var, newref):
         try:
             file = FileName(globf)
             js = file.json
-        except:
-            #Not a json file
+        except (UnicodeDecodeError, json.decoder.JSONDecodeError):
             continue
         info(f"> Searching for pattern in {globf}")
         for nr in newref:
@@ -72,15 +71,10 @@ def modify_meta(var:Var, newref):
         f.write(prettyjson(meta))
     logging.debug("Modified meta")
 
-def reref_var(var:Var, dryrun=True):
+def get_new_ref(var:Var) -> dict:
     new_ref = {}
     var_already_as_ref = []
-    info(f"Searching for dups in {var}")
-    if Dbs.get_ref(var.var) == "YES":
-        warn(f"Asked to reref {var} but it is a reference var, not doing anything.")
-        return
     for file in Dbs.get_files(var.var):
-        debug(f"Checking if {file} has a reference candidate")
         choice = 0
         ref_var = Dbs.get_refvar_forfile(file, var.var)
         if ref_var:
@@ -100,6 +94,21 @@ def reref_var(var:Var, dryrun=True):
             new_ref[file]['newvar'] = ref[0]
             new_ref[file]['newfile'] = ref[1]
     new_ref = vmb_vmi(new_ref)
+
+    for file in Dbs.get_files(var.var):
+        pre = f"{ file }"
+        if file in new_ref:
+            info(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")
+        else:
+            info(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
+    return new_ref
+
+def reref_var(var:Var, dryrun=True):
+    info(f"Searching for dups in {var}")
+    if Dbs.get_ref(var.var) == "YES":
+        warn(f"Asked to reref {var} but it is a reference var, not doing anything.")
+        return
+    new_ref = get_new_ref(var)
     if not new_ref:
         info("Found nothing to reref")
         return
@@ -107,8 +116,8 @@ def reref_var(var:Var, dryrun=True):
         info(f"Found these files as duplicates:{','.join(list(new_ref))}")
     if dryrun:
         info("Asked for dryrun, stopping here")
-    else:
-        modify_meta(var, new_ref)
-        modify_files(var, new_ref)
-        delete_files(var, new_ref)
-        zipdir(var.tmpDir, var.file)
+        return
+    modify_meta(var, new_ref)
+    reref_files(var, new_ref)
+    delete_files(var, new_ref)
+    zipdir(var.tmpDir, var.file)

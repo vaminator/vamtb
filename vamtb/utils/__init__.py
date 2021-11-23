@@ -16,6 +16,7 @@ C_REF_CREATORS = (
 "Jackaroo","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 C_DB = "vars.db"
+C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)

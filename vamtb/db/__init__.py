@@ -147,7 +147,7 @@ class Dbs:
             return None
 
     @staticmethod
-    def get_prop_files(filename, varname, prop_name):
+    def get_prop_files(filename:str, varname:str, prop_name:str):
         sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
         row = (filename, varname)
         res = Dbs.fetchall(sql, row)
@@ -165,10 +165,6 @@ class Dbs:
         return res if res else []
 
     @staticmethod
-    def get_file_cksum(filename, varname):
-        return Dbs.get_prop_files(filename, varname, "CKSUM")
-
-    @staticmethod
     def get_files(varname):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
         row = (varname,)
@@ -177,6 +173,10 @@ class Dbs:
             return [ e[0] for e in res ]
         else:
             return None
+
+    @staticmethod
+    def get_file_cksum(filename, varname):
+        return Dbs.get_prop_files(filename, varname, "CKSUM")
 
     @staticmethod
     def get_refvar_forfile(filename, varname):
@@ -203,29 +203,34 @@ class Dbs:
 
     @staticmethod
     def var_exists(varname):
-        #TODO min
         if varname.endswith(".latest"):
             return (Dbs.latest(varname) != None)
+        elif VarFile(varname).version.startswith("min"):
+            return (Dbs.min(varname) != None)
         else:
             return (Dbs.get_prop_vars(varname, "VARNAME") != None)
 
     @staticmethod
-    def latest(var):
+    def get_db_deps():
+        return Dbs.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
+
+    @staticmethod
+    def latest(varname):
+        assert(varname.endswith(".latest"))
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
-        var_nov = VarFile(var).var_nov
+        var_nov = VarFile(varname).var_nov
         row = (f"{var_nov}%", )
         res = Dbs.fetchall(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions.sort(key=int, reverse=True)
-
         if versions:
             return f"{var_nov}.{versions[0]}"
         else:
             return None
 
     @staticmethod
-    def min(var):
-        varf = VarFile(var)
+    def min(varname):
+        varf = VarFile(varname)
         assert(varf.version.startswith("min"))
         minver = varf.minversion
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
@@ -235,15 +240,10 @@ class Dbs:
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions = [ int(v) for v in versions if int(v) >= minver ]
         versions.sort(key=int, reverse=True)
-
         if versions:
             return f"{var_nov}.{versions[0]}"
         else:
             return None
 
-    @staticmethod
-    def get_db_deps():
-        return Dbs.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
-
-# Global var as singleton
+# Singleton as Global variable 
 __dbs = Dbs()

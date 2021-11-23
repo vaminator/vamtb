@@ -363,7 +363,7 @@ class Var(VarFile):
             ncrc = FileName(newpath, calc_crc=True).crc
 
             if fcrc == ncrc:
-                info("Exact same file exists, removing duplicate")
+                info(f"Exact same file exists, removing duplicate {self.path}")
                 try:
                     Path.unlink(file_to_move)
                 except PermissionError:
