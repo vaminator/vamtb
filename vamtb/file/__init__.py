@@ -46,14 +46,18 @@ class FileName:
 
     @property
     def jsonDeps(self):
+        #FIXME we really need to enumerate specific ids
+        # Also logic var / embed not understood
         deps = { 'embed': [], 'var': [] , 'self': [] }
         def _decode_dict(a_dict):
             for id, ref in a_dict.items():  # pylint: disable=unused-variable
                 if type(ref) == str:
                     if ref.startswith("SELF:"):
+                        debug(f"!! Remove debug -- {id}, {ref}")
                         # Link to self
                         deps['self'].append(ref)
                     elif ":" in ref[1:]:
+                        debug(f"!! Remove debug -- {id}, {ref}")
                         # Link to Other
                         name = ref.split(':')[0]
                         ndot = len(name.split('.'))
@@ -61,6 +65,7 @@ class FileName:
                             deps['var'].append(ref)
                     elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap", ".json"]):
                         # String not containing ":" ending with these extensions
+                        debug(f"!! Remove debug -- {id}, {ref}")
                         deps['embed'].append(ref)
 
         _ = json.loads(self.read(), object_hook=_decode_dict)

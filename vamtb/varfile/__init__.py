@@ -47,6 +47,7 @@ class VarFile:
                 except ValueError:
                     raise VarExtNotCorrect(inputName)
             else:
+                print(inputName)
                 error(f"Var {inputName} has incorrect extension {self.__sVersion}" )
                 raise VarExtNotCorrect(inputName)
         try:
@@ -262,7 +263,7 @@ class Var(VarFile):
             else:
                 elements = list(set([ v.split(':')[0] for v in deps['var'] ]))
             if elements:
-                debug(f"File {self.var} references vars: {','.join(sorted(elements))}")
+                debug(f"File {file} in {self.var} references vars: {','.join(sorted(elements))}")
                 all_deps.extend(elements)
         if with_file:
             all_deps = [ e for e in list(set(all_deps)) if e.split(':')[0] != self.var ]

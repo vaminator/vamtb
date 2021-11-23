@@ -283,8 +283,6 @@ def dotty(ctx):
     """
     Gen dot graph of deps, one per var
     """
-    import shutil
-
     if shutil.which(C_DOT) is None:
         critical(f"Make sure you have graphviz installed in {C_DOT}.", doexit=True)
 

@@ -74,7 +74,7 @@ def modify_meta(var:Var, newref):
 def get_new_ref(var:Var) -> dict:
     new_ref = {}
     var_already_as_ref = []
-    for file in Dbs.get_files(var.var):
+    for file in Dbs.get_files(var.var, with_meta=False):
         choice = 0
         ref_var = Dbs.get_refvar_forfile(file, var.var)
         if ref_var:
@@ -95,7 +95,7 @@ def get_new_ref(var:Var) -> dict:
             new_ref[file]['newfile'] = ref[1]
     new_ref = vmb_vmi(new_ref)
 
-    for file in Dbs.get_files(var.var):
+    for file in Dbs.get_files(var.var, with_meta=False):
         pre = f"{ file }"
         if file in new_ref:
             info(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")

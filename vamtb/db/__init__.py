@@ -165,8 +165,10 @@ class Dbs:
         return res if res else []
 
     @staticmethod
-    def get_files(varname):
+    def get_files(varname, with_meta = True):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
+        if not with_meta:
+            sql = sql + " AND FILENAME NOT LIKE '%meta.json'"
         row = (varname,)
         res = Dbs.fetchall(sql, row)
         if res:
