@@ -6,9 +6,9 @@ import click
 import shutil
 from collections import defaultdict
 from pathlib import Path
+from tqdm import tqdm
 
 from vamtb.graph import Graph
-from vamtb.db import Dbs
 from vamtb.varfile import Var, VarFile
 from vamtb.file import FileName
 from vamtb import ref
@@ -58,8 +58,9 @@ def cli(ctx, verbose, move, dir, file):
     info("Welcome to vamtb")
 
     ctx.ensure_object(dict)
-    ctx.obj['file']     = file
-    ctx.obj['move']     = move
+    ctx.obj['file']        = file
+    ctx.obj['move']        = move
+    ctx.obj['debug_level'] = verbose
     conf = {}
     try:
         with open(C_YAML, 'r') as stream:
@@ -268,13 +269,24 @@ def dbs(ctx):
     """
     Scan vars and store props in db
     """
+    stored = 0
     dir = ctx.obj['dir']
     file = ctx.obj['file']
     if file:
         pattern = VarFile(file).file
     else:
         pattern = "*.var"
-    Dbs.store_vars(search_files_indir(dir, pattern))
+
+    vars_list = search_files_indir(dir, pattern)
+    if ctx.obj['debug_level']:
+        iterator = vars_list
+    else:
+        iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=5, ncols=75, unit='var')
+    for varfile in iterator:
+        with Var(varfile, dir, use_db=True) as var:
+            if var.store_var():
+                stored += 1
+    info(f"{stored} var files stored")
 
 @cli.command('dotty')
 @click.pass_context
@@ -292,9 +304,10 @@ def dotty(ctx):
         pattern = f"*{file}*"
     else:
         pattern = "*.var"
-    for var_file in search_files_indir(dir, pattern):
-        info(f"Calculating dependency graph of {VarFile(var_file).var}")
-        Graph.dotty(var_file)
+    for varfile in search_files_indir(dir, pattern):
+        info(f"Calculating dependency graph of {VarFile(varfile).var}")
+        with Var(varfile, dir, use_db=True) as var:
+            Graph.dotty(var)
 
 @cli.command('reref')
 @click.pass_context
@@ -309,6 +322,23 @@ def reref(ctx):
         pattern = f"*{file}*"
     else:
         pattern = "*.var"
-    for var_file in search_files_indir(dir, pattern):
-        with Var(var_file, dir, zipcheck=True) as var:
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, zipcheck=True) as var:
             ref.reref_var(var)
+
+@cli.command('dupinfo')
+@click.pass_context
+@catch_exception
+def dupinfo(ctx):
+    """
+    Return duplicate files information
+    """
+    dir =Path(ctx.obj['dir'])
+    file = ctx.obj['file']
+    if file:
+        pattern = f"*{file}*"
+    else:
+        pattern = "*.var"
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, zipcheck=True) as var:
+            var.dupinfo(var)

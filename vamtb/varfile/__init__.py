@@ -1,6 +1,5 @@
 '''Var file naming'''
 import json
-import time
 import os
 import re
 import shutil
@@ -9,14 +8,17 @@ import json
 from pathlib import Path
 from zipfile import ZipFile, BadZipFile
 
+from vamtb.db import Dbs
 from vamtb.file import FileName
+from vamtb import ref
+
 from vamtb.vamex import *
 from vamtb.utils import *
 from vamtb.log import *
 
 class VarFile:
 
-    def __init__(self, inputName) -> None:
+    def __init__(self, inputName, use_db = False) -> None:
         inputName or critical("Tried to create a var but gave no filename", doexit=True)
         self.__Creator = ""
         self.__Resource = ""
@@ -26,6 +28,8 @@ class VarFile:
         self.__iVersion = 0
         # Min version or 0
         self.__iMinVer = 0
+        # Db if a reference was provided
+        self.__Dbs = Dbs if use_db else None
 
         if not isinstance(inputName, Path):
             inputName = Path(inputName)
@@ -91,9 +95,178 @@ class VarFile:
     def minversion(self) -> int:
         return self.__iMinVer
 
+    def db_exec(self, sql, row):
+        if self.__Dbs:
+            self.__Dbs.execute(sql, row)
+        else:
+            assert(False)
+
+    def db_fetch(self, sql, row):
+        if self.__Dbs:
+            return self.__Dbs.fetchall(sql, row)
+        else:
+            assert(False)
+
+    def db_commit(self, rollback = False):
+        if self.__Dbs:
+            if rollback:
+                self.__Dbs.getConn().rollback()
+            else:
+                self.__Dbs.getConn().commit()
+        else:
+            assert(False)
+
+    def store_var(self):
+        """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
+        sql = "SELECT * FROM VARS WHERE VARNAME=?"
+        row = (self.var, )
+        rows = self.db_fetch(sql, row)
+        if not rows:
+            creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
+            size = FileName(self.path).size
+            v_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
+
+            meta = self.meta()
+            license = meta['licenseType']
+
+            sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
+            row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
+            self.db_exec(sql, row)
+
+            for f in self.files(with_meta=True):
+                crcf = f.crc
+                sizef = f.size
+                f_isref = "YES" if creator in C_REF_CREATORS else "UNKNOWN"
+
+                sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
+                row = (None, self.ziprel(f.path), f_isref, self.var, sizef, crcf)
+                self.db_exec(sql, row)
+
+            debug(f"Stored var {self.var} and files in databases")
+            sql = """INSERT INTO DEPS(ID,VAR,DEPVAR,DEPFILE) VALUES (?,?,?,?)"""
+            for dep in self.dep_fromfiles(with_file=True):
+                depvar, depfile = dep.split(':')
+                # Remove first /
+                depfile = depfile[1:]
+                row = (None, self.var, depvar, depfile)
+                self.db_exec(sql, row)
+        else:
+            assert( len(rows) == 1 )
+            db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_size, db_cksum = rows[0]
+            modified_time = FileName(self.path).mtime
+            
+            if db_modtime < modified_time and db_cksum != FileName(self.path).crc:
+                error(f"Database contains older data for var {self.var}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
+                error(f"This could also be because you have duplicate vars for {self.var} (in that case, use vamtb sortvar) ")
+                # Just in case
+                self.db_commit(rollback = True)
+                return False
+            else:
+                info(f"Var {self.var} already in database")
+        self.db_commit()
+        return True
+
+    def exists(self):
+        if self.var.endswith(".latest"):
+            return (self.latest() != None)
+        elif self.version.startswith("min"):
+            return (self.min() != None)
+        else:
+            return (self.get_prop_vars("VARNAME") != None)
+
+    def latest(self):
+        assert(self.var.endswith(".latest"))
+        sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
+        var_nov = self.var_nov
+        row = (f"{var_nov}%", )
+        res = self.db_fetch(sql, row)
+        versions = [ e[0].split('.',3)[2] for e in res ]
+        versions.sort(key=int, reverse=True)
+        if versions:
+            return f"{var_nov}.{versions[0]}"
+        else:
+            return None
+
+    def min(self):
+        assert(self.version.startswith("min"))
+        minver = self.minversion
+        sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
+        var_nov = self.var_nov
+        row = (f"{var_nov}%", )
+        res = self.fetch(sql, row)
+        versions = [ e[0].split('.',3)[2] for e in res ]
+        versions = [ int(v) for v in versions if int(v) >= minver ]
+        versions.sort(key=int, reverse=True)
+        if versions:
+            return f"{var_nov}.{versions[0]}"
+        else:
+            return None
+
+    def get_prop_vars(self, prop_name):
+
+        sql = f"SELECT {prop_name} FROM VARS WHERE VARNAME=?"
+        row = (self.var,)
+        res = self.db_fetch(sql, row)
+        if res:
+            return res[0][0]
+        else:
+            return None
+
+    def get_prop_files(self, filename:str, prop_name:str):
+        sql = f"SELECT {prop_name} FROM FILES WHERE FILENAME=? AND VARNAME=?"
+        row = (filename, self.var)
+        res = self.db_fetch(sql, row)
+        if res:
+            return res[0][0]
+        else:
+            return None
+
+    def get_dep(self):
+        sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
+        row = (self.var,)
+        res = self.db_fetch(sql, row)
+        res = [ e[0] for e in res ]
+        return res if res else []
+
+    def get_files(self, with_meta = True):
+        sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
+        if not with_meta:
+            sql = sql + " AND FILENAME NOT LIKE '%meta.json'"
+        row = (self.var,)
+        res = self.db_fetch(sql, row)
+        if res:
+            return [ e[0] for e in res ]
+        else:
+            return []
+
+    def get_file_cksum(self, filename):
+        return self.get_prop_files(filename, "CKSUM")
+
+    def get_refvar_forfile(self, filename):
+        cksum = self.get_file_cksum(filename)
+        sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME!=? AND FILENAME LIKE ? GROUP BY VARNAME"
+        row = (cksum, self.var, f"%{Path(filename).name}")
+        res = self.db_fetch(sql, row)
+        if res:
+            return res
+        else:
+            return None
+
+    @property
+    def license(self):
+        return self.get_prop_vars("LICENSE")
+
+    @property
+    def size(self):
+        return self.get_prop_vars("SIZE")
+
+    @property
+    def get_ref(self):
+        return self.get_prop_vars("ISREF")
+
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, zipcheck=False):
+    def __init__(self, multiFileName, dir=None, use_db = False, zipcheck=False):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -101,8 +274,9 @@ class Var(VarFile):
         """
         # tempdir to extracted var
         multiFileName or critical("Tried to create a var but gave no filename", doexit=True)
+    
         self.__tmpDir = None
-        VarFile.__init__(self, multiFileName)
+        VarFile.__init__(self, multiFileName, use_db)
 
         # AddonDir if specified
         if dir:
@@ -148,6 +322,10 @@ class Var(VarFile):
     def mtime(self):
         return FileName(self.path).mtime
 
+    @property
+    def addondir(self):
+        return self.__AddonDir
+
     def __enter__(self):
         return self
 
@@ -162,6 +340,7 @@ class Var(VarFile):
 
     def search(self, pattern)-> Path:
         fpath = self.__AddonDir
+        assert(fpath)
         debug(f"Listing files pattern **/{pattern} in {fpath}")
         pattern = re.sub(r'([\[\]])','[\\1]',pattern)
         return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
@@ -372,8 +551,55 @@ class Var(VarFile):
             else:
                 error(f"File {file_to_move} and {newpath} have same name but crc differ {fcrc} , {ncrc}. Remove yourself.") 
 
+    def treedown(self):
+        """
+        Return down dependency graph
+        Depth first
+        """
+        td_vars = {}
+        def rec(var:Var):
+            varn = self.var
+            td_vars[varn] = { 'dep':[], 'size':0, 'totsize':0 }
+            td_vars[varn]['size'] =  var.size
+            for dep in  var.get_dep():
+                #Descend for that depend if it exists
+                vers = dep.split('.')[2]
+                rdep = ""
+                if vers == "latest":
+                    try:
+                        dep = Var(dep, self.__AddonDir, use_db=True).latest()
+                    except VarNotFound:
+                        pass
+                elif vers.startswith("min"):
+                    try:
+                        dep = Var(dep, self.__AddonDir, use_db=True).min()
+                    except VarNotFound:
+                        pass
+                td_vars[varn]['dep'].append(dep)
+                try:
+                    if dep and Var(dep, self.__AddonDir, use_db=True).exists():
+                        if dep == varn:
+                            error(f"There is a recursion from {varn} to itself, avoiding")
+                            continue
+                        td_vars[varn]['totsize'] += Var(dep, self.__AddonDir, use_db=True).size
+                        rec(Var(dep, self.__AddonDir, use_db=True))
+                except VarNotFound:
+                    pass
+
+        td_vars = {}
+        rec(self)
+        return td_vars
+
+    @property
+    def dupinfo(self):
+        dups = {"numdupfiles": 0, "dupsize": 0}
+#        for new_ref in ref.get_new_ref(self):
+#            dups['numdupfiles'] += 1
+#            dups['dupsize'] = Var(new_ref).size
+
 def pattern_var(fname, pattern):
-    """ List files within var matching a pattern """
+    """ List files within var matching a pattern 
+    FIXME """
     info(f"Searching thumb for {fname}")
     try:
         with ZipFile(fname, mode='r') as myvar:
@@ -381,50 +607,3 @@ def pattern_var(fname, pattern):
             return listOfFileNames
     except BadZipFile as e:
         error(f"{fname} is not a correct zipfile ({e})")
-
-
-def mcopytree(src, dst):
-    def ignore(path, content_list):
-        return [
-            content
-            for content in content_list
-            if os.path.isdir(os.path.join(path, content))
-        ]    
-    shutil.copytree(f"{src}", f"{dst}", ignore=ignore, dirs_exist_ok=True)
-
-
-def search_and_replace_dir(mdir, text, subst, enc):
-    text=Path(text.removeprefix("SELF:/")).name
-    text = re.escape(text)
-    pattern = fr'"[^"]*{text}"'
-    _replace_re = re.compile(pattern)
-    for dirpath, dirnames, filenames in os.walk(mdir):
-        for file in filenames:
-            if Path(file).suffix in (".vab", ".vmb", ".dll", ".jpg", ".png", "tif", ".ogg", ".wav", ".mp3", ".AssetBundle", ".assetbundle"):
-                continue
-            if Path(file).name == "meta.json":
-                continue
-            file = os.path.join(dirpath, file)
-            tempfile = file + ".temp"
-            with open(tempfile, "w", encoding="utf-8") as target:
-                # debug(f"Rewriting {file}")
-                with open(file, "r", encoding=enc) as source:
-                    try:
-                        for line in source:
-                            if _replace_re.findall(line):
-                                info(f"Found a match in file {file}")
-                            line = _replace_re.sub(f'"{subst}"', line)
-                            target.write(line)
-                    except UnicodeDecodeError:
-                        error(f"Could not decode file {file} with encoding {enc}")
-                        timeout = 0.001
-                        time.sleep(timeout)
-                        while(timeout < 2):
-                            try:
-                                os.remove(tempfile)
-                            except PermissionError:
-                                timeout *= 2
-                            except FileNotFoundError:
-                                raise UnicodeDecodeError
-            os.remove(file)
-            os.rename(tempfile, file)

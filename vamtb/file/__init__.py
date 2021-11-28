@@ -44,6 +44,11 @@ class FileName:
     def json(self):
         return json.loads(self.read())
 
+    def read(self):
+        return open(self.__fname,'rb').read()
+
+    def open(self):
+        return open(self.__fname)
     @property
     def jsonDeps(self):
         #FIXME we really need to enumerate specific ids
@@ -53,27 +58,21 @@ class FileName:
             for id, ref in a_dict.items():  # pylint: disable=unused-variable
                 if type(ref) == str:
                     if ref.startswith("SELF:"):
-                        debug(f"!! Remove debug -- {id}, {ref}")
+                        #debug(f"!! Remove debug -- {id}, {ref}")
                         # Link to self
                         deps['self'].append(ref)
                     elif ":" in ref[1:]:
-                        debug(f"!! Remove debug -- {id}, {ref}")
+                        #debug(f"!! Remove debug -- {id}, {ref}")
                         # Link to Other
                         name = ref.split(':')[0]
                         ndot = len(name.split('.'))
                         if ndot == 3:
                             deps['var'].append(ref)
-                    elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap", ".json"]):
+                    elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap",".json"]):
                         # String not containing ":" ending with these extensions
-                        debug(f"!! Remove debug -- {id}, {ref}")
+                        #debug(f"!! Remove debug -- {id}, {ref}")
                         deps['embed'].append(ref)
 
         _ = json.loads(self.read(), object_hook=_decode_dict)
         # debug(f"Decoded json from {self.name()}, deps={deps}")
         return deps
-
-    def read(self):
-        return open(self.__fname,'rb').read()
-
-    def open(self):
-        return open(self.__fname)

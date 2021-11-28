@@ -6,8 +6,8 @@ from vamtb.log import *
 from vamtb.varfile import Var
 from vamtb.db import Dbs
 
-def add_dependency():
-    pass
+#TODO OO for dep handling
+#Meta object var+db
 
 def vmb_vmi(refi):
     refo = {}
@@ -108,15 +108,18 @@ def reref_var(var:Var, dryrun=True):
     if Dbs.get_ref(var.var) == "YES":
         warn(f"Asked to reref {var} but it is a reference var, not doing anything.")
         return
+
     new_ref = get_new_ref(var)
     if not new_ref:
         info("Found nothing to reref")
         return
     else:
         info(f"Found these files as duplicates:{','.join(list(new_ref))}")
+
     if dryrun:
         info("Asked for dryrun, stopping here")
         return
+
     modify_meta(var, new_ref)
     reref_files(var, new_ref)
     delete_files(var, new_ref)

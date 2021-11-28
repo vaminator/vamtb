@@ -1,7 +1,7 @@
 import subprocess
 import os
-from vamtb.varfile import VarFile
 from vamtb.db import Dbs
+from vamtb.varfile import Var
 from vamtb.utils import *
 from vamtb.log import *
 
@@ -13,49 +13,14 @@ class Graph:
             Graph.__instance = self
     
     @staticmethod
-    def set_props(var_list):
+    def set_props(var_list, dir)->str:
         res = []
         for var in var_list:
-            res.append(f'"{var}" [color={"blue" if Dbs.var_exists(var) else "red"}];')
-            license = Dbs.get_license(var)
+            res.append(f'"{var}" [color={"blue" if Var(var, dir=dir, use_db=True).exists else "red"}];')
+            license = Var(var).license
             if license in ("PC", "Questionable"):
                 res.append(f'"{var}" [shape=box];')
         return res
-
-    @staticmethod
-    def treedown(var):
-        """
-        Return down dependency graph
-        Depth first
-        """
-        td_vars = {}
-        def rec(var):
-            td_vars[var] = { 'dep':[], 'size':0, 'totsize':0 }
-            td_vars[var]['size'] = Dbs.get_var_size(var)
-            for dep in Dbs.get_dep(var):
-                #Descend for that depend if it exists
-                vers = dep.split('.')[2]
-                rdep = ""
-                if vers == "latest":
-                    rdep = Dbs.latest(dep)
-                    # If var found, we use that one
-                    # otherwise we'll keep the .latest one as leaf
-                    if rdep:
-                        dep = rdep
-                elif vers.startswith("min"):
-                    rdep = Dbs.min(dep)
-                    if rdep:
-                        dep = rdep
-                td_vars[var]['dep'].append(dep)
-                if dep and Dbs.var_exists(dep):
-                    if dep == var:
-                        error(f"There is a recursion from {var} to itself, avoiding")
-                        continue
-                    td_vars[var]['totsize'] += Dbs.get_var_size(dep)
-                    rec(dep)
-        td_vars = {}
-        rec(var)
-        return td_vars
 
     @staticmethod
     def set_size(tree):
