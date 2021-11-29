@@ -12,7 +12,7 @@ class Graph:
             Graph.__instance = self
     
     @staticmethod
-    def set_props(var_list)->str:
+    def get_props(var_list)->str:
         res = []
         for svar in var_list:
             var = VarFile(svar, use_db=True)
@@ -23,7 +23,7 @@ class Graph:
         return res
 
     @staticmethod
-    def set_size(tree):
+    def get_size(tree):
         res = []
         for var in tree:
             size = f"{int(tree[var]['size']/1024/1024)}MB"
@@ -57,13 +57,13 @@ class Graph:
             all_vars.extend(tree[var]['dep'])
         all_vars = list(set(all_vars))
 
-        dot_lines = Graph.set_props(all_vars)
+        dot_lines = Graph.get_props(all_vars)
         # Calculate real size of top var
         tree[lvar.var]['totsize'] = tree[lvar.var]['size']
         for v in all_vars:
             if v in tree and v != lvar.var:
                 tree[lvar.var]['totsize'] += tree[v]['size']
-        labels = Graph.set_size(tree)
+        labels = Graph.get_size(tree)
         
         dot_lines.extend(list(set(direct_graphs)))
         dot_lines.extend(labels)
