@@ -323,8 +323,8 @@ def dotty(ctx):
     else:
         pattern = "*.var"
     for varfile in search_files_indir(dir, pattern):
-        info(f"Calculating dependency graph of {VarFile(varfile).var}")
         with Var(varfile, dir, use_db=True) as var:
+            info(f"Calculating dependency graph for {var.var}")
             Graph.dotty(var)
 
 @cli.command('reref')

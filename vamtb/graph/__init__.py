@@ -1,6 +1,6 @@
 import subprocess
 import os
-#from vamtb.varfile import Var
+from vamtb.varfile import VarFile
 from vamtb.utils import *
 from vamtb.log import *
 
@@ -12,13 +12,14 @@ class Graph:
             Graph.__instance = self
     
     @staticmethod
-    def set_props(var_list, dir)->str:
+    def set_props(var_list)->str:
         res = []
-        for var in var_list:
-            res.append(f'"{var}" [color={"blue" if Var(var, dir=dir, use_db=True).exists else "red"}];')
-            license = Var(var).license
+        for svar in var_list:
+            var = VarFile(svar, use_db=True)
+            res.append(f'"{svar}" [color={"blue" if var.exists else "red"}];')
+            license = var.license
             if license in ("PC", "Questionable"):
-                res.append(f'"{var}" [shape=box];')
+                res.append(f'"{svar}" [shape=box];')
         return res
 
     @staticmethod
@@ -42,8 +43,8 @@ class Graph:
         #if isinstance(lvar, os.PathLike):
         #    lvar = VarFile(lvar).var
 
-        tree = Graph.treedown(lvar)
-        if not len(tree[lvar]['dep']):
+        tree = lvar.treedown()
+        if not len(tree[lvar.var]['dep']):
             info("No deps, no graph")
             return
         for var in tree:
@@ -58,10 +59,10 @@ class Graph:
 
         dot_lines = Graph.set_props(all_vars)
         # Calculate real size of top var
-        tree[lvar]['totsize'] = tree[lvar]['size']
+        tree[lvar.var]['totsize'] = tree[lvar.var]['size']
         for v in all_vars:
-            if v in tree and v != lvar:
-                tree[lvar]['totsize'] += tree[v]['size']
+            if v in tree and v != lvar.var:
+                tree[lvar.var]['totsize'] += tree[v]['size']
         labels = Graph.set_size(tree)
         
         dot_lines.extend(list(set(direct_graphs)))
@@ -72,7 +73,7 @@ class Graph:
             "\n".join(dot_lines) + "\n" +
             "}")
 
-        pdfname = f"{C_DDIR}\{lvar}.pdf" if lvar else f"{C_DDIR}\deps.pdf"
+        pdfname = f"{C_DDIR}\{lvar.var}.pdf" if lvar else f"{C_DDIR}\deps.pdf"
         if not os.path.exists(C_DDIR):
             os.makedirs(C_DDIR)
         try:

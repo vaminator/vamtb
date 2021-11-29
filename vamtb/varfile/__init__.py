@@ -568,13 +568,12 @@ class Var(VarFile):
         """
         td_vars = {}
         def rec(var:Var):
-            varn = self.var
+            varn = var.var
             td_vars[varn] = { 'dep':[], 'size':0, 'totsize':0 }
             td_vars[varn]['size'] =  var.size
             for dep in  var.get_dep():
                 #Descend for that depend if it exists
                 vers = dep.split('.')[2]
-                rdep = ""
                 if vers == "latest":
                     try:
                         dep = Var(dep, self.__AddonDir, use_db=True).latest()

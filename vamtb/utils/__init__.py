@@ -6,7 +6,7 @@ import binascii
 from pathlib import Path
 from vamtb.log import *
 
-# Conf
+# Constants
 C_YAML = "vamtb.yml"
 C_DDIR = "graph"
 C_BAD_DIR = "00Dep"
