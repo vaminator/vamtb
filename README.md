@@ -80,4 +80,4 @@ Commands:
 ## Tips
 When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files insude with any tool compatible, like [sqlitebrowser](https://sqlitebrowser.org/).
 
-For dotty subcommand to work, you will need dot from [graphiz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
+For dotty subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
