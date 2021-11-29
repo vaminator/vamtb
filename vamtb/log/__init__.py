@@ -23,11 +23,25 @@ class __Color:
     def greenf(self, msg):
         return colorama.Fore.GREEN + msg
 
+    @dec_cl
+    def yellowf(self, msg):
+        return colorama.Fore.YELLOW + msg
+
+    @dec_cl
+    def lbluef(self, msg):
+        return colorama.Fore.LIGHTBLUE_EX + msg
+
 def green(message):
     return __col.greenf(message)
 
 def red(message):
     return __col.redf(message)
+
+def yellow(message):
+    return __col.yellowf(message)
+
+def blue(message):
+    return __col.lbluef(message)
 
 class CustomFormatter(logging.Formatter):
 

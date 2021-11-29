@@ -1,7 +1,6 @@
 import subprocess
 import os
-from vamtb.db import Dbs
-from vamtb.varfile import Var
+#from vamtb.varfile import Var
 from vamtb.utils import *
 from vamtb.log import *
 
@@ -40,8 +39,8 @@ class Graph:
 
         direct_graphs=[]
 
-        if isinstance(lvar, os.PathLike):
-            lvar = VarFile(lvar).var
+        #if isinstance(lvar, os.PathLike):
+        #    lvar = VarFile(lvar).var
 
         tree = Graph.treedown(lvar)
         if not len(tree[lvar]['dep']):

@@ -62,25 +62,27 @@ def cli(ctx, verbose, move, dir, file):
     ctx.obj['move']        = move
     ctx.obj['debug_level'] = verbose
     conf = {}
+    
     try:
         with open(C_YAML, 'r') as stream:
             conf = yaml.load(stream, Loader=yaml.BaseLoader)
     except FileNotFoundError:
-        pass
-    except yaml.YAMLError as exc:
-        error("YAML error %s", exc)
-
-    if not conf:
         conf['dir'] = input("Directory of Vam ?:")
         with open(C_YAML, 'w') as outfile:
             yaml.dump(conf, outfile, default_flow_style=False)
         info(f"Created {C_YAML}")
+    except yaml.YAMLError as exc:
+        error(f"YAML error in {C_YAML}: {exc}")
 
-    dir = conf['dir']
-    if not str(Path(dir)).endswith("AddonPackages"):
-        dir = str(Path(dir, "AddonPackages"))
+    dir = Path(conf['dir'])
 
-    ctx.obj['dir'] = dir
+    if dir.stem != "AddonPackages":
+        dir = dir / "AddonPackages"
+
+    if not ( dir.is_dir() and dir.exists() ):
+        critical(f"AddonPackages '{dir}' is not existing directory", doexit=True)
+
+    ctx.obj['dir'] = str(dir)
 
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
@@ -331,7 +333,7 @@ def reref(ctx):
 @catch_exception
 def dupinfo(ctx):
     """
-    Return duplicate files information
+    Return duplication information for file(s)
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
@@ -340,5 +342,15 @@ def dupinfo(ctx):
     else:
         pattern = "*.var"
     for varfile in search_files_indir(dir, pattern):
-        with Var(varfile, dir, zipcheck=True) as var:
-            var.dupinfo(var)
+        with Var(varfile, dir, use_db=True) as var:
+            dups = var.dupinfo()
+            ndup, sdup = dups['numdupfiles'], dups['dupsize']
+            ntot = var.get_numfiles()
+            msg= f"{var.var:<64} : Dups:{ndup:<5}/{ntot:<5} Dup Size:{toh(sdup):<10} (ref:{var.get_ref})"
+            if not ndup:
+                msg = green(msg)
+            elif ndup < C_MAX_FILES and sdup < C_MAX_SIZE:
+                msg = blue(msg)
+            else:
+                msg = red(msg)
+            print(msg)

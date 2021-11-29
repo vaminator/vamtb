@@ -242,6 +242,14 @@ class VarFile:
     def get_file_cksum(self, filename):
         return self.get_prop_files(filename, "CKSUM")
 
+    def get_file_size(self, filename):
+        return self.get_prop_files(filename, "SIZE")
+
+    def get_numfiles(self):
+        sql = f"SELECT COUNT(*) FROM FILES WHERE VARNAME == ?"
+        row = (self.var, )
+        return self.db_fetch(sql, row)[0][0]
+
     def get_refvar_forfile(self, filename):
         cksum = self.get_file_cksum(filename)
         sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME!=? AND FILENAME LIKE ? GROUP BY VARNAME"
@@ -590,12 +598,27 @@ class Var(VarFile):
         rec(self)
         return td_vars
 
-    @property
     def dupinfo(self):
-        dups = {"numdupfiles": 0, "dupsize": 0}
-#        for new_ref in ref.get_new_ref(self):
-#            dups['numdupfiles'] += 1
-#            dups['dupsize'] = Var(new_ref).size
+        """
+        Returns dict about duplication of files with other creators vars
+        """
+        dups = { "numdupfiles": 0, "dupsize": 0 }
+        for file in self.get_files(with_meta=False):
+            if self.get_file_size(file) <= 4:
+                continue
+            ck = self.get_file_cksum(file)
+            ckdup = self.db_fetch("SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM == ? AND VARNAME != ?", (ck, self.var))
+            ckdup_creator = []
+            for v, f in ckdup:
+                creator = VarFile(v, use_db=True).get_prop_vars("CREATOR")
+                if creator != self.creator:
+                    ckdup_creator.append((v, f))
+            if ckdup_creator:
+                dups['numdupfiles'] += 1
+                dups['dupsize'] += self.get_file_size(file)
+                for dupvar, dupfile in ckdup:
+                    info(f"{self.var}:/{Path(file).name} is duplicate of {dupvar}:/{dupfile}")
+        return dups
 
 def pattern_var(fname, pattern):
     """ List files within var matching a pattern 

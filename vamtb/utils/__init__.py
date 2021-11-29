@@ -17,6 +17,8 @@ C_REF_CREATORS = (
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
+C_MAX_FILES = 50
+C_MAX_SIZE = 10 * 1024 * 1024
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)
@@ -37,3 +39,13 @@ def zipdir(path, zipname):
                 zipf.write(os.path.join(root, file), 
                         os.path.relpath(os.path.join(root, file), 
                                         os.path.join(path, '.')))
+
+def toh(val: int) ->str:
+    if val > 1024 * 1024 * 1024:
+        return f"{round(val/(1024*1024*1024), 3)}GB"
+    elif val > 1024 * 1024:
+        return f"{round(val/(1024*1024), 3)}MB"
+    elif val > 1024:
+        return f"{round(val/(1024), 3)}KB"
+    else:
+        return val

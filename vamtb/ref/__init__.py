@@ -1,14 +1,15 @@
 import os
-from vamtb.file import FileName
+#from vamtb.file import FileName
+#from vamtb.varfile import Var
+from vamtb.db import Dbs
+
 from vamtb.vamex import *
 from vamtb.utils import *
 from vamtb.log import *
-from vamtb.varfile import Var
-from vamtb.db import Dbs
 
 #TODO OO for dep handling
 #Meta object var+db
-
+"""
 def vmb_vmi(refi):
     refo = {}
     for fn in refi:
@@ -124,3 +125,4 @@ def reref_var(var:Var, dryrun=True):
     reref_files(var, new_ref)
     delete_files(var, new_ref)
     zipdir(var.tmpDir, var.file)
+"""
