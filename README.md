@@ -27,26 +27,29 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   VAM Toolbox
 
   Dependency handling (from disk)
-  vamtb -d d:\VAM -v checkdeps
-  vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
-  vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
-  vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printrealdep
+  vamtb checkdeps
+  vamtb -f sapuzex.Cooking_Lesson.1 checkdep
+  vamtb -f ClubJulze.Bangkok.1 printdep
+  vamtb -f ClubJulze.Bangkok.1 printrealdep
 
   Meta json handling (from disk)
-  vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
+  vamtb -f sapuzex.Cooking_Lesson.1 dump
 
   Organizing (from disk)
-  vamtb -d d:\VAM sortvar  Reorganize your var directories with <creator>/*
+  vamtb sortvar  Reorganize your var directories with <creator>/*
               If a file already exists in that directory, CRC is checked before overwritting.
-  vamtb -d d:\VAM statsvar will dump some statistics
+  vamtb statsvar will dump some statistics
 
   Database:
-  vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database
+  vamtb dbs will scan your vars and create or if modification time is higher, update database
 
   Dependency graph (uses database)
-  vamtb -vvd d:\VAM dotty will graph your collection one graph per var
-  vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dotty will graph this var
-  vamtb -vvd d:\VAM -f sapuzex.* dotty will graph vars matching
+  vamtb dotty will graph your collection one graph per var
+  vamtb -f sapuzex.Cooking_Lesson.1 dotty will graph this var
+  vamtb -f sapuzex.* dotty will graph vars matching
+
+  Duplication (uses database)
+  vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
 
   Character encoding on windows:
   On windows cmd will use cp1252 so you might get some errors displaying international characters.
@@ -66,9 +69,11 @@ Commands:
   dbs           Scan vars and store props in db
   dotty         Gen dot graph of deps, one per var
   dump          Dump var meta.json
+  dupinfo       Return duplication information for file(s)
   noroot        Remove root node stored in pose presets
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
+  reref         Reref var: embedded content is removed, its reference is...
   sortvar       Moves vars to subdirectory named by its creator
   statsvar      Get stats on all vars
 ```

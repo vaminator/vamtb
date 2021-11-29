@@ -29,26 +29,29 @@ def cli(ctx, verbose, move, dir, file):
 
     \b
     Dependency handling (from disk)
-    vamtb -d d:\VAM -v checkdeps
-    vamtb -d d:\VAM -vv -f sapuzex.Cooking_Lesson.1 checkdep
-    vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printdep
-    vamtb -d d:\VAM -f ClubJulze.Bangkok.1 printrealdep
+    vamtb checkdeps
+    vamtb -f sapuzex.Cooking_Lesson.1 checkdep
+    vamtb -f ClubJulze.Bangkok.1 printdep
+    vamtb -f ClubJulze.Bangkok.1 printrealdep
     \b
     Meta json handling (from disk)
-    vamtb -d d:\VAM -f sapuzex.Cooking_Lesson.1 dump
+    vamtb -f sapuzex.Cooking_Lesson.1 dump
     \b
     Organizing (from disk)
-    vamtb -d d:\VAM sortvar  Reorganize your var directories with <creator>/*
+    vamtb sortvar  Reorganize your var directories with <creator>/*
                 If a file already exists in that directory, CRC is checked before overwritting.
-    vamtb -d d:\VAM statsvar will dump some statistics    
+    vamtb statsvar will dump some statistics    
     \b
     Database:
-    vamtb -vvd d:\VAM dbs will scan your vars and create or if modification time is higher, update database 
+    vamtb dbs will scan your vars and create or if modification time is higher, update database 
     \b
     Dependency graph (uses database)
-    vamtb -vvd d:\VAM dotty will graph your collection one graph per var
-    vamtb -vvd d:\VAM -f sapuzex.Cooking_Lesson.1 dotty will graph this var
-    vamtb -vvd d:\VAM -f sapuzex.* dotty will graph vars matching
+    vamtb dotty will graph your collection one graph per var
+    vamtb -f sapuzex.Cooking_Lesson.1 dotty will graph this var
+    vamtb -f sapuzex.* dotty will graph vars matching
+    \b
+    Duplication (uses database)
+    vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
     \b
     Character encoding on windows:
     On windows cmd will use cp1252 so you might get some errors displaying international characters.
