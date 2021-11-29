@@ -18,7 +18,7 @@ C_REF_CREATORS = (
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 C_MAX_FILES = 50
-C_MAX_SIZE = 10 * 1024 * 1024
+C_MAX_SIZE = 20 * 1024 * 1024
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)

@@ -22,8 +22,9 @@ from vamtb.utils import *
 @click.option('dir', '-d', help='Use a specific VAM directory.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
+@click.option('-r', '--ref/--no-ref', default=False, help="Only select non reference vars for dupinfo.")
 @click.pass_context
-def cli(ctx, verbose, move, dir, file):
+def cli(ctx, verbose, move, ref, dir, file):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -64,6 +65,7 @@ def cli(ctx, verbose, move, dir, file):
     ctx.ensure_object(dict)
     ctx.obj['file']        = file
     ctx.obj['move']        = move
+    ctx.obj['ref']         = ref
     ctx.obj['debug_level'] = verbose
     conf = {}
     
@@ -105,7 +107,9 @@ def catch_exception(func=None):
 @catch_exception
 @click.pass_context
 def printdep(ctx):
-    """Print dependencies of a var from reading meta. Recursive (will print deps of deps etc)"""
+    """Print dependencies of a var from reading meta. 
+    
+    Recursive (will print deps of deps etc)"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
@@ -124,7 +128,9 @@ def printdep(ctx):
 @click.pass_context
 @catch_exception
 def printrealdep(ctx):
-    """Print dependencies of a var from inspecting all json files. Not recursive"""
+    """Print dependencies of a var from inspecting all json files. 
+    
+    Not recursive"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
@@ -145,7 +151,7 @@ def printrealdep(ctx):
 @click.pass_context
 @catch_exception
 def dumpvar(ctx):
-    """Dump var meta.json"""
+    """Dump meta.json from var"""
     file = ctx.obj['file']
     dir = ctx.obj['dir']
     file or critical("Need a file parameter", doexit=True)
@@ -167,7 +173,9 @@ def noroot(ctx):
 @click.pass_context
 @catch_exception
 def sort_vars(ctx):
-    """Moves vars to subdirectory named by its creator"""
+    """Moves vars to subdirectory named by its creator
+    
+    Crc is checked before erasing duplicates"""
     dir = ctx.obj['dir']
     info(f"Sorting var in {dir}")
     for file in search_files_indir(dir, "*.var"):
@@ -222,8 +230,11 @@ def stats_vars(ctx):
 @catch_exception
 def checkdeps(ctx):
     """Check dependencies of all var files.
+
     When using -x, files considered bad will be moved to directory "00Dep".
+
     This directory can then be moved away from the directory.
+
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
     move = ctx.obj['move']
@@ -305,7 +316,7 @@ def dotty(ctx):
     if shutil.which(C_DOT) is None:
         critical(f"Make sure you have graphviz installed in {C_DOT}.", doexit=True)
 
-    dir =Path(ctx.obj['dir'])
+    dir = Path(ctx.obj['dir'])
     file = ctx.obj['file']
     if file:
         pattern = f"*{file}*"
@@ -321,7 +332,11 @@ def dotty(ctx):
 @catch_exception
 def reref(ctx):
     """
-    Reref var: embedded content is removed, its reference is converted to real reference and dependency on the reference is added.
+    Reref var: embedded content is removed.
+    
+    Its reference is converted to real reference.
+    
+    Dependency on the reference is added.
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
@@ -339,17 +354,27 @@ def reref(ctx):
 def dupinfo(ctx):
     """
     Return duplication information for file(s)
+
+    Will print in red vars which have either 50 dup files or +20MB dup content
+
+    -r : only scan non reference vars
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
+    onlyref = ctx.obj['ref']
     if file:
         pattern = f"*{file}*"
     else:
         pattern = "*.var"
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
+            if not file and onlyref:
+                if var.get_ref == "YES":
+                    continue
             dups = var.dupinfo()
             ndup, sdup = dups['numdupfiles'], dups['dupsize']
+            if not file and not ndup:
+                continue 
             ntot = var.get_numfiles()
             msg= f"{var.var:<64} : Dups:{ndup:<5}/{ntot:<5} Dup Size:{toh(sdup):<10} (ref:{var.get_ref})"
             if not ndup:

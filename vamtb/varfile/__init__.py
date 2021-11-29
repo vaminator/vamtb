@@ -245,8 +245,10 @@ class VarFile:
     def get_file_size(self, filename):
         return self.get_prop_files(filename, "SIZE")
 
-    def get_numfiles(self):
+    def get_numfiles(self, with_meta = False):
         sql = f"SELECT COUNT(*) FROM FILES WHERE VARNAME == ?"
+        if not with_meta:
+            sql = sql + " AND FILENAME != 'meta.json'"
         row = (self.var, )
         return self.db_fetch(sql, row)[0][0]
 
