@@ -7,6 +7,7 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 from tqdm import tqdm
+from functools import wraps
 
 from vamtb.graph import Graph
 from vamtb.varfile import Var, VarFile
@@ -87,6 +88,7 @@ def cli(ctx, verbose, move, dir, file):
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 def catch_exception(func=None):
+    @wraps(func)
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
