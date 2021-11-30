@@ -23,8 +23,9 @@ from vamtb.utils import *
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
 @click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-r', '--ref/--no-ref', default=False, help="Only select non reference vars for dupinfo.")
+@click.option('-b', '--usedb/--no-usedb', default=False, help="Use DB.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, dir, file):
+def cli(ctx, verbose, move, ref, usedb, dir, file):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -66,6 +67,7 @@ def cli(ctx, verbose, move, ref, dir, file):
     ctx.obj['file']        = file
     ctx.obj['move']        = move
     ctx.obj['ref']         = ref
+    ctx.obj['usedb']       = usedb
     ctx.obj['debug_level'] = verbose
     conf = {}
     
@@ -240,6 +242,7 @@ def checkdeps(ctx):
     move = ctx.obj['move']
     dir = ctx.obj['dir']
     file = ctx.obj['file']
+    usedb = ctx.obj['usedb']
 
     full_bad_dir = Path(dir) / C_BAD_DIR
 
@@ -253,9 +256,12 @@ def checkdeps(ctx):
         pattern = "*.var"
     for file in search_files_indir(dir, pattern):
         try:
-            with Var(file, dir) as var:
+            with Var(file, dir, use_db=usedb) as var:
                 try:
-                    _ = var.depend(recurse=True)
+                    if usedb:
+                        _ = var.rec_dep()
+                    else:
+                        _ = var.depend(recurse=True)
                 except (VarNotFound, zlib.error) as e:
                     error(f'Missing or wrong dependency for {var} [{e}]')
                     if move:

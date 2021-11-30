@@ -228,6 +228,23 @@ class VarFile:
         res = [ e[0] for e in res ]
         return res if res else []
 
+    def rec_dep(self, stop = True):
+        def rec(var:Var, depth):
+            msg = " " * depth + f"Checking dep of {var.var}"
+            if stop and not var.exists:
+                warn(f"{msg:<130}" + ": Not Found")
+                raise VarNotFound(var.var)
+            else:
+                info(f"{msg:<130}" + ":     Found")
+            sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
+            row = (var.var,)
+            res = self.db_fetch(sql, row)
+            res = [ e[0] for e in res ]
+            for varfile in res:
+                depvar = VarFile(varfile, use_db=True)
+                rec(depvar, depth+1 )
+        rec(self, depth=0)
+
     def get_files(self, with_meta = True):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
         if not with_meta:
@@ -604,30 +621,23 @@ class Var(VarFile):
         Returns dict about duplication of files with other creators vars
         """
         dups = { "numdupfiles": 0, "dupsize": 0 }
+
         for file in self.get_files(with_meta=False):
             if self.get_file_size(file) <= 4:
                 continue
+
             ck = self.get_file_cksum(file)
             ckdup = self.db_fetch("SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM == ? AND VARNAME != ?", (ck, self.var))
+
             ckdup_creator = []
             for v, f in ckdup:
                 creator = VarFile(v, use_db=True).get_prop_vars("CREATOR")
                 if creator != self.creator:
                     ckdup_creator.append((v, f))
+
             if ckdup_creator:
                 dups['numdupfiles'] += 1
                 dups['dupsize'] += self.get_file_size(file)
                 for dupvar, dupfile in ckdup:
-                    info(f"{self.var}:/{Path(file).name} is duplicate of {dupvar}:/{dupfile}")
+                    info(f"{self.var}:/{Path(file).name} is dup of {dupvar}:/{dupfile}")
         return dups
-
-def pattern_var(fname, pattern):
-    """ List files within var matching a pattern 
-    FIXME """
-    info(f"Searching thumb for {fname}")
-    try:
-        with ZipFile(fname, mode='r') as myvar:
-            listOfFileNames = [ f for f in myvar.namelist() if re.search(pattern, f) is not None ]
-            return listOfFileNames
-    except BadZipFile as e:
-        error(f"{fname} is not a correct zipfile ({e})")
