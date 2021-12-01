@@ -49,28 +49,28 @@ class FileName:
 
     def open(self):
         return open(self.__fname)
+
     @property
-    def jsonDeps(self):
-        #FIXME we really need to enumerate specific ids
-        # Also logic var / embed not understood
+    def jsonDeps(self, fuzzy=False):
         deps = { 'embed': [], 'var': [] , 'self': [] }
         def _decode_dict(a_dict):
             for id, ref in a_dict.items():  # pylint: disable=unused-variable
+                if not fuzzy and not id_is_ref(id):
+                    continue
                 if type(ref) == str:
-                    if ref.startswith("SELF:"):
-                        #debug(f"!! Remove debug -- {id}, {ref}")
-                        # Link to self
+                    if ref.startswith("SELF:/"):
+                        # Link to self (embedded)
                         deps['self'].append(ref)
-                    elif ":" in ref[1:]:
-                        #debug(f"!! Remove debug -- {id}, {ref}")
+                    elif ":/" in ref[1:]:
                         # Link to Other
-                        name = ref.split(':')[0]
-                        ndot = len(name.split('.'))
-                        if ndot == 3:
-                            deps['var'].append(ref)
+                        name = ref.split(':')
+                        if len(name) == 2:
+                            name = name[0]
+                            ndot = len(name.split('.'))
+                            if ndot == 3:
+                                deps['var'].append(ref)
                     elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap",".json"]):
-                        # String not containing ":" ending with these extensions
-                        #debug(f"!! Remove debug -- {id}, {ref}")
+                        # Local to file (embedded) without SELF
                         deps['embed'].append(ref)
 
         _ = json.loads(self.read(), object_hook=_decode_dict)

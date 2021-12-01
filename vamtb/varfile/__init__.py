@@ -38,7 +38,7 @@ class VarFile:
         try:
             self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
         except ValueError:
-            error(f"Var {inputName} has incorrect format")
+            error(f"Var has incorrect format: {inputName}")
             raise VarNameNotCorrect(inputName)
         try:
             self.__iVersion = int(self.__sVersion)
@@ -51,8 +51,7 @@ class VarFile:
                 except ValueError:
                     raise VarExtNotCorrect(inputName)
             else:
-                print(inputName)
-                error(f"Var {inputName} has incorrect extension {self.__sVersion}" )
+                error(f"Var has incorrect version: {inputName} version: {self.__sVersion}" )
                 raise VarExtNotCorrect(inputName)
         try:
             _, _, _, ext = f_basename.split('.',4)
@@ -60,6 +59,7 @@ class VarFile:
             pass
         else:
             if ext != "var":
+                error(f"Var has incorrect extension: {inputName}" )
                 raise VarExtNotCorrect(inputName)
         debug(f"Var {inputName} is compliant")
 
@@ -146,8 +146,7 @@ class VarFile:
             sql = """INSERT INTO DEPS(ID,VAR,DEPVAR,DEPFILE) VALUES (?,?,?,?)"""
             for dep in self.dep_fromfiles(with_file=True):
                 depvar, depfile = dep.split(':')
-                # Remove first /
-                depfile = depfile[1:]
+                depfile = depfile.lstrip('/')
                 row = (None, self.var, depvar, depfile)
                 self.db_exec(sql, row)
         else:
@@ -163,6 +162,8 @@ class VarFile:
                 return False
             else:
                 info(f"Var {self.var} already in database")
+
+        # We went through all verification, commit to DB
         self.db_commit()
         return True
 
@@ -193,7 +194,7 @@ class VarFile:
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
         var_nov = self.var_nov
         row = (f"{var_nov}%", )
-        res = self.fetch(sql, row)
+        res = self.db_fetch(sql, row)
         versions = [ e[0].split('.',3)[2] for e in res ]
         versions = [ int(v) for v in versions if int(v) >= minver ]
         versions.sort(key=int, reverse=True)
@@ -229,11 +230,12 @@ class VarFile:
         return res if res else []
 
     def rec_dep(self, stop = True):
-        def rec(var:Var, depth):
+        def rec(var:Var, depth=0):
             msg = " " * depth + f"Checking dep of {var.var}"
-            if stop and not var.exists:
+            if not var.exists():
                 warn(f"{msg:<130}" + ": Not Found")
-                raise VarNotFound(var.var)
+                if stop:
+                    raise VarNotFound(var.var)
             else:
                 info(f"{msg:<130}" + ":     Found")
             sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
@@ -241,9 +243,13 @@ class VarFile:
             res = self.db_fetch(sql, row)
             res = [ e[0] for e in res ]
             for varfile in res:
-                depvar = VarFile(varfile, use_db=True)
+                try:
+                    depvar = VarFile(varfile, use_db=True)
+                except (VarExtNotCorrect, VarNameNotCorrect, VarVersionNotCorrect):
+                    error(f"We skipped a broken dependency from {self.var}")
+                    continue
                 rec(depvar, depth+1 )
-        rec(self, depth=0)
+        rec(self)
 
     def get_files(self, with_meta = True):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
@@ -480,7 +486,7 @@ class Var(VarFile):
     depend_node = []
 
     @unzip
-    def depend(self, recurse = False, init = True, check = True):
+    def depend(self, recurse = False, init = True, check = True, stop = True):
         global depend_node
 
         # For dependency loop tracking, init nodes
@@ -497,7 +503,11 @@ class Var(VarFile):
                 except VarNotFound as e:
                     if check:
                         error(f"{dep} Not found")
-                    raise
+                    if stop:
+                        raise
+                else:
+                    if check:
+                        info(f"{dep} Found")
             else:
                 debug(f"Avoiding loop from {self.var} with {dep}")
         return depend_node

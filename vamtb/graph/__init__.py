@@ -16,7 +16,7 @@ class Graph:
         res = []
         for svar in var_list:
             var = VarFile(svar, use_db=True)
-            res.append(f'"{svar}" [color={"blue" if var.exists else "red"}];')
+            res.append(f'"{svar}" [color={"blue" if var.exists() else "red"}];')
             license = var.license
             if license in ("PC", "Questionable"):
                 res.append(f'"{svar}" [shape=box];')

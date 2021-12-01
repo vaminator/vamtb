@@ -49,3 +49,16 @@ def toh(val: int) ->str:
         return f"{round(val/(1024), 3)}KB"
     else:
         return val
+
+def id_is_ref(id:str):
+    if id in ("id", "uid"):
+        return True
+    if id.endswith("Url"):
+        return True
+    if id.startswith("plugin#"):
+        return True
+    if id.startswith("customTexture_"):
+        return True
+    if id == "simTexture":
+        return True
+    return False

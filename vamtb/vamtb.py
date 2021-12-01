@@ -21,11 +21,12 @@ from vamtb.utils import *
 @click.option('file','-f', help='Var file to act on.')
 @click.option('dir', '-d', help='Use a specific VAM directory.')
 @click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
-@click.option('-x', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
+@click.option('-p', '--progress/--no-progress', default=False, help="Add progress bar.")
+@click.option('-m', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-r', '--ref/--no-ref', default=False, help="Only select non reference vars for dupinfo.")
 @click.option('-b', '--usedb/--no-usedb', default=False, help="Use DB.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file):
+def cli(ctx, verbose, move, ref, usedb, dir, file, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -69,6 +70,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file):
     ctx.obj['ref']         = ref
     ctx.obj['usedb']       = usedb
     ctx.obj['debug_level'] = verbose
+    ctx.obj['progress'] = progress
     conf = {}
     
     try:
@@ -254,14 +256,15 @@ def checkdeps(ctx):
         pattern = VarFile(file).file
     else:
         pattern = "*.var"
+    stop = True if move else False
     for file in search_files_indir(dir, pattern):
         try:
             with Var(file, dir, use_db=usedb) as var:
                 try:
                     if usedb:
-                        _ = var.rec_dep()
+                        _ = var.rec_dep(stop=stop)
                     else:
-                        _ = var.depend(recurse=True)
+                        _ = var.depend(recurse=True, stop=stop)
                 except (VarNotFound, zlib.error) as e:
                     error(f'Missing or wrong dependency for {var} [{e}]')
                     if move:
@@ -277,7 +280,8 @@ def checkdeps(ctx):
                                 error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
 
                         except shutil.Error:
-                            # File is already there
+                            # Old code for older python?
+                            assert(False)
                             pass
                             raise
                         else:
@@ -292,20 +296,23 @@ def checkdeps(ctx):
 def dbs(ctx):
     """
     Scan vars and store props in db
+
+    -p: Display progress bar.
     """
     stored = 0
     dir = ctx.obj['dir']
     file = ctx.obj['file']
+    quiet = False if ctx.obj['debug_level'] else True
     if file:
         pattern = VarFile(file).file
     else:
         pattern = "*.var"
 
     vars_list = search_files_indir(dir, pattern)
-    if ctx.obj['debug_level']:
+    if not quiet or ctx.obj['progress'] == False:
         iterator = vars_list
     else:
-        iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=5, ncols=75, unit='var')
+        iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
         with Var(varfile, dir, use_db=True) as var:
             if var.store_var():
@@ -317,7 +324,7 @@ def dbs(ctx):
 @catch_exception
 def dotty(ctx):
     """
-    Gen dot graph of deps, one per var
+    Generate graph of deps, one per var.
     """
     if shutil.which(C_DOT) is None:
         critical(f"Make sure you have graphviz installed in {C_DOT}.", doexit=True)
@@ -363,7 +370,7 @@ def dupinfo(ctx):
 
     Will print in red vars which have either 50 dup files or +20MB dup content
 
-    -r : only scan non reference vars
+    -r : only scan vars from creators not part of "references"
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
