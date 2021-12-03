@@ -6,11 +6,10 @@ import shutil
 import tempfile
 import json
 from pathlib import Path
-from zipfile import ZipFile, BadZipFile
+from zipfile import ZipFile
 
 from vamtb.db import Dbs
 from vamtb.file import FileName
-from vamtb import ref
 
 from vamtb.vamex import *
 from vamtb.utils import *
@@ -251,7 +250,7 @@ class VarFile:
                 rec(depvar, depth+1 )
         rec(self)
 
-    def get_files(self, with_meta = True):
+    def db_files(self, with_meta = True):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
         if not with_meta:
             sql = sql + " AND FILENAME NOT LIKE '%meta.json'"
@@ -275,10 +274,10 @@ class VarFile:
         row = (self.var, )
         return self.db_fetch(sql, row)[0][0]
 
-    def get_refvar_forfile(self, filename):
-        cksum = self.get_file_cksum(filename)
+    def get_refvar_forfile(self, file):
+        cksum = self.get_file_cksum(file)
         sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME!=? AND FILENAME LIKE ? GROUP BY VARNAME"
-        row = (cksum, self.var, f"%{Path(filename).name}")
+        row = (cksum, self.var, f"%{Path(file).name}")
         res = self.db_fetch(sql, row)
         if res:
             return res
@@ -632,7 +631,7 @@ class Var(VarFile):
         """
         dups = { "numdupfiles": 0, "dupsize": 0 }
 
-        for file in self.get_files(with_meta=False):
+        for file in self.db_files(with_meta=False):
             if self.get_file_size(file) <= 4:
                 continue
 
@@ -651,3 +650,105 @@ class Var(VarFile):
                 for dupvar, dupfile in ckdup:
                     info(f"{self.var}:/{Path(file).name} is dup of {dupvar}:/{dupfile}")
         return dups
+
+    def reref_files(self, newref):
+        tdir = self.tmpDir
+        for globf in search_files_indir(tdir, "*"):
+            if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".tif", ".jpg", ".png", ".dll"):
+                continue
+            try:
+                file = FileName(globf)
+                js = file.json
+            except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                continue
+            info(f"> Searching for pattern in {globf}")
+            for nr in newref:
+    #            info(f">> Applying reref for {nr}")
+                with open(globf, 'r+') as f:
+                    fs = f.read()
+                    rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
+                    replace_string = fs.replace(f"SELF:/{nr}", rep).replace(f"/{nr}", rep)
+                    if replace_string != fs:
+                        info(f">>> Rerefing {globf} for {nr} to point to {rep}")
+                        f.seek(0)
+                        f.write(replace_string)
+
+    def delete_files(self, newref):
+        tdir = self.tmpDir
+        for nr in newref:
+            file = Path(tdir, nr)
+            debug(f"Erasing {file}")
+            os.unlink(file)
+
+    def modify_meta(self, newref):
+        tdir = self.tmpDir
+        meta = self.meta()
+        for nref in newref:
+            newvar = newref[nref]['newvar']
+            meta["dependencies"][newvar]={}
+            meta["dependencies"][newvar]['licenseType'] = Var(newvar, dir = self.addondir, use_db=True).license
+            print(nref)
+            try:
+                meta['contentList'].remove(nref)
+            except ValueError:
+                # The exact file was not mentionned in the contentList
+                # TODO
+                pass
+        with open(Path(tdir, "meta.json"), 'w') as f:
+            f.write(prettyjson(meta))
+        logging.debug("Modified meta")
+
+    def get_new_ref(self) -> dict:
+        # Todo propose .latest in choices
+        new_ref = {}
+        var_already_as_ref = []
+        for file in self.db_files(with_meta=False):
+            choice = 0
+            ref_var = self.get_refvar_forfile(file)
+            if ref_var:
+                if len(ref_var) > 1:
+                    print(f"We got multiple original file for {file}")
+                    auto = False
+                    for count, rvar in enumerate(ref_var):
+                        if not auto and rvar[0] in var_already_as_ref:
+                            auto = True
+                            choice = count
+                        print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
+                    if not auto:
+                        choice = int(input("Which one to choose?"))
+                ref = ref_var[choice]
+                var_already_as_ref.append(ref[0])
+                new_ref[file] = {}
+                new_ref[file]['newvar'] = ref[0]
+                new_ref[file]['newfile'] = ref[1]
+        new_ref = vmb_vmi(new_ref)
+
+        for file in self.files():
+            pre = f"{ file }"
+            if file in new_ref:
+                info(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")
+            else:
+                info(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
+        return new_ref
+
+    def reref(self, dryrun=True):
+        info(f"Searching for dups in {self.var}")
+        if self.get_ref == "YES":
+            warn(f"Asked to reref {self.var} but it is a reference var, not doing anything.")
+            return
+
+        new_ref = self.get_new_ref()
+        if not new_ref:
+            info("Found nothing to reref")
+            return
+        else:
+            info(f"Found these files as duplicates:{','.join(list(new_ref))}")
+
+        if dryrun:
+            info("Asked for dryrun, stopping here")
+            return
+
+        self.modify_meta(new_ref)
+        self.reref_files(new_ref)
+        self.delete_files(new_ref)
+        zipdir(self.tmpDir, self.file)

@@ -62,3 +62,25 @@ def id_is_ref(id:str):
     if id == "simTexture":
         return True
     return False
+
+def vmb_vmi(refi):
+    refo = {}
+    for fn in refi:
+        if fn.endswith(".vmi"):
+            fnb = fn[0:-1] + "b"
+            if fnb not in refi:
+                warn(f"We found a reference for {fn} but not its counterpart {fnb}")
+                continue
+            refo[fn] = refi[fn]
+            refo[fnb] = refi[fnb]
+        elif fn.endswith(".vmb"):
+            fni = fn[0:-1] + "i"
+            if fni not in refi:
+                warn(f"We found a reference for {fn} but not its counterpart {fni}")
+                continue
+            refo[fn] = refi[fn]
+            refo[fni] = refi[fni]
+        else:
+            refo[fn] = refi[fn]
+    return refo
+

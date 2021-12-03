@@ -358,8 +358,8 @@ def reref(ctx):
     else:
         pattern = "*.var"
     for varfile in search_files_indir(dir, pattern):
-        with Var(varfile, dir, zipcheck=True) as var:
-            ref.reref_var(var)
+        with Var(varfile, dir, use_db=True, zipcheck=True) as var:
+            var.reref(dryrun=False)
 
 @cli.command('dupinfo')
 @click.pass_context
