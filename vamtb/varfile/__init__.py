@@ -667,9 +667,9 @@ class Var(VarFile):
                 with open(globf, 'r+') as f:
                     fs = f.read()
                     rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
-                    replace_string = fs.replace(f"SELF:/{nr}", rep).replace(f"/{nr}", rep)
+                    replace_string = fs.replace(f"\"SELF:/{nr}\"", f"\"{rep}\"").replace(f"\"/{nr}\"", f"\"{rep}\"")
                     if replace_string != fs:
-                        info(f">>> Rerefing {globf.relative_to(self.tmpDir).as_posix()} for {nr} to point to {rep}")
+                        info(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
                         f.seek(0)
                         f.write(replace_string)
 
@@ -697,11 +697,15 @@ class Var(VarFile):
             f.write(prettyjson(meta))
         logging.debug("Modified meta")
 
-    def get_new_ref(self) -> dict:
+    def get_new_ref(self, dup) -> dict:
         # Todo propose .latest in choices
         new_ref = {}
         var_already_as_ref = []
         for file in self.db_files(with_meta=False):
+#            if Path(file).suffix in (".jpg", ".png", ".tif"):
+#                continue
+            if dup and Path(file).name != dup:
+                continue
             choice = 0
             ref_var = self.get_refvar_forfile(file)
             if ref_var:
@@ -714,7 +718,20 @@ class Var(VarFile):
                             choice = count
                         print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
                     if not auto:
-                        choice = int(input("Which one to choose?"))
+                        try:
+#                            choice_s = input("Which one to choose (suffix with L to use X.Y.latest)?")
+                            choice_s = input("Which one to choose?")
+                            choice = int(choice_s)
+                        except ValueError:
+                            choice = int(choice_s.rstrip("L"))
+                            ref = ref_var[choice]
+                            ref_var_latest = ".".join(ref[0].split('.')[0:2]) + ".latest"
+
+                            var_already_as_ref.append(ref_var_latest)
+                            new_ref[file] = {}
+                            new_ref[file]['newvar'] = ref_var_latest
+                            new_ref[file]['newfile'] = ref[1]
+                            continue
                 ref = ref_var[choice]
                 var_already_as_ref.append(ref[0])
                 new_ref[file] = {}
@@ -730,13 +747,13 @@ class Var(VarFile):
                 info(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
         return new_ref
 
-    def reref(self, dryrun=True):
+    def reref(self, dryrun=True, dup=None):
         info(f"Searching for dups in {self.var}")
         if self.get_ref == "YES":
             warn(f"Asked to reref {self.var} but it is a reference var, not doing anything.")
             return
 
-        new_ref = self.get_new_ref()
+        new_ref = self.get_new_ref(dup)
         if not new_ref:
             info("Found nothing to reref")
             return
@@ -750,4 +767,6 @@ class Var(VarFile):
         self.modify_meta(new_ref)
         self.reref_files(new_ref)
         self.delete_files(new_ref)
+        # TODO: remove any leaf element not having anything referencing them
+        # TODO: remove empty directories
         zipdir(self.tmpDir, self.file)

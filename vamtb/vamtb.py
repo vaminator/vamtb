@@ -24,9 +24,10 @@ from vamtb.utils import *
 @click.option('-p', '--progress/--no-progress', default=False, help="Add progress bar.")
 @click.option('-m', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-r', '--ref/--no-ref', default=False, help="Only select non reference vars for dupinfo.")
+@click.option('dup','-x', help='Only dedup this file.')
 @click.option('-b', '--usedb/--no-usedb', default=False, help="Use DB.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, progress):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -70,7 +71,8 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, progress):
     ctx.obj['ref']         = ref
     ctx.obj['usedb']       = usedb
     ctx.obj['debug_level'] = verbose
-    ctx.obj['progress'] = progress
+    ctx.obj['progress']    = progress
+    ctx.obj['dup']         = dup
     conf = {}
     
     try:
@@ -353,13 +355,14 @@ def reref(ctx):
     """
     dir =Path(ctx.obj['dir'])
     file = ctx.obj['file']
+    dup = ctx.obj['dup']
     if file:
         pattern = f"*{file}*"
     else:
         pattern = "*.var"
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True, zipcheck=True) as var:
-            var.reref(dryrun=False)
+            var.reref(dryrun=False, dup=dup)
 
 @cli.command('dupinfo')
 @click.pass_context
