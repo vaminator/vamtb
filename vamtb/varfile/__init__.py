@@ -661,7 +661,7 @@ class Var(VarFile):
                 js = file.json
             except (UnicodeDecodeError, json.decoder.JSONDecodeError):
                 continue
-            info(f"> Searching for pattern in {globf}")
+            debug(f"> Searching for pattern in {globf}")
             for nr in newref:
     #            info(f">> Applying reref for {nr}")
                 with open(globf, 'r+') as f:
@@ -669,7 +669,7 @@ class Var(VarFile):
                     rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
                     replace_string = fs.replace(f"SELF:/{nr}", rep).replace(f"/{nr}", rep)
                     if replace_string != fs:
-                        info(f">>> Rerefing {globf} for {nr} to point to {rep}")
+                        info(f">>> Rerefing {globf.relative_to(self.tmpDir).as_posix()} for {nr} to point to {rep}")
                         f.seek(0)
                         f.write(replace_string)
 
@@ -687,7 +687,6 @@ class Var(VarFile):
             newvar = newref[nref]['newvar']
             meta["dependencies"][newvar]={}
             meta["dependencies"][newvar]['licenseType'] = Var(newvar, dir = self.addondir, use_db=True).license
-            print(nref)
             try:
                 meta['contentList'].remove(nref)
             except ValueError:
@@ -724,7 +723,7 @@ class Var(VarFile):
         new_ref = vmb_vmi(new_ref)
 
         for file in self.files():
-            pre = f"{ file }"
+            pre = file.path.relative_to(self.tmpDir).as_posix()
             if file in new_ref:
                 info(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")
             else:
