@@ -5,6 +5,7 @@ import re
 import shutil
 import tempfile
 import json
+from pprint import pp
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -688,7 +689,7 @@ class Var(VarFile):
                     rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
                     replace_string = self.ref_replace(nr, fs, rep)
                 if replace_string != fs:
-                    info(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
+                    debug(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
                     try:
                         _ = json.loads(replace_string)
                     except (UnicodeDecodeError, json.decoder.JSONDecodeError):
@@ -696,7 +697,7 @@ class Var(VarFile):
                         critical(replace_string, doexit=True)
                     with open(globf, "w") as f:
                         f.write(replace_string)
-                    info(f"!! Rewrote {globf.relative_to(self.tmpDir)}")
+                    debug(f"!! Rewrote {globf.relative_to(self.tmpDir)}")
 
     def ref_replace(self, nr, fs, rep):
         replace_string = fs.replace(f"\"SELF:/{nr}\"", f"\"{rep}\"").replace(f"\"/{nr}\"", f"\"{rep}\"")
@@ -706,7 +707,7 @@ class Var(VarFile):
         tdir = self.tmpDir
         for nr in newref:
             file = Path(tdir, nr)
-            info(f"!! Erased {file.relative_to(self.tmpDir)}")
+            debug(f"!! Erased {file.relative_to(self.tmpDir)}")
             try:
                 os.unlink(file)
             except FileNotFoundError:
@@ -752,7 +753,7 @@ class Var(VarFile):
                     if not auto:
                         try:
 #                           choice_s = input("Which one to choose (suffix with L to use X.Y.latest)?")
-                            choice_s = input("Which one to choose?")
+                            choice_s = input("Which one to choose [ S to skip] ?")
                             choice = int(choice_s)
                         except ValueError:
                             if choice_s == "S":
@@ -776,9 +777,9 @@ class Var(VarFile):
         for file in self.files():
             pre = file.path.relative_to(self.tmpDir).as_posix()
             if file in new_ref:
-                info(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")
+                debug(f"{ pre } : { green(new_ref[file]['newvar']) }{ green(':/') }{ green(new_ref[file]['newfile']) }")
             else:
-                info(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
+                debug(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
         return new_ref
 
     def reref(self, dryrun=True, dup=None):
@@ -793,6 +794,12 @@ class Var(VarFile):
             return
         else:
             info(f"Found these files as duplicates:{','.join(list(new_ref))}")
+
+#        pp(new_ref, compact=False)
+        for nr in new_ref:
+            print(f"{nr} --> {new_ref[nr]['newvar']}:/{new_ref[nr]['newfile']}")
+        if input("Confirm [S to skip]?") == "S":
+            return
 
         if dryrun:
             info("Asked for dryrun, stopping here")

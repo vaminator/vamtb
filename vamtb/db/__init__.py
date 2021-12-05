@@ -1,6 +1,6 @@
 '''Vam dir structure'''
 import sqlite3
-#from vamtb.ref import get_new_ref #FIXME move
+from pprint import pprint
 
 from vamtb.vamex import *
 from vamtb.utils import *
@@ -55,7 +55,7 @@ class Dbs:
         Execute query and fetch all results
         """
         cur = Dbs.getConn().cursor()
-        debug(f"Params={row}, Exec={sql}")
+        debug(f"Fetchall({sql}, {row})")
         if row:
             cur.execute(sql, row)
         else:
