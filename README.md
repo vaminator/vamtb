@@ -26,9 +26,10 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
   VAM Toolbox
 
-  Dependency handling (from disk)
+  Dependency handling (from disk or database)
   vamtb checkdeps
-  vamtb -f sapuzex.Cooking_Lesson.1 checkdep
+  vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
+  vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
   vamtb -f ClubJulze.Bangkok.1 printdep
   vamtb -f ClubJulze.Bangkok.1 printrealdep
 
@@ -55,25 +56,35 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   On windows cmd will use cp1252 so you might get some errors displaying international characters.
   Start vamtb with python -X utf8 vamtb.py <rest of parameters>
 
+  File filters:
+  You can use wildcards with % caracter: vamtb -f Community.% dupinfo
+
+  You can get help for a command with
+  vamtb reref --help
+
 Options:
-  -f TEXT                 Var file to act on.
-  -d TEXT                 Use a specific VAM directory.
-  -v, --verbose           Verbose (twice for debug).
-  -x, --move / --no-move  When checking dependencies move vars with missing
-                          dep in 00Dep.
-  --help                  Show this message and exit.
+  -f TEXT                         Var file to act on.
+  -d TEXT                         Use a specific VAM directory.
+  -x TEXT                         Only dedup this file.
+  -v, --verbose                   Verbose (twice for debug).
+  -p, --progress / --no-progress  Add progress bar.
+  -m, --move / --no-move          When checking dependencies move vars with
+                                  missing dep in 00Dep.
+  -r, --ref / --no-ref            Only select non reference vars for dupinfo.
+  -b, --usedb / --no-usedb        Use DB.
+  --help                          Show this message and exit.
 
 Commands:
   checkdeps     Check dependencies of all var files.
-  checkvars     Check all var files for consistency
+  checkvars     Check all var files for consistency vamtb [-vv] [-f...
   dbs           Scan vars and store props in db
-  dotty         Gen dot graph of deps, one per var
-  dump          Dump var meta.json
+  dump          Dump meta.json from var
   dupinfo       Return duplication information for file(s)
+  graph         Generate graph of deps, one per var.
   noroot        Remove root node stored in pose presets
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
-  reref         Reref var: embedded content is removed, its reference is...
+  reref         Reref var: remove embedded content and point to reference...
   sortvar       Moves vars to subdirectory named by its creator
   statsvar      Get stats on all vars
 ```

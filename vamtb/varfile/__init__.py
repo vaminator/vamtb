@@ -117,54 +117,54 @@ class VarFile:
 
     def store_var(self):
         """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
-        sql = "SELECT * FROM VARS WHERE VARNAME=?"
-        row = (self.var, )
-        rows = self.db_fetch(sql, row)
-        if not rows:
-            creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
-            size = FileName(self.path).size
-            v_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
+        creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
+        size = FileName(self.path).size
+        v_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
 
-            meta = self.meta()
-            license = meta['licenseType']
+        meta = self.meta()
+        license = meta['licenseType']
 
-            sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
-            row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
+        sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
+        row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
+        self.db_exec(sql, row)
+
+        for f in self.files(with_meta=True):
+            crcf = f.crc
+            sizef = f.size
+            f_isref = "YES" if creator in C_REF_CREATORS else "UNKNOWN"
+
+            sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
+            row = (None, self.ziprel(f.path), f_isref, self.var, sizef, crcf)
             self.db_exec(sql, row)
 
-            for f in self.files(with_meta=True):
-                crcf = f.crc
-                sizef = f.size
-                f_isref = "YES" if creator in C_REF_CREATORS else "UNKNOWN"
+        debug(f"Stored var {self.var} and files in databases")
+        sql = """INSERT INTO DEPS(ID,VAR,DEPVAR,DEPFILE) VALUES (?,?,?,?)"""
+        for dep in self.dep_fromfiles(with_file=True):
+            depvar, depfile = dep.split(':')
+            depfile = depfile.lstrip('/')
+            row = (None, self.var, depvar, depfile)
+            self.db_exec(sql, row)
 
-                sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
-                row = (None, self.ziprel(f.path), f_isref, self.var, sizef, crcf)
-                self.db_exec(sql, row)
-
-            debug(f"Stored var {self.var} and files in databases")
-            sql = """INSERT INTO DEPS(ID,VAR,DEPVAR,DEPFILE) VALUES (?,?,?,?)"""
-            for dep in self.dep_fromfiles(with_file=True):
-                depvar, depfile = dep.split(':')
-                depfile = depfile.lstrip('/')
-                row = (None, self.var, depvar, depfile)
-                self.db_exec(sql, row)
-        else:
-            assert( len(rows) == 1 )
-            db_varname, db_isref, db_creator, db_version, db_license, db_modtime, db_size, db_cksum = rows[0]
-            modified_time = FileName(self.path).mtime
-            
-            if db_modtime < modified_time and db_cksum != FileName(self.path).crc:
-                error(f"Database contains older data for var {self.var}. Not updating. Erase database file (or simply rows manually) and rerun vamtb dbs")
-                error(f"This could also be because you have duplicate vars for {self.var} (in that case, use vamtb sortvar) ")
-                # Just in case
-                self.db_commit(rollback = True)
-                return False
-            else:
-                info(f"Var {self.var} already in database")
-
-        # We went through all verification, commit to DB
         self.db_commit()
         return True
+
+    def store_update(self, confirm = True):
+        if self.exists():
+            info(f"{self.var} already in database")
+            if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:
+                return False
+            info(f"Database is not inline.")
+            if confirm == False:
+                res = "Y"
+            else:
+                res = input(f"Remove older DB for {self.path} ?[Y]N")
+            if not res or res == "Y":
+                self.db_delete() 
+                self.db_commit()
+            else:
+                self.db_commit(rollback = True)
+                return False
+        return self.store_var()
 
     def exists(self):
         if self.var.endswith(".latest"):
@@ -261,6 +261,15 @@ class VarFile:
         else:
             return []
 
+    def db_delete(self):
+        row = (self.var,)
+        sql = f"DELETE FROM VARS WHERE VARNAME=?"
+        self.db_exec(sql, row)
+        sql = f"DELETE FROM FILES WHERE VARNAME=?"
+        self.db_exec(sql, row)
+        sql = f"DELETE FROM DEPS WHERE VAR=?"
+        self.db_exec(sql, row)
+
     def get_file_cksum(self, filename):
         return self.get_prop_files(filename, "CKSUM")
 
@@ -295,6 +304,14 @@ class VarFile:
     @property
     def get_ref(self):
         return self.get_prop_vars("ISREF")
+
+    @property
+    def get_modtime(self):
+        return self.get_prop_vars("MODIFICATION_TIME")
+
+    @property
+    def get_cksum(self):
+        return self.get_prop_vars("CKSUM")
 
 class Var(VarFile):
 
@@ -663,22 +680,37 @@ class Var(VarFile):
                 continue
             debug(f"> Searching for pattern in {globf}")
             for nr in newref:
+                replace_string = ""
+                fs = ""
     #            info(f">> Applying reref for {nr}")
-                with open(globf, 'r+') as f:
+                with open(globf, 'r') as f:
                     fs = f.read()
                     rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
-                    replace_string = fs.replace(f"\"SELF:/{nr}\"", f"\"{rep}\"").replace(f"\"/{nr}\"", f"\"{rep}\"")
-                    if replace_string != fs:
-                        info(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
-                        f.seek(0)
+                    replace_string = self.ref_replace(nr, fs, rep)
+                if replace_string != fs:
+                    info(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
+                    try:
+                        _ = json.loads(replace_string)
+                    except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                        error("While rerefing, something went wrong as we are trying to write non json content")
+                        critical(replace_string, doexit=True)
+                    with open(globf, "w") as f:
                         f.write(replace_string)
+                    info(f"!! Rewrote {globf.relative_to(self.tmpDir)}")
+
+    def ref_replace(self, nr, fs, rep):
+        replace_string = fs.replace(f"\"SELF:/{nr}\"", f"\"{rep}\"").replace(f"\"/{nr}\"", f"\"{rep}\"")
+        return replace_string
 
     def delete_files(self, newref):
         tdir = self.tmpDir
         for nr in newref:
             file = Path(tdir, nr)
-            debug(f"Erasing {file}")
-            os.unlink(file)
+            info(f"!! Erased {file.relative_to(self.tmpDir)}")
+            try:
+                os.unlink(file)
+            except FileNotFoundError:
+                warn(f"File {file} not found in var {self.var}. Database is not up to date?")
 
     def modify_meta(self, newref):
         tdir = self.tmpDir
@@ -691,7 +723,7 @@ class Var(VarFile):
                 meta['contentList'].remove(nref)
             except ValueError:
                 # The exact file was not mentionned in the contentList
-                # TODO
+                # TODO empty dirs from contentList
                 pass
         with open(Path(tdir, "meta.json"), 'w') as f:
             f.write(prettyjson(meta))
@@ -719,10 +751,12 @@ class Var(VarFile):
                         print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
                     if not auto:
                         try:
-#                            choice_s = input("Which one to choose (suffix with L to use X.Y.latest)?")
+#                           choice_s = input("Which one to choose (suffix with L to use X.Y.latest)?")
                             choice_s = input("Which one to choose?")
                             choice = int(choice_s)
                         except ValueError:
+                            if choice_s == "S":
+                                continue
                             choice = int(choice_s.rstrip("L"))
                             ref = ref_var[choice]
                             ref_var_latest = ".".join(ref[0].split('.')[0:2]) + ".latest"
@@ -750,8 +784,8 @@ class Var(VarFile):
     def reref(self, dryrun=True, dup=None):
         info(f"Searching for dups in {self.var}")
         if self.get_ref == "YES":
-            warn(f"Asked to reref {self.var} but it is a reference var, not doing anything.")
-            return
+            warn(f"Asked to reref {self.var} but it is a reference var!")
+#            return
 
         new_ref = self.get_new_ref(dup)
         if not new_ref:
@@ -767,6 +801,13 @@ class Var(VarFile):
         self.modify_meta(new_ref)
         self.reref_files(new_ref)
         self.delete_files(new_ref)
+        try:
+            del_empty_dirs(self.tmpDir)
+        except:
+            pass
         # TODO: remove any leaf element not having anything referencing them
-        # TODO: remove empty directories
-        zipdir(self.tmpDir, self.file)
+
+        os.rename(self.path, f"{self.path.with_suffix('.orig')}")
+        zipdir(self.tmpDir, self.path)
+
+        self.store_update(confirm=False)

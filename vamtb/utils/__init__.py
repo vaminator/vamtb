@@ -3,8 +3,10 @@ import re
 import os
 import zipfile
 import binascii
+from functools import wraps
 from pathlib import Path
 from vamtb.log import *
+from vamtb.vamex import *
 
 # Constants
 C_YAML = "vamtb.yml"
@@ -69,7 +71,7 @@ def vmb_vmi(refi):
         if fn.endswith(".vmi"):
             fnb = fn[0:-1] + "b"
             if fnb not in refi:
-                warn(f"We found a reference for {fn} but not its counterpart {fnb}")
+                debug(f"We found a reference for {fn} but not its counterpart {fnb}")
                 continue
             refo[fn] = refi[fn]
             refo[fnb] = refi[fnb]
@@ -84,3 +86,32 @@ def vmb_vmi(refi):
             refo[fn] = refi[fn]
     return refo
 
+def get_filepattern(ctx):
+    file = ctx.obj['file']
+    if file:
+        if "%" in file:
+            pattern = file.replace("%", "*")
+        else:
+            pattern = f"*{file}*"
+    else:
+        pattern = "*.var"
+    return ctx.obj['file'] if 'file' in ctx.obj else None, ctx.obj['dir'], pattern
+
+def catch_exception(func=None):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except VarNotFound as e:
+            error(f"Var not found:{e}")
+        except VarFileNameIncorrect as e:
+            error(f"Var filename incorrect:{e}")
+    return wrapper
+
+def del_empty_dirs(target_path):
+    for p in Path(target_path).glob('**/*'):
+        if p.is_dir() and len(list(p.iterdir())) == 0:
+            try:
+                os.removedirs(p)
+            except:
+                pass

@@ -7,10 +7,9 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 from tqdm import tqdm
-from functools import wraps
 
 from vamtb.graph import Graph
-from vamtb.varfile import Var, VarFile
+from vamtb.varfile import Var
 from vamtb.file import FileName
 from vamtb import ref
 from vamtb.vamex import *
@@ -18,23 +17,24 @@ from vamtb.log import *
 from vamtb.utils import *
 
 @click.group()
-@click.option('file','-f', help='Var file to act on.')
-@click.option('dir', '-d', help='Use a specific VAM directory.')
-@click.option('-v', '--verbose', count=True, help="Verbose (twice for debug).")
-@click.option('-p', '--progress/--no-progress', default=False, help="Add progress bar.")
-@click.option('-m', '--move/--no-move', default=False, help="When checking dependencies move vars with missing dep in 00Dep.")
-@click.option('-r', '--ref/--no-ref', default=False, help="Only select non reference vars for dupinfo.")
-@click.option('dup','-x', help='Only dedup this file.')
-@click.option('-b', '--usedb/--no-usedb', default=False, help="Use DB.")
+@click.option('file','-f',                                      help='Var file to act on.')
+@click.option('dir', '-d',                                      help='Use a specific VAM directory.')
+@click.option('dup', '-x',                                      help='Only dedup this file.')
+@click.option('-v', '--verbose', count=True,                    help="Verbose (twice for debug).")
+@click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
+@click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
+@click.option('-r', '--ref/--no-ref', default=False,            help="Only select non reference vars for dupinfo.")
+@click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
 @click.pass_context
 def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
     \b
-    Dependency handling (from disk)
+    Dependency handling (from disk or database)
     vamtb checkdeps
-    vamtb -f sapuzex.Cooking_Lesson.1 checkdep
+    vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
+    vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
     vamtb -f ClubJulze.Bangkok.1 printdep
     vamtb -f ClubJulze.Bangkok.1 printrealdep
     \b
@@ -60,6 +60,13 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     Character encoding on windows:
     On windows cmd will use cp1252 so you might get some errors displaying international characters.
     Start vamtb with python -X utf8 vamtb.py <rest of parameters>
+    \b
+    File filters:
+    You can use wildcards with % caracter: vamtb -f Community.% dupinfo
+    \b
+    You can get help for a command with
+    vamtb reref --help
+
     """
 
     log_setlevel(verbose)
@@ -98,37 +105,26 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
 
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
-def catch_exception(func=None):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except VarNotFound as e:
-            error(f"Var not found:{e}")
-        except VarFileNameIncorrect as e:
-            error(f"Var filename incorrect:{e}")
-    return wrapper
-
 @cli.command('printdep')
 @catch_exception
 @click.pass_context
 def printdep(ctx):
     """Print dependencies of a var from reading meta. 
-    
-    Recursive (will print deps of deps etc)"""
-    file = ctx.obj['file']
-    dir = ctx.obj['dir']
-    file or critical("Need a file parameter", doexit=True)
 
-    var = Var(file, dir)
-    for depvar in sorted(var.dep_frommeta(), key=str.casefold):
-        try:
-            var = Var(depvar, dir)
-        except VarNotFound:
-            mess = red("Not found")
-        else:
-            mess = green("Found")
-        print(f"{depvar:<60}: {mess}")
+    vamtb [-vv] [-f a.single.file ] printdep
+
+    Recursive (will print deps of deps etc)"""
+    file, dir, pattern = get_filepattern(ctx)
+    file or critical("Need a file parameter", doexit=True)
+    with Var(file, dir) as var:
+        for depvar in sorted(var.dep_frommeta(), key=str.casefold):
+            try:
+                var = Var(depvar, dir)
+            except VarNotFound:
+                mess = red("Not found")
+            else:
+                mess = green("Found")
+            print(f"{depvar:<60}: {mess}")
 
 @cli.command('printrealdep')
 @click.pass_context
@@ -136,9 +132,10 @@ def printdep(ctx):
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. 
     
+    vamtb [-vv] [-f a.single.file ] printrealdep
+
     Not recursive"""
-    file = ctx.obj['file']
-    dir = ctx.obj['dir']
+    file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter", doexit=True)
 
     var = Var(file, dir)
@@ -157,9 +154,12 @@ def printrealdep(ctx):
 @click.pass_context
 @catch_exception
 def dumpvar(ctx):
-    """Dump meta.json from var"""
-    file = ctx.obj['file']
-    dir = ctx.obj['dir']
+    """Dump meta.json from var
+    
+    vamtb [-vv] -f a.single.file dumpvar
+    
+    """
+    file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter", doexit=True)
     with Var(file, dir) as var:
         print(prettyjson( var.load_json_file("meta.json") ))
@@ -168,9 +168,12 @@ def dumpvar(ctx):
 @click.pass_context
 @catch_exception
 def noroot(ctx):
-    """Remove root node stored in pose presets"""
-    file = ctx.obj['file']
-    dir = ctx.obj['dir']
+    """Remove root node stored in pose presets
+    
+    vamtb [-vv] -f a.single.file noroot
+
+    """
+    file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter", doexit=True)
     with Var(file, dir) as var:
         var.remroot()
@@ -180,11 +183,14 @@ def noroot(ctx):
 @catch_exception
 def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator
+
+    vamtb [-vv] [-f a.single.file ] sortvar
     
     Crc is checked before erasing duplicates"""
-    dir = ctx.obj['dir']
+
+    file, dir, pattern = get_filepattern(ctx)
     info(f"Sorting var in {dir}")
-    for file in search_files_indir(dir, "*.var"):
+    for file in search_files_indir(dir, pattern):
         try:
             with Var(file, dir) as var:
                 var.move_creator()
@@ -195,14 +201,13 @@ def sort_vars(ctx):
 @click.pass_context
 @catch_exception
 def check_vars(ctx):
-    """Check all var files for consistency"""
-    dir = ctx.obj['dir']
-    file = ctx.obj['file']
-    info(f"Checking vars in {dir}")
-    if file:
-        pattern = VarFile(file).file
-    else:
-        pattern = "*.var"
+    """Check all var files for consistency
+        
+    vamtb [-vv] [-f a.single.file ] checkvars
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
     for file in search_files_indir(dir, pattern):
         try:
             with Var(file, dir, zipcheck=True) as var:
@@ -216,18 +221,23 @@ def check_vars(ctx):
 @click.pass_context
 @catch_exception
 def stats_vars(ctx):
-    """Get stats on all vars"""
-    dir = ctx.obj['dir']
+    """Get stats on all vars
+    
+    vamtb [-vv] [-f a.single.file ] statsvar
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
     info(f"Checking vars in {dir}")
     creators_file = defaultdict(list)
-    for file in search_files_indir(dir, "*.var"):
+    for mfile in search_files_indir(dir, pattern):
         try:
-            with Var(file, dir) as var:
+            with Var(mfile, dir) as var:
                 creators_file[var.creator].append(var.var)
         except KeyboardInterrupt:
             return
         except Exception as e:
-            error(f"{file} is not OK [{e}]")
+            error(f"{mfile} is not OK [{e}]")
     for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
         print("Creator %s has %d files" % (k, len(v)))
 
@@ -237,31 +247,27 @@ def stats_vars(ctx):
 def checkdeps(ctx):
     """Check dependencies of all var files.
 
-    When using -x, files considered bad will be moved to directory "00Dep".
+    vamtb [-vv] [-m] [-b] [-f a.single.file ] checkdeps
 
-    This directory can then be moved away from the directory.
+    When using -m, files considered bad will be moved to directory "00Dep". This directory can then be moved away from the directory.
+
+    When using -b, use database rather than file system.
 
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
     move = ctx.obj['move']
-    dir = ctx.obj['dir']
-    file = ctx.obj['file']
     usedb = ctx.obj['usedb']
 
+    file, dir, pattern = get_filepattern(ctx)
     full_bad_dir = Path(dir) / C_BAD_DIR
-
     if move:
-        list_move = []
         movepath = Path(dir, C_BAD_DIR)
         Path(movepath).mkdir(parents=True, exist_ok=True)
-    if file:
-        pattern = VarFile(file).file
-    else:
-        pattern = "*.var"
     stop = True if move else False
-    for file in search_files_indir(dir, pattern):
+
+    for mfile in search_files_indir(dir, pattern):
         try:
-            with Var(file, dir, use_db=usedb) as var:
+            with Var(mfile, dir, use_db=usedb) as var:
                 try:
                     if usedb:
                         _ = var.rec_dep(stop=stop)
@@ -272,6 +278,7 @@ def checkdeps(ctx):
                     if move:
                         try:
                             shutil.copy(var.path, str(full_bad_dir))
+                            os.remove(var.path)
                         except shutil.SameFileError:
                             dvar = Path(full_bad_dir) / var.file
                             scrc = var.crc
@@ -299,17 +306,14 @@ def dbs(ctx):
     """
     Scan vars and store props in db
 
-    -p: Display progress bar.
-    """
-    stored = 0
-    dir = ctx.obj['dir']
-    file = ctx.obj['file']
-    quiet = False if ctx.obj['debug_level'] else True
-    if file:
-        pattern = VarFile(file).file
-    else:
-        pattern = "*.var"
+    vamtb [-vv] [-p] [-f a.single.file ] dbs
 
+    -p: Display progress bar (only when not using -v)
+    """
+
+    stored = 0
+    quiet = False if ctx.obj['debug_level'] else True
+    file, dir, pattern = get_filepattern(ctx)
     vars_list = search_files_indir(dir, pattern)
     if not quiet or ctx.obj['progress'] == False:
         iterator = vars_list
@@ -317,26 +321,24 @@ def dbs(ctx):
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
         with Var(varfile, dir, use_db=True) as var:
-            if var.store_var():
+            if var.store_update():
                 stored += 1
     info(f"{stored} var files stored")
 
-@cli.command('dotty')
+@cli.command('graph')
 @click.pass_context
 @catch_exception
 def dotty(ctx):
     """
     Generate graph of deps, one per var.
+
+    vamtb [-vv] [-f a.single.file ] graph
+
     """
     if shutil.which(C_DOT) is None:
         critical(f"Make sure you have graphviz installed in {C_DOT}.", doexit=True)
 
-    dir = Path(ctx.obj['dir'])
-    file = ctx.obj['file']
-    if file:
-        pattern = f"*{file}*"
-    else:
-        pattern = "*.var"
+    file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             info(f"Calculating dependency graph for {var.var}")
@@ -347,20 +349,18 @@ def dotty(ctx):
 @catch_exception
 def reref(ctx):
     """
-    Reref var: embedded content is removed.
+    Reref var: remove embedded content and point to reference var.
     
-    Its reference is converted to real reference.
-    
-    Dependency on the reference is added.
+    vamtb [-vv] [-f a.single.file ] [-x reference_to_remove.xxx] reref
+
+    -f: will operate only on this var
+
+    -x: will remove only this embedded content
     """
-    dir =Path(ctx.obj['dir'])
-    file = ctx.obj['file']
     dup = ctx.obj['dup']
-    if file:
-        pattern = f"*{file}*"
-    else:
-        pattern = "*.var"
+    file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
+        print(green(f"Reref on {varfile.name}"))
         with Var(varfile, dir, use_db=True, zipcheck=True) as var:
             var.reref(dryrun=False, dup=dup)
 
@@ -373,15 +373,12 @@ def dupinfo(ctx):
 
     Will print in red vars which have either 50 dup files or +20MB dup content
 
+    vamtb [-vv] [-r] [-f a.single.file ] dupinfo
+
     -r : only scan vars from creators not part of "references"
     """
-    dir =Path(ctx.obj['dir'])
-    file = ctx.obj['file']
     onlyref = ctx.obj['ref']
-    if file:
-        pattern = f"*{file}*"
-    else:
-        pattern = "*.var"
+    file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             if not file and onlyref:
