@@ -796,7 +796,7 @@ class Var(VarFile):
             info(f"Found these files as duplicates:{','.join(list(new_ref))}")
 
         for nr in new_ref:
-            print(f"{nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
+            print(f"{green(self.var):<20}: {nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
         choice = input("Confirm [Enter: YES, S to skip, SC skip creator]?").upper() 
         if choice == "S":
             return
