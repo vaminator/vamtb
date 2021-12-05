@@ -825,6 +825,6 @@ class Var(VarFile):
             critical("We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
         zipdir(self.tmpDir, self.path)
 
-        print(green("Modified {self.path}"))
+        print(green(f"Modified {self.path}"))
         self.store_update(confirm=False)
-        info("Updated DB for {self.var}")
+        print(green(f"Updated DB for {self.var}"))
