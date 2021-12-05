@@ -753,11 +753,13 @@ class Var(VarFile):
                     if not auto:
                         try:
 # TODO latest
-                            choice_s = input("Which one to choose [ Enter to skip ] ?")
+                            choice_s = input("Which one to choose [ Enter to skip, S: Skip var ] ?")
                             choice = int(choice_s)
                         except ValueError:
                             if not choice_s:
                                 continue
+                            elif choice_s == "S":
+                                return
                             choice = int(choice_s.rstrip("L"))
                             ref = ref_var[choice]
                             ref_var_latest = ".".join(ref[0].split('.')[0:2]) + ".latest"
