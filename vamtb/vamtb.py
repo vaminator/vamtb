@@ -114,6 +114,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
 def printdep(ctx):
     """Print dependencies of a var from reading meta. 
 
+
     vamtb [-vv] [-f a.single.file ] printdep
 
     Recursive (will print deps of deps etc)"""
@@ -134,7 +135,8 @@ def printdep(ctx):
 @catch_exception
 def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. 
-    
+
+
     vamtb [-vv] [-f a.single.file ] printrealdep
 
     Not recursive"""
@@ -157,8 +159,9 @@ def printrealdep(ctx):
 @click.pass_context
 @catch_exception
 def dumpvar(ctx):
-    """Dump meta.json from var
-    
+    """Dump meta.json from var.
+
+
     vamtb [-vv] -f a.single.file dumpvar
     
     """
@@ -171,8 +174,9 @@ def dumpvar(ctx):
 @click.pass_context
 @catch_exception
 def noroot(ctx):
-    """Remove root node stored in pose presets
-    
+    """Remove root node stored in pose presets.
+
+
     vamtb [-vv] -f a.single.file noroot
 
     """
@@ -185,7 +189,8 @@ def noroot(ctx):
 @click.pass_context
 @catch_exception
 def sort_vars(ctx):
-    """Moves vars to subdirectory named by its creator
+    """Moves vars to subdirectory named by its creator.
+
 
     vamtb [-vv] [-f a.single.file ] sortvar
     
@@ -204,8 +209,9 @@ def sort_vars(ctx):
 @click.pass_context
 @catch_exception
 def check_vars(ctx):
-    """Check all var files for consistency
-        
+    """Check all var files for consistency.
+
+
     vamtb [-vv] [-f a.single.file ] checkvars
 
     """
@@ -224,8 +230,9 @@ def check_vars(ctx):
 @click.pass_context
 @catch_exception
 def stats_vars(ctx):
-    """Get stats on all vars
-    
+    """Get stats on all vars.
+
+
     vamtb [-vv] [-f a.single.file ] statsvar
 
     """
@@ -249,6 +256,7 @@ def stats_vars(ctx):
 @catch_exception
 def checkdeps(ctx):
     """Check dependencies of all var files.
+
 
     vamtb [-vv] [-m] [-b] [-f a.single.file ] checkdeps
 
@@ -307,7 +315,8 @@ def checkdeps(ctx):
 @catch_exception
 def dbs(ctx):
     """
-    Scan vars and store props in db
+    Scan vars and store props in db.
+
 
     vamtb [-vv] [-p] [-f a.single.file ] dbs
 
@@ -335,6 +344,7 @@ def dotty(ctx):
     """
     Generate graph of deps, one per var.
 
+
     vamtb [-vv] [-f a.single.file ] graph
 
     """
@@ -352,8 +362,9 @@ def dotty(ctx):
 @catch_exception
 def reref(ctx):
     """
-    Reref var: remove embedded content and point to reference var.
-    
+    Remove embedded content and point to reference var.
+
+
     vamtb [-vv] [-f a.single.file ] [-x reference_to_remove.xxx] reref
 
     -f: will operate only on this var
@@ -372,7 +383,8 @@ def reref(ctx):
 @catch_exception
 def dupinfo(ctx):
     """
-    Return duplication information for file(s)
+    Return duplication information.
+
 
     Will print in red vars which have either 50 dup files or +20MB dup content
 

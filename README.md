@@ -78,17 +78,17 @@ Options:
 
 Commands:
   checkdeps     Check dependencies of all var files.
-  checkvars     Check all var files for consistency vamtb [-vv] [-f...
-  dbs           Scan vars and store props in db
-  dump          Dump meta.json from var
-  dupinfo       Return duplication information for file(s)
+  checkvars     Check all var files for consistency.
+  dbs           Scan vars and store props in db.
+  dump          Dump meta.json from var.
+  dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
-  noroot        Remove root node stored in pose presets
+  noroot        Remove root node stored in pose presets.
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
-  reref         Reref var: remove embedded content and point to reference...
-  sortvar       Moves vars to subdirectory named by its creator
-  statsvar      Get stats on all vars
+  reref         Remove embedded content and point to reference var.
+  sortvar       Moves vars to subdirectory named by its creator.
+  statsvar      Get stats on all vars.
 ```
 ## Tips
 When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files insude with any tool compatible, like [sqlitebrowser](https://sqlitebrowser.org/).
