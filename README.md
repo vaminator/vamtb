@@ -13,12 +13,12 @@ Open windows terminal (rather than cmd.exe) and run the batch file:
 ```
 vtb --help
 ```
-To interrupt, hit twice ctrl-c.
+The batch file calls :
+````
+python -X utf8 vamtb.py ...
+````
 
-Calling it with python:
-````
-python -X utf8 vamtb.py <rest of options>
-````
+At any time, to interrupt, hit twice ctrl-c.
 
 ## Options
 ```text
@@ -90,8 +90,8 @@ Commands:
   sortvar       Moves vars to subdirectory named by its creator.
   statsvar      Get stats on all vars.
 ```
-## Tips
-When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files with any compatible tool. I suggest [sqlitebrowser](https://sqlitebrowser.org/).
+## Database
+The dbs subcommand will generate a sqlite file that you can browse. You will find tables for your vars and files and you can access that with any compatible tool like [sqlitebrowser](https://sqlitebrowser.org/).
 
-
+## Graphs
 For graph subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe

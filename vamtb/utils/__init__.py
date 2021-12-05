@@ -17,6 +17,7 @@ C_REF_CREATORS = (
 "bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
 "Jackaroo","Jakuubz","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
 "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
+C_NEXT_CREATOR = 127
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 C_MAX_FILES = 50
@@ -78,7 +79,7 @@ def vmb_vmi(refi):
         elif fn.endswith(".vmb"):
             fni = fn[0:-1] + "i"
             if fni not in refi:
-                warn(f"We found a reference for {fn} but not its counterpart {fni}")
+                debug(f"We found a reference for {fn} but not its counterpart {fni}")
                 continue
             refo[fn] = refi[fn]
             refo[fni] = refi[fni]

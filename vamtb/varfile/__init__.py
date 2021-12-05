@@ -753,10 +753,10 @@ class Var(VarFile):
                     if not auto:
                         try:
 #                           choice_s = input("Which one to choose (suffix with L to use X.Y.latest)?")
-                            choice_s = input("Which one to choose [ S to skip] ?")
+                            choice_s = input("Which one to choose [ S/s to skip] ?")
                             choice = int(choice_s)
                         except ValueError:
-                            if choice_s == "S":
+                            if choice_s.upper() == "S":
                                 continue
                             choice = int(choice_s.rstrip("L"))
                             ref = ref_var[choice]
@@ -785,7 +785,7 @@ class Var(VarFile):
     def reref(self, dryrun=True, dup=None):
         info(f"Searching for dups in {self.var}")
         if self.get_ref == "YES":
-            warn(f"Asked to reref {self.var} but it is a reference var!")
+            debug(f"Asked to reref {self.var} but it is a reference var!")
 #            return
 
         new_ref = self.get_new_ref(dup)
@@ -795,11 +795,13 @@ class Var(VarFile):
         else:
             info(f"Found these files as duplicates:{','.join(list(new_ref))}")
 
-#        pp(new_ref, compact=False)
         for nr in new_ref:
-            print(f"{nr} --> {new_ref[nr]['newvar']}:/{new_ref[nr]['newfile']}")
-        if input("Confirm [S to skip]?") == "S":
+            print(f"{nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
+        choice = input("Confirm [Enter: YES, S to skip, SC skip creator]?").upper() 
+        if choice == "S":
             return
+        elif choice == "SC":
+            return C_NEXT_CREATOR
 
         if dryrun:
             info("Asked for dryrun, stopping here")
@@ -819,5 +821,6 @@ class Var(VarFile):
         except:
             critical("We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
         zipdir(self.tmpDir, self.path)
+        info("Modified {self.path}")
 
         self.store_update(confirm=False)

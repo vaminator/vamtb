@@ -373,10 +373,18 @@ def reref(ctx):
     """
     dup = ctx.obj['dup']
     file, dir, pattern = get_filepattern(ctx)
+    creator = ""
     for varfile in search_files_indir(dir, pattern):
-        print(green(f"Reref on {varfile.name}"))
         with Var(varfile, dir, use_db=True, zipcheck=True) as var:
-            var.reref(dryrun=False, dup=dup)
+            print(green(f"Reref on {varfile.name:<100} size: {toh(var.size)}"))
+            if var.creator == creator:
+                debug("Skipping creator..")
+                continue
+            res = var.reref(dryrun=False, dup=dup)
+            if res and res == C_NEXT_CREATOR:
+                creator = var.creator
+            else:
+                creator = ""
 
 @cli.command('dupinfo')
 @click.pass_context
