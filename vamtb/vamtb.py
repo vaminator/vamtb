@@ -56,6 +56,9 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     \b
     Duplication (uses database)
     vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
+    vamtb -f Wolverine333.% reref will dedup files from creator
+    vamtb -x colorcorrect.assetbundle reref will remove all embedded colorcorrect.assetbundle from every var BUT the reference var
+
     \b
     Character encoding on windows:
     On windows cmd will use cp1252 so you might get some errors displaying international characters.
