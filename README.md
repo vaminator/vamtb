@@ -91,6 +91,7 @@ Commands:
   statsvar      Get stats on all vars.
 ```
 ## Tips
-When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files insude with any tool compatible, like [sqlitebrowser](https://sqlitebrowser.org/).
+When using dbs subcommand, this will generate a sqlite file that you can browse you vars and included files with any compatible tool. I suggest [sqlitebrowser](https://sqlitebrowser.org/).
 
-For dotty subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
+
+For graph subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
