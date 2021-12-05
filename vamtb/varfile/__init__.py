@@ -807,7 +807,10 @@ class Var(VarFile):
             pass
         # TODO: remove any leaf element not having anything referencing them
 
-        os.rename(self.path, f"{self.path.with_suffix('.orig')}")
+        try:
+            os.rename(self.path, f"{self.path.with_suffix('.orig')}")
+        except:
+            critical("We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
         zipdir(self.tmpDir, self.path)
 
         self.store_update(confirm=False)
