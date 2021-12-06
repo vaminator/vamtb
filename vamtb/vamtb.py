@@ -94,7 +94,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, progress
         with open(C_YAML, 'r') as stream:
             conf = yaml.load(stream, Loader=yaml.BaseLoader)
     except FileNotFoundError:
-        conf['dir'] = input("Directory of Vam ?:")
+        conf['dir'] = input(blue("Directory of Vam ?:"))
         with open(C_YAML, 'w') as outfile:
             yaml.dump(conf, outfile, default_flow_style=False)
         info(f"Created {C_YAML}")
