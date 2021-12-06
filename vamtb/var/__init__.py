@@ -139,7 +139,7 @@ class Var(VarFile):
                 z.extractall(tmpPathdir)
             debug(f"Extracting done...")
         except Exception as e:
-#            self.__del__()
+            #self.__del__()
             raise
         else:
             self.__tmpDir = tmpPathdir
@@ -385,7 +385,7 @@ class Var(VarFile):
             for nr in newref:
                 replace_string = ""
                 fs = ""
-    #            info(f">> Applying reref for {nr}")
+                #info(f">> Applying reref for {nr}")
                 with open(globf, 'r') as f:
                     fs = f.read()
                     rep = f"{newref[nr]['newvar']}:/{newref[nr]['newfile']}"
@@ -437,8 +437,8 @@ class Var(VarFile):
         new_ref = {}
         var_already_as_ref = []
         for file in self.db_files(with_meta=False):
-#            if Path(file).suffix in (".jpg", ".png", ".tif"):
-#                continue
+            #if Path(file).suffix in (".jpg", ".png", ".tif"):
+                #continue
             if dup and Path(file).name != dup:
                 continue
             choice = 0
@@ -454,8 +454,8 @@ class Var(VarFile):
                         print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
                     if not auto:
                         try:
-# TODO latest
-                            choice_s = input(blue("Which one to choose [ Enter to skip, S: Skip var ] ? "))
+                        # TODO latest
+                            choice_s = input(blue("Which one to choose [ Enter to skip, S: Skip var ] ? ")).upper()
                             choice = int(choice_s)
                         except ValueError:
                             if not choice_s:
@@ -492,7 +492,7 @@ class Var(VarFile):
         info(f"Searching for dups in {self.var}")
         if self.get_ref == "YES":
             debug(f"Asked to reref {self.var} but it is a reference var!")
-#            return
+            #return
 
         new_ref = self.get_new_ref(dup)
         if not new_ref:

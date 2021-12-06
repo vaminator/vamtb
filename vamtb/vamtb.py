@@ -386,7 +386,7 @@ def reref(ctx):
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
     for varfile in search_files_indir(dir, pattern):
-        with Var(varfile, dir, use_db=True, zipcheck=True) as var:
+        with Var(varfile, dir, use_db=True) as var:
             print(green(f"Reref on {varfile.name:<100} size: {toh(var.size)}"))
             if var.creator == creator:
                 debug("Skipping creator..")
