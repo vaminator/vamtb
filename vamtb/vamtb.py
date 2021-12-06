@@ -24,9 +24,11 @@ from vamtb.utils import *
 @click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
 @click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-r', '--ref/--no-ref', default=False,            help="Only select non reference vars for dupinfo.")
+@click.option('-q', '--remove/--no-remove', default=False,      help="Remove var from DB.")
+@click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -47,7 +49,8 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     vamtb statsvar will dump some statistics    
     \b
     Database:
-    vamtb dbs will scan your vars and create or if modification time is higher, update database 
+    vamtb dbsscan will scan your vars and create or if modification time is higher, update database 
+    vamtb db allows running simple commands against the DB
     \b
     Dependency graph (uses database)
     vamtb graph will graph your collection one graph per var
@@ -83,6 +86,8 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, progress):
     ctx.obj['debug_level'] = verbose
     ctx.obj['progress']    = progress
     ctx.obj['dup']         = dup
+    ctx.obj['remove']      = remove
+    ctx.obj['setref']      = setref
     conf = {}
     
     try:
@@ -115,7 +120,7 @@ def printdep(ctx):
     """Print dependencies of a var from reading meta. 
 
 
-    vamtb [-vv] [-f a.single.file ] printdep
+    vamtb [-vv] [-f <file pattern> ] printdep
 
     Recursive (will print deps of deps etc)"""
     file, dir, pattern = get_filepattern(ctx)
@@ -137,7 +142,7 @@ def printrealdep(ctx):
     """Print dependencies of a var from inspecting all json files. 
 
 
-    vamtb [-vv] [-f a.single.file ] printrealdep
+    vamtb [-vv] [-f <file pattern> ] printrealdep
 
     Not recursive"""
     file, dir, pattern = get_filepattern(ctx)
@@ -162,7 +167,7 @@ def dumpvar(ctx):
     """Dump meta.json from var.
 
 
-    vamtb [-vv] -f a.single.file dumpvar
+    vamtb [-vv] -f <file pattern> dumpvar
     
     """
     file, dir, pattern = get_filepattern(ctx)
@@ -177,7 +182,7 @@ def noroot(ctx):
     """Remove root node stored in pose presets.
 
 
-    vamtb [-vv] -f a.single.file noroot
+    vamtb [-vv] -f <file pattern> noroot
 
     """
     file, dir, pattern = get_filepattern(ctx)
@@ -192,7 +197,7 @@ def sort_vars(ctx):
     """Moves vars to subdirectory named by its creator.
 
 
-    vamtb [-vv] [-f a.single.file ] sortvar
+    vamtb [-vv] [-f <file pattern> ] sortvar
     
     Crc is checked before erasing duplicates"""
 
@@ -212,7 +217,7 @@ def check_vars(ctx):
     """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
 
-    vamtb [-vv] [-p] [-f a.single.file ] checkvars
+    vamtb [-vv] [-p] [-f <file pattern> ] checkvars
 
     -p: progress bar
 
@@ -240,7 +245,7 @@ def stats_vars(ctx):
     """Get stats on all vars.
 
 
-    vamtb [-vv] [-f a.single.file ] statsvar
+    vamtb [-vv] [-f <file pattern> ] statsvar
 
     """
 
@@ -265,7 +270,7 @@ def checkdeps(ctx):
     """Check dependencies of all var files.
 
 
-    vamtb [-vv] [-m] [-b] [-f a.single.file ] checkdeps
+    vamtb [-vv] [-m] [-b] [-f <file pattern> ] checkdeps
 
     When using -m, files considered bad will be moved to directory "00Dep". This directory can then be moved away from the directory.
 
@@ -317,15 +322,15 @@ def checkdeps(ctx):
             pass
 
 
-@cli.command('dbs')
+@cli.command('dbscan')
 @click.pass_context
 @catch_exception
-def dbs(ctx):
+def dbscan(ctx):
     """
     Scan vars and store props in db.
 
 
-    vamtb [-vv] [-p] [-f a.single.file ] dbs
+    vamtb [-vv] [-p] [-f <file pattern> ] dbscan
 
     -p: Display progress bar (only when not using -v)
     """
@@ -352,7 +357,7 @@ def dotty(ctx):
     Generate graph of deps, one per var.
 
 
-    vamtb [-vv] [-f a.single.file ] graph
+    vamtb [-vv] [-f <file pattern> ] graph
 
     """
     if shutil.which(C_DOT) is None:
@@ -372,7 +377,7 @@ def reref(ctx):
     Remove embedded content and point to reference var.
 
 
-    vamtb [-vv] [-f a.single.file ] [-x reference_to_remove.xxx] reref
+    vamtb [-vv] [-f <file pattern> ] [-x reference_to_remove.xxx] reref
 
     -f: will operate only on this var
 
@@ -403,7 +408,7 @@ def dupinfo(ctx):
 
     Will print in red vars which have either 50 dup files or +20MB dup content
 
-    vamtb [-vv] [-r] [-f a.single.file ] dupinfo
+    vamtb [-vv] [-r] [-f <file pattern> ] dupinfo
 
     -r : only scan vars from creators not part of "references"
     """
@@ -427,3 +432,35 @@ def dupinfo(ctx):
             else:
                 msg = red(msg)
             print(msg)
+
+@cli.command('db')
+@click.pass_context
+@catch_exception
+def db(ctx):
+    """
+    Execute commands on DB.
+
+
+    vamtb [-vv] [-q|-z] -f <file pattern> db
+
+    -q: Remove var
+
+    -z: Set var as reference
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
+    file or critical("Need a file parameter", doexit=True)
+    remove = ctx.obj['remove']
+    setref = ctx.obj['setref']
+    if all([remove, setref]) or not any ([remove, setref]):
+        critical("Need to pass one and only one command")
+    vars_list = search_files_indir(dir, pattern)
+    for varfile in vars_list:
+        with Var(varfile, dir, use_db=True) as var:
+            if remove:
+                var.db_delete()
+                var.db_commit()
+            else:
+                #TODO
+                assert(False)

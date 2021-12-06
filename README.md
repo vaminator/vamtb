@@ -42,7 +42,8 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   vamtb statsvar will dump some statistics
 
   Database:
-  vamtb dbs will scan your vars and create or if modification time is higher, update database
+  vamtb dbscan will scan your vars and create or if modification time is higher, update database
+  vamtb db allows running simple commands against the DB
 
   Dependency graph (uses database)
   vamtb graph will graph your collection one graph per var
@@ -79,7 +80,7 @@ Options:
 Commands:
   checkdeps     Check dependencies of all var files.
   checkvars     Check all var files for consistency.
-  dbs           Scan vars and store props in db.
+  dbsscan       Scan vars and store props in db.
   dump          Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
@@ -91,7 +92,7 @@ Commands:
   statsvar      Get stats on all vars.
 ```
 ## Database
-The dbs subcommand will generate a sqlite file that you can browse. You will find tables for your vars and files and you can access that with any compatible tool like [sqlitebrowser](https://sqlitebrowser.org/).
+The dbscan subcommand will generate a sqlite file that you can browse. You will find tables for your vars and files and you can access that with any compatible tool like [sqlitebrowser](https://sqlitebrowser.org/).
 
 ## Graphs
 For graph subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe

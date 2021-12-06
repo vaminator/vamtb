@@ -158,7 +158,7 @@ class VarFile:
             if confirm == False:
                 res = "Y"
             else:
-                res = input(f"Remove older DB for {self.path} ?[Y]N")
+                res = input(f"Remove older DB for {self.path} [Y]N  ?")
             if not res or res == "Y":
                 self.db_delete() 
                 self.db_commit()
