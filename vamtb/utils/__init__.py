@@ -66,16 +66,10 @@ def id_is_ref(id:str):
         return True
     return False
 
-def vmb_vmi(refi, prefix):
-    """
-    prefix: vmi or vam
-    vmi / vmb are linked
-    vam / vab are linked
-    vap / vapb are linked
-    """
-    assert (prefix in ['vmi', 'vam', 'vap'])
+def ensure_binaryfiles(refi, prefix):
     alt = { 'vmi': 'vmb', 'vam': 'vab', 'vap': 'vapb'}
-    ralt = { alt[e]:e for e in alt}
+    # ralt = { alt[e]:e for e in alt }
+    assert (prefix in list(alt))
 
     refo = {}
     for fn in refi:

@@ -9,7 +9,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from vamtb.graph import Graph
-from vamtb.varfile import Var
+from vamtb.var import Var
 from vamtb.file import FileName
 from vamtb import ref
 from vamtb.vamex import *
@@ -209,15 +209,22 @@ def sort_vars(ctx):
 @click.pass_context
 @catch_exception
 def check_vars(ctx):
-    """Check all var files for consistency.
+    """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
 
-    vamtb [-vv] [-f a.single.file ] checkvars
+    vamtb [-vv] [-p] [-f a.single.file ] checkvars
+
+    -p: progress bar
 
     """
 
     file, dir, pattern = get_filepattern(ctx)
-    for file in search_files_indir(dir, pattern):
+    vars_list = search_files_indir(dir, pattern)
+    if ctx.obj['progress'] == False:
+        iterator = vars_list
+    else:
+        iterator = tqdm(vars_list, desc="Checking vars…", ascii=True, maxinterval=3, ncols=75, unit='var')
+    for file in iterator:
         try:
             with Var(file, dir, zipcheck=True) as var:
                 info(f"{var} is OK")
