@@ -1,5 +1,5 @@
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 
 def _read(fn):
     path = os.path.join(os.path.dirname(__file__), fn)
@@ -7,21 +7,20 @@ def _read(fn):
 
 setup(
       name='vamtb',
-      version='0.11',
+      version='0.12',
       author_email='foo@bar.com',
       long_description=_read('README.rst'),
       test_suite='vamtb.test.testall.suite',
       packages=[
         'vamtb',
-        'vamtb.vamdirs',
-        'vamtb.varfile',
-        'vamtb.graph',
-        'vamtb.utils',
-        'vamtb.file',
-        'vamtb.thumb',
-        'vamtb.vamex',
-        'vamtb.test',
         'vamtb.db',
+        'vamtb.file',
+        'vamtb.graph',
+        'vamtb.log',
+        'vamtb.utils',
+        'vamtb.vamex',
+        'vamtb.var',
+        'vamtb.varfile',
       ],
       package_data={},
       install_requires=[

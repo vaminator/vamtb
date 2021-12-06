@@ -11,7 +11,6 @@ from tqdm import tqdm
 from vamtb.graph import Graph
 from vamtb.var import Var
 from vamtb.file import FileName
-from vamtb import ref
 from vamtb.vamex import *
 from vamtb.log import *
 from vamtb.utils import *

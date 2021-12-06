@@ -42,7 +42,7 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   vamtb statsvar will dump some statistics
 
   Database:
-  vamtb dbscan will scan your vars and create or if modification time is higher, update database
+  vamtb dbsscan will scan your vars and create or if modification time is higher, update database
   vamtb db allows running simple commands against the DB
 
   Dependency graph (uses database)
@@ -74,13 +74,16 @@ Options:
   -m, --move / --no-move          When checking dependencies move vars with
                                   missing dep in 00Dep.
   -r, --ref / --no-ref            Only select non reference vars for dupinfo.
+  -q, --remove / --no-remove      Remove var from DB.
+  -z, --setref / --no-setref      Set var as reference.
   -b, --usedb / --no-usedb        Use DB.
   --help                          Show this message and exit.
 
 Commands:
   checkdeps     Check dependencies of all var files.
   checkvars     Check all var files for consistency.
-  dbsscan       Scan vars and store props in db.
+  db            Execute commands on DB.
+  dbscan        Scan vars and store props in db.
   dump          Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.

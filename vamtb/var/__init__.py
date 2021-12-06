@@ -455,7 +455,7 @@ class Var(VarFile):
                     if not auto:
                         try:
 # TODO latest
-                            choice_s = input(blue("Which one to choose [ Enter to skip, S: Skip var ] ?"))
+                            choice_s = input(blue("Which one to choose [ Enter to skip, S: Skip var ] ? "))
                             choice = int(choice_s)
                         except ValueError:
                             if not choice_s:
@@ -504,7 +504,7 @@ class Var(VarFile):
         for nr in new_ref:
             print(f"{green(self.var):<20}: {nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
 
-        choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]?")).upper() 
+        choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 
         if not choice:
             return
         elif choice == "S":
