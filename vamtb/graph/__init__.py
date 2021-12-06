@@ -40,9 +40,6 @@ class Graph:
 
         direct_graphs=[]
 
-        #if isinstance(lvar, os.PathLike):
-        #    lvar = VarFile(lvar).var
-
         tree = lvar.treedown()
         if not len(tree[lvar.var]['dep']):
             info("No deps, no graph")

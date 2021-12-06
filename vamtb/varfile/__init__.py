@@ -226,7 +226,7 @@ class VarFile:
         sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
         row = (self.var,)
         res = self.db_fetch(sql, row)
-        res = [ e[0] for e in res ]
+        res = sorted([ e[0] for e in res ], key = str.casefold)
         return res if res else []
 
     def rec_dep(self, stop = True):
@@ -241,7 +241,7 @@ class VarFile:
             sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
             row = (var.var,)
             res = self.db_fetch(sql, row)
-            res = [ e[0] for e in res ]
+            res = sorted([ e[0] for e in res ])
             for varfile in res:
                 try:
                     depvar = VarFile(varfile, use_db=True)
@@ -258,7 +258,7 @@ class VarFile:
         row = (self.var,)
         res = self.db_fetch(sql, row)
         if res:
-            return [ e[0] for e in res ]
+            return sorted([ e[0] for e in res ])
         else:
             return []
 
