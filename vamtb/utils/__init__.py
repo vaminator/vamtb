@@ -66,18 +66,28 @@ def id_is_ref(id:str):
         return True
     return False
 
-def vmb_vmi(refi):
+def vmb_vmi(refi, prefix):
+    """
+    prefix: vmi or vam
+    vmi / vmb are linked
+    vam / vab are linked
+    vap / vapb are linked
+    """
+    assert (prefix in ['vmi', 'vam', 'vap'])
+    alt = { 'vmi': 'vmb', 'vam': 'vab', 'vap': 'vapb'}
+    ralt = { alt[e]:e for e in alt}
+
     refo = {}
     for fn in refi:
-        if fn.endswith(".vmi"):
-            fnb = fn[0:-1] + "b"
+        if fn.endswith("." + prefix):
+            fnb = Path(fn).with_suffix("." + alt[prefix]).as_posix()
             if fnb not in refi:
                 debug(f"We found a reference for {fn} but not its counterpart {fnb}")
                 continue
             refo[fn] = refi[fn]
             refo[fnb] = refi[fnb]
-        elif fn.endswith(".vmb"):
-            fni = fn[0:-1] + "i"
+        elif fn.endswith(f".{alt[prefix]}"):
+            fni = Path(fn).with_suffix("." + prefix).as_posix()
             if fni not in refi:
                 debug(f"We found a reference for {fn} but not its counterpart {fni}")
                 continue

@@ -774,7 +774,10 @@ class Var(VarFile):
                 new_ref[file] = {}
                 new_ref[file]['newvar'] = ref[0]
                 new_ref[file]['newfile'] = ref[1]
-        new_ref = vmb_vmi(new_ref)
+
+        new_ref = vmb_vmi(new_ref, "vmi")
+        new_ref = vmb_vmi(new_ref, "vam")
+        new_ref = vmb_vmi(new_ref, "vap")
 
         for file in self.files():
             pre = file.path.relative_to(self.tmpDir).as_posix()
