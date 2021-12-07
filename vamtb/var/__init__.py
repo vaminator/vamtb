@@ -430,7 +430,7 @@ class Var(VarFile):
                 pass
         with open(Path(tdir, "meta.json"), 'w') as f:
             f.write(prettyjson(meta))
-        logging.debug("Modified meta")
+        debug("Modified meta")
 
     def get_new_ref(self, dup) -> dict:
         # Todo propose .latest in choices
@@ -453,23 +453,28 @@ class Var(VarFile):
                             choice = count
                         print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
                     if not auto:
-                        try:
-                        # TODO latest
-                            choice_s = input(blue("Which one to choose [ Enter to skip, S: Skip var ] ? ")).upper()
-                            choice = int(choice_s)
-                        except ValueError:
-                            if not choice_s:
-                                continue
-                            elif choice_s == "S":
-                                return
-                            choice = int(choice_s.rstrip("L"))
-                            ref = ref_var[choice]
-                            ref_var_latest = ".".join(ref[0].split('.')[0:2]) + ".latest"
-
-                            var_already_as_ref.append(ref_var_latest)
-                            new_ref[file] = {}
-                            new_ref[file]['newvar'] = ref_var_latest
-                            new_ref[file]['newfile'] = ref[1]
+                        ref = None
+                        next_file = False
+                        while not next_file:
+                            try:
+                                try:
+                                # TODO latest
+                                # TODO don't bug on bad char
+                                    choice_s = input(blue("Which one to choose [ Enter: skip file, S: Skip var ] ? ")).upper()
+                                    choice = int(choice_s)
+                                except ValueError:
+                                    if not choice_s:
+                                        next_file = True
+                                        continue
+                                    elif choice_s == "S":
+                                        return
+                                    choice = int(choice_s.rstrip("L"))
+                            except (ValueError, IndexError) :
+                                error("Wrong answer..")
+                                pass
+                            else:
+                                break
+                        if next_file:
                             continue
                 ref = ref_var[choice]
                 var_already_as_ref.append(ref[0])
@@ -502,15 +507,21 @@ class Var(VarFile):
             info(f"Found these files as duplicates:{','.join(list(new_ref))}")
 
         for nr in new_ref:
-            print(f"{green(self.var):<20}: {nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
+            print(f"{green(self.var):<20}:/{nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
 
-        choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 
-        if not choice:
-            return
-        elif choice == "S":
-            return C_NEXT_CREATOR
-        elif choice != "Y":
-            return
+        #TODO print which var relied on these files
+        #TODO don't bug on bad char
+
+        while True:
+            choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 
+            if not choice:
+                return
+            elif choice == "S":
+                return C_NEXT_CREATOR
+            elif choice == "Y":
+                break
+            else:
+                error("Wrong answer..")
 
         if dryrun:
             info("Asked for dryrun, stopping here")
@@ -523,13 +534,17 @@ class Var(VarFile):
             del_empty_dirs(self.tmpDir)
         except:
             pass
-        # TODO: remove any leaf element not having anything referencing them
+        # TODO remove any leaf element not having anything referencing them
 
         try:
             os.rename(self.path, f"{self.path.with_suffix('.orig')}")
         except:
             critical("We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
+
         zipdir(self.tmpDir, self.path)
+        res = ZipFile(self.path).testzip()
+        if res != None:
+            critical(f"Warning, reconstructed zip {self.path} has CRC problem on file {res}.", doexit=True)
 
         print(green(f"Modified {self.path}"))
         self.store_update(confirm=False)

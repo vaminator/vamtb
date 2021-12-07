@@ -158,6 +158,7 @@ class VarFile:
             if confirm == False:
                 res = "Y"
             else:
+                #TODO don't bug on bad char
                 res = input(blue(f"Remove older DB for {self.path} [Y]N  ?"))
             if not res or res == "Y":
                 self.db_delete() 

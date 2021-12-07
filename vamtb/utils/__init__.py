@@ -14,9 +14,9 @@ C_DDIR = "graph"
 C_BAD_DIR = "00Dep"
 C_REF_CREATORS = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
-"bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
-"Jackaroo","Jakuubz","JoyBoy","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
-"Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13")
+"bvctr", "CosmicFTW","Damarmau","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
+"Jackaroo","Jakuubz","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
+"prestigitis", "RenVR", "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13",)
 C_NEXT_CREATOR = 127
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
@@ -28,7 +28,10 @@ def prettyjson(obj):
 
 def search_files_indir(fpath, pattern):
     pattern = re.sub(r'([\[\]])','[\\1]',pattern)
-    return [ x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file() ]
+    res = [ x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file() ]
+    if not res:
+        warn("No files found matching pattern")
+    return res
 
 def crc32c(content):
     buf = (binascii.crc32(content) & 0xFFFFFFFF)
@@ -97,7 +100,9 @@ def get_filepattern(ctx):
         if "%" in file:
             pattern = file.replace("%", "*")
         else:
-            pattern = f"*{file}*"
+            pattern = file
+        if not pattern.endswith(".var"):
+            pattern = pattern + ".var"
     else:
         pattern = "*.var"
     return ctx.obj['file'] if 'file' in ctx.obj else None, ctx.obj['dir'], pattern
