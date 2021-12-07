@@ -482,7 +482,7 @@ class Var(VarFile):
                 new_ref[file]['newvar'] = ref[0]
                 new_ref[file]['newfile'] = ref[1]
 
-        for ftype in ("vmi", "vam", "vap"):
+        for ftype in ("vmi", "vam", "vap", "vaj"):
             new_ref = ensure_binaryfiles(new_ref, ftype)
 
         for file in self.files():
@@ -539,7 +539,7 @@ class Var(VarFile):
         try:
             os.rename(self.path, f"{self.path.with_suffix('.orig')}")
         except:
-            critical("We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
+            critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
 
         zipdir(self.tmpDir, self.path)
         res = ZipFile(self.path).testzip()

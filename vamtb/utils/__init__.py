@@ -70,7 +70,7 @@ def id_is_ref(id:str):
     return False
 
 def ensure_binaryfiles(refi, prefix):
-    alt = { 'vmi': 'vmb', 'vam': 'vab', 'vap': 'vapb'}
+    alt = { 'vmi': 'vmb', 'vam': 'vab', 'vap': 'vapb', 'vaj': 'vab'}
     # ralt = { alt[e]:e for e in alt }
     assert (prefix in list(alt))
 

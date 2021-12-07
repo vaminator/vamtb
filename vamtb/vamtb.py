@@ -463,3 +463,9 @@ def db(ctx):
             else:
                 #TODO setref
                 assert(False)
+
+#TODO when rerefing also reref var which depend on the var
+#TODO choice for selectively taking/removing reref for a set of files
+#TODO for vam (and others?) files, do a json comparison and ask user which to keep. Example Oeshii.Iris_Reflection.1.var\Custom\Clothing\Female\Oeshii\CorneaSD1\CorneaSD1.vam and Stenzelo.Nicole:Custom/Clothing/Female/CorneaSD1/CorneaSD1.vam
+#TODO these files actually differ from EOL only.. some by tag only.
+#TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..
