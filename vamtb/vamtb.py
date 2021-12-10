@@ -343,7 +343,7 @@ def dbscan(ctx):
     else:
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
-        with Var(varfile, dir, use_db=True) as var:
+        with Var(varfile, dir, use_db=True, check_exists=False) as var:
             if var.store_update():
                 stored += 1
     info(f"{stored} var files stored")
@@ -387,15 +387,22 @@ def reref(ctx):
     creator = ""
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
-            print(green(f"Reref on {varfile.name:<100} size: {toh(var.size)}"))
+            msg = f"Reref on {varfile.name:<100} size:"
+            if not var.exists():
+                print(red(f"{msg} UNKNOWN"))
+                continue
+            print(green(f"{msg} {toh(var.size)}"))
             if var.creator == creator:
                 debug("Skipping creator..")
                 continue
-            res = var.reref(dryrun=False, dup=dup)
-            if res and res == C_NEXT_CREATOR:
-                creator = var.creator
+            if var.exists():
+                res = var.reref(dryrun=False, dup=dup)
+                if res and res == C_NEXT_CREATOR:
+                    creator = var.creator
+                else:
+                    creator = ""
             else:
-                creator = ""
+                warn(f"{var.var} exists as {var.path} but is not in the DB, skipping..")
 
 @cli.command('dupinfo')
 @click.pass_context
@@ -467,5 +474,6 @@ def db(ctx):
 #TODO when rerefing also reref var which depend on the var
 #TODO choice for selectively taking/removing reref for a set of files
 #TODO for vam (and others?) files, do a json comparison and ask user which to keep. Example Oeshii.Iris_Reflection.1.var\Custom\Clothing\Female\Oeshii\CorneaSD1\CorneaSD1.vam and Stenzelo.Nicole:Custom/Clothing/Female/CorneaSD1/CorneaSD1.vam
+#TODO replaces: make a "clean morphs, .. " for json files and modify all morphs to a reference .vmi, ..
 #TODO these files actually differ from EOL only.. some by tag only.
 #TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..

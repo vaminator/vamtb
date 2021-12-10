@@ -18,7 +18,7 @@ from vamtb.log import *
 
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, use_db = False, zipcheck=False):
+    def __init__(self, multiFileName, dir=None, use_db = False, zipcheck=False, check_exists = True):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -56,6 +56,12 @@ class Var(VarFile):
             self.__thumb = self.path.with_suffix(".jpg")
 
         debug(f"Var {multiFileName} is found as {self._path}")
+
+        if use_db and check_exists:
+            if self.exists():
+                debug(f"Var is in DB")
+            else:
+                warn(f"{self.var} at {self.path} is not in DB, run dbscan.")
 
     @property
     def path(self) -> str:
