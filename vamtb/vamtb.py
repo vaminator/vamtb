@@ -26,8 +26,9 @@ from vamtb.utils import *
 @click.option('-q', '--remove/--no-remove', default=False,      help="Remove var from DB.")
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
+@click.option('-a', '--force/--no-force', default=False,        help="When scanning DB, always replace with new files.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, progress):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -70,7 +71,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, progress
     You can use wildcards with % caracter: vamtb -f Community.% dupinfo
     \b
     You can get help for a command with
-    vamtb reref --help
+    vamtb <command> --help
 
     """
 
@@ -87,6 +88,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, progress
     ctx.obj['dup']         = dup
     ctx.obj['remove']      = remove
     ctx.obj['setref']      = setref
+    ctx.obj['force']       = force
     conf = {}
     
     try:
@@ -329,9 +331,11 @@ def dbscan(ctx):
     Scan vars and store props in db.
 
 
-    vamtb [-vv] [-p] [-f <file pattern> ] dbscan
+    vamtb [-vv] [-a] [-p] [-f <file pattern> ] dbscan
 
     -p: Display progress bar (only when not using -v)
+
+    -a: Do not confirm, always answer yes (will overwrite DB with new content)
     """
 
     stored = 0
@@ -344,7 +348,7 @@ def dbscan(ctx):
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
-            if var.store_update():
+            if var.store_update(confirm=False if ctx.obj['force'] else True):
                 stored += 1
     info(f"{stored} var files stored")
 
@@ -385,6 +389,7 @@ def reref(ctx):
     dup = ctx.obj['dup']
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
+    critical("CAUTION this is not yet finalized. You might get some split content (jpg from somewhere, vap from somewhere, ..). Use with care. Keep .orig files for now")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             msg = f"Reref on {varfile.name:<100} size:"
@@ -471,9 +476,29 @@ def db(ctx):
                 #TODO setref
                 assert(False)
 
+@cli.command('orig')
+@click.pass_context
+@catch_exception
+def orig(ctx):
+    """
+    Revert to orig files.
+
+
+    vamtb [-vv] [-f <file pattern>] orig
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
+    for mfile in search_files_indir(dir, pattern.replace(".var", ".orig")):
+        mvarfile = mfile.with_suffix(".var")
+        debug(f"Restoring {mfile} to {mvarfile}")
+        if mvarfile.exists():
+            os.unlink(mvarfile)
+        os.rename(mfile, mvarfile)
+
 #TODO when rerefing also reref var which depend on the var
 #TODO choice for selectively taking/removing reref for a set of files
 #TODO for vam (and others?) files, do a json comparison and ask user which to keep. Example Oeshii.Iris_Reflection.1.var\Custom\Clothing\Female\Oeshii\CorneaSD1\CorneaSD1.vam and Stenzelo.Nicole:Custom/Clothing/Female/CorneaSD1/CorneaSD1.vam
-#TODO replaces: make a "clean morphs, .. " for json files and modify all morphs to a reference .vmi, ..
+#TODO replaces: make a "clean morphs, .. " for json files and modify all morphs to a reference .vmi, .. vaj might only differ from texture path
 #TODO these files actually differ from EOL only.. some by tag only.
 #TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..

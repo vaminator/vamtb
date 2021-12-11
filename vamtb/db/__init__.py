@@ -55,13 +55,13 @@ class Dbs:
         Execute query and fetch all results
         """
         cur = Dbs.getConn().cursor()
-        debug(f"Fetchall({sql}, {row})")
+        # debug(f"Fetchall({sql}, {row})")
         if row:
             cur.execute(sql, row)
         else:
             cur.execute(sql)
         res = cur.fetchall()
-        debug(f"Fetchall={res}")
+        # debug(f"Fetchall={res}")
         return res
 
     @staticmethod
