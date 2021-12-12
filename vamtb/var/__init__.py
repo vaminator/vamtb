@@ -438,7 +438,6 @@ class Var(VarFile):
                 meta['contentList'].remove(nref)
             except ValueError:
                 # The exact file was not mentionned in the contentList
-                # TODO empty dirs from contentList
                 pass
         with open(Path(tdir, "meta.json"), 'w') as f:
             f.write(prettyjson(meta))
@@ -472,8 +471,7 @@ class Var(VarFile):
                         while not next_file:
                             try:
                                 try:
-                                # TODO latest
-                                # TODO don't bug on bad char
+                                    # TODO propose latest?
                                     choice_s = input(blue("Which one to choose [ Enter: skip file, S: Skip var ] ? ")).upper()
                                     choice = int(choice_s)
                                 except ValueError:
@@ -524,7 +522,8 @@ class Var(VarFile):
             print(f"{green(self.var):<20}:/{nr} --> {green(new_ref[nr]['newvar'])}:/{new_ref[nr]['newfile']}")
 
         #TODO print which var relied on these files
-        #TODO don't bug on bad char
+        #TODO choice for selectively taking/removing reref for a set of files
+        #TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..
 
         while True:
             choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 

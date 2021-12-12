@@ -501,10 +501,4 @@ def orig(ctx):
             os.unlink(mvarfile)
         os.rename(mfile, mvarfile)
 
-#TODO when rerefing also reref var which depend on the var
-#TODO choice for selectively taking/removing reref for a set of files
-#TODO for vam (and others?) files, do a json comparison and ask user which to keep. Example Oeshii.Iris_Reflection.1.var\Custom\Clothing\Female\Oeshii\CorneaSD1\CorneaSD1.vam and Stenzelo.Nicole:Custom/Clothing/Female/CorneaSD1/CorneaSD1.vam
-#TODO some differ only because of json indentation..
-#TODO replaces: make a "clean morphs, .. " for json files and modify all morphs to a reference .vmi, .. vaj might only differ from texture path
-#TODO these files actually differ from EOL only.. some by tag only.
-#TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..
+#TODO add command for morph region /.. editing
