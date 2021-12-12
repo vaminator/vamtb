@@ -63,7 +63,7 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   You can use wildcards with % caracter: vamtb -f Community.% dupinfo
 
   You can get help for a command with
-  vamtb reref --help
+  vamtb <command> --help
 
 Options:
   -f TEXT                         Var file to act on.
@@ -77,6 +77,8 @@ Options:
   -q, --remove / --no-remove      Remove var from DB.
   -z, --setref / --no-setref      Set var as reference.
   -b, --usedb / --no-usedb        Use DB.
+  -a, --force / --no-force        When scanning DB, always replace with new
+                                  files.
   --help                          Show this message and exit.
 
 Commands:
@@ -88,6 +90,7 @@ Commands:
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
   noroot        Remove root node stored in pose presets.
+  orig          Revert to orig files.
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
   reref         Remove embedded content and point to reference var.
