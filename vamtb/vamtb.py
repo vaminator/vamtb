@@ -226,7 +226,7 @@ def check_vars(ctx):
 
     file, dir, pattern = get_filepattern(ctx)
     vars_list = search_files_indir(dir, pattern)
-    if ctx.obj['progress'] == False:
+    if ctx.obj['progress'] == False or ctx.obj['debug_level']:
         iterator = vars_list
     else:
         iterator = tqdm(vars_list, desc="Checking vars…", ascii=True, maxinterval=3, ncols=75, unit='var')

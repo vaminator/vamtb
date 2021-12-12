@@ -22,7 +22,6 @@ class Var(VarFile):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
-        zipcheck will extract the zip to a temporary directory
         """
         # tempdir to extracted var
         multiFileName or critical("Tried to create a var but gave no filename", doexit=True)
@@ -50,7 +49,12 @@ class Var(VarFile):
         self._path = Path(self.__resolvevar(multiFileName))
 
         if zipcheck:
-            self.extract()
+            with ZipFile(self.path) as zipf:
+                res = zipf.testzip()
+                if res != None:
+                    critical(f"Zip {self.path} is corrupted, can't open file {res}.")
+                else:
+                    info(f"Zip {self.path} is ok.")
 
         if self._path.with_suffix(".jpg").exists():
             self.__thumb = self.path.with_suffix(".jpg")
@@ -426,6 +430,8 @@ class Var(VarFile):
         meta = self.meta()
         for nref in newref:
             newvar = newref[nref]['newvar']
+            if "dependencies" not in meta:
+                meta['dependencies'] = {}
             meta["dependencies"][newvar]={}
             meta["dependencies"][newvar]['licenseType'] = Var(newvar, dir = self.addondir, use_db=True).license
             try:
