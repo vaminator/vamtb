@@ -121,6 +121,8 @@ def catch_exception(func=None):
             error(f"Var not found:{e}")
         except VarFileNameIncorrect as e:
             error(f"Var filename incorrect:{e}")
+        except zipfile.BadZipFile as e:
+            error(f"Var has CRC problems:{e}")
     return wrapper
 
 def del_empty_dirs(target_path):
