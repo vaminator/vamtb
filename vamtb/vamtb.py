@@ -14,6 +14,7 @@ from vamtb.file import FileName
 from vamtb.vamex import *
 from vamtb.log import *
 from vamtb.utils import *
+from vamtb.varfile import VarFile
 
 @click.group()
 @click.option('file','-f',                                      help='Var file to act on.')
@@ -50,7 +51,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, p
     \b
     Database:
     vamtb dbsscan will scan your vars and create or if modification time is higher, update database 
-    vamtb db allows running simple commands against the DB
+    vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
     \b
     Dependency graph (uses database)
     vamtb graph will graph your collection one graph per var
@@ -233,7 +234,12 @@ def check_vars(ctx):
     for file in iterator:
         try:
             with Var(file, dir, zipcheck=True) as var:
-                info(f"{var} is OK")
+                try:
+                    _ = var.meta()
+                except FileNotFoundError:
+                    error(f"Var {var.var} does not contain a correct meta json file")
+                else:
+                    info(f"{var} is OK")
         except KeyboardInterrupt:
             return
         except Exception as e:
@@ -445,41 +451,28 @@ def dupinfo(ctx):
                 msg = red(msg)
             print(msg)
 
-@cli.command('db')
+@cli.command('dbdel')
 @click.pass_context
 @catch_exception
-def db(ctx):
+def dbdel(ctx):
     """
-    Execute commands on DB.
+    Remove one var from DB.
 
 
-    vamtb [-vv] [-q|-z] -f <file pattern> db
-
-    -q: Remove var
-
-    -z: Set var as reference
+    vamtb [-vv] -f file dbdel
 
     """
 
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter", doexit=True)
-    remove = ctx.obj['remove']
-    setref = ctx.obj['setref']
-    if all([remove, setref]) or not any ([remove, setref]):
-        critical("Need to pass one and only one command")
-    vars_list = search_files_indir(dir, pattern)
-    for varfile in vars_list:
-        with Var(varfile, dir, use_db=True) as var:
-            if not var.exists():
-                warn("Nothing found in DB")
-            if remove:
-                if var.exists():
-                    var.db_delete()
-                    var.db_commit()
-                    info(f"Removed {var.var} from DB")
-            elif setref:
-                #TODO setref
-                assert(False)
+    varfile = VarFile(file, use_db=True)
+    if not varfile.exists():
+        warn(f"{varfile.file} not found in DB")
+    else:
+        print(f"Deleting {varfile.file}")
+        varfile.db_delete()
+        varfile.db_commit()
+        info(f"Removed {file} from DB")
 
 @cli.command('orig')
 @click.pass_context

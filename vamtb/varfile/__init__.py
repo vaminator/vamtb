@@ -61,7 +61,7 @@ class VarFile:
             if ext != "var":
                 error(f"Var has incorrect extension: {inputName}" )
                 raise VarExtNotCorrect(inputName)
-        debug(f"Var {inputName} is compliant")
+        # debug(f"Var {inputName} is compliant")
 
     @property
     def var(self) -> str:
@@ -292,8 +292,8 @@ class VarFile:
 
     def get_refvar_forfile(self, file):
         cksum = self.get_file_cksum(file)
-        sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME!=? AND FILENAME LIKE ? GROUP BY VARNAME"
-        row = (cksum, self.var, f"%{Path(file).name}")
+        sql = f"SELECT VARNAME, FILENAME FROM FILES WHERE CKSUM=? AND ISREF='YES' AND VARNAME NOT LIKE ? AND FILENAME LIKE ? GROUP BY VARNAME"
+        row = (cksum, f"{self.var_nov}.%", f"%{Path(file).name}")
         res = self.db_fetch(sql, row)
         if res:
             return res

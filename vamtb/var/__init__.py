@@ -48,14 +48,6 @@ class Var(VarFile):
         # Verify and resolve var on disk
         self._path = Path(self.__resolvevar(multiFileName))
 
-        if zipcheck:
-            with ZipFile(self.path) as zipf:
-                res = zipf.testzip()
-                if res != None:
-                    critical(f"Zip {self.path} is corrupted, can't open file {res}.")
-                else:
-                    info(f"Zip {self.path} is ok.")
-
         if self._path.with_suffix(".jpg").exists():
             self.__thumb = self.path.with_suffix(".jpg")
 
@@ -66,6 +58,9 @@ class Var(VarFile):
                 debug(f"Var is in DB")
             else:
                 warn(f"{self.var} at {self.path} is not in DB, run dbscan.")
+        
+        if zipcheck:
+            self.zipcheck()
 
     @property
     def path(self) -> str:
@@ -99,6 +94,15 @@ class Var(VarFile):
             debug(f"Erasing directory {self.__tmpDir}")
             self.__tmpTempDir.cleanup()
         pass
+
+    def zipcheck(self):
+        with ZipFile(self.path) as zipf:
+            res = zipf.testzip()
+            if res != None:
+                critical(f"Zip {self.path} is corrupted, can't open file {res}.")
+            else:
+                info(f"Zip {self.path} is ok.")
+
 
     def search(self, pattern)-> Path:
         fpath = self.__AddonDir
@@ -150,6 +154,7 @@ class Var(VarFile):
             debug(f"Extracting done...")
         except Exception as e:
             #self.__del__()
+            critical(f"Var {self.var} has CRC problems.")
             raise
         else:
             self.__tmpDir = tmpPathdir
