@@ -1,6 +1,8 @@
 import json
+from json import decoder
 from pathlib import Path
 import os
+import json
 from vamtb.utils import *
 
 class FileName:
@@ -27,7 +29,20 @@ class FileName:
     @property
     def crc(self):
         if not self.__crc:
-            self.__crc = crc32c(self.read())
+            content = self.read()
+            try:
+                # Normalize json content
+                json_content = json.loads(content)
+            except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                #Was not json or not UTF-8 json
+                pass
+            else:
+                #TODO check for vaj: displayName (, creatorName)
+                if self.path.suffix == ".vmi":
+                    json_content.pop('group')
+                    json_content.pop('region')
+                content = json.dumps(json_content).encode('utf8')
+            self.__crc = crc32c(content)
         return self.__crc
 
     @property

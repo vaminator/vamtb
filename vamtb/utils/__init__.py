@@ -14,9 +14,14 @@ C_DDIR = "graph"
 C_BAD_DIR = "00Dep"
 C_REF_CREATORS = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
-"bvctr", "CosmicFTW","Damarmau","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
-"Jackaroo","Jakuubz","kemenate", "LFE","MacGruber","MeshedVR","Miki","Molmark","NoStage3","Oeshii",
+"bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",
+"Jackaroo","Jakuubz","kemenate", "klphgz", "LFE","MacGruber","MeshedVR","Miki","Molmark","Morph","NoStage3","Oeshii",
 "prestigitis", "RenVR", "Roac","SupaRioAmateur", "TenStrip", "TGC", "VL_13",)
+
+# Creators which you don't consider a pure reference creator but still have a few general packs
+C_REF_VARPATTERNS = (
+    "Damarmau.DAMAR_morphs.", "Damarmau.Damar_Textures.", "vecterror._Morphs2021."
+    )
 C_NEXT_CREATOR = 127
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
@@ -78,14 +83,14 @@ def ensure_binaryfiles(refi, prefix):
     for fn in refi:
         if fn.endswith("." + prefix):
             fnb = Path(fn).with_suffix("." + alt[prefix]).as_posix()
-            if fnb not in refi:
+            if not(fnb in refi and refi[fnb]['newvar'] == refi[fn]['newvar']):
                 debug(f"We found a reference for {fn} but not its counterpart {fnb}")
                 continue
             refo[fn] = refi[fn]
             refo[fnb] = refi[fnb]
         elif fn.endswith(f".{alt[prefix]}"):
             fni = Path(fn).with_suffix("." + prefix).as_posix()
-            if fni not in refi:
+            if not(fni in refi and refi[fni]['newvar'] == refi[fn]['newvar']):
                 debug(f"We found a reference for {fn} but not its counterpart {fni}")
                 continue
             refo[fn] = refi[fn]

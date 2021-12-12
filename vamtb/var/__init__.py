@@ -451,13 +451,15 @@ class Var(VarFile):
             ref_var = self.get_refvar_forfile(file)
             if ref_var:
                 if len(ref_var) > 1:
-                    print(f"We got multiple original file for {file}")
+                    print(f"We got multiple original file for {green(self.var)}:{file}")
+                    ref_var_varname = [ e[0] for e in ref_var ]
+                    inter_var = set(var_already_as_ref) & set(ref_var_varname)
                     auto = False
                     for count, rvar in enumerate(ref_var):
-                        if not auto and rvar[0] in var_already_as_ref:
+                        if not auto and rvar[0] in var_already_as_ref and len(inter_var) == 1:
                             auto = True
                             choice = count
-                        print(f"{count} : {rvar[0]}{' AUTO' if auto and choice == count else ''}")
+                        print(f"{count} : {green(rvar[0])}{' AUTO' if auto and choice == count else ''}")
                     if not auto:
                         ref = None
                         next_file = False
@@ -545,7 +547,8 @@ class Var(VarFile):
         try:
             os.rename(self.path, f"{self.path.with_suffix('.orig')}")
         except:
-            critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety.", doexit=True)
+            critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety.")
+            return
 
         zipdir(self.tmpDir, self.path)
         res = ZipFile(self.path).testzip()

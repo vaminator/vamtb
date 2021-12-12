@@ -389,7 +389,8 @@ def reref(ctx):
     dup = ctx.obj['dup']
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
-    critical("CAUTION this is not yet finalized. You might get some split content (jpg from somewhere, vap from somewhere, ..). Use with care. Keep .orig files for now")
+    critical("CAUTION. You need to know what you're doing. When bundled content is unchanged this should work. But if content was modified, you might get some split content..")
+    critical("Also vars referencing this content will have broken dependencies. Check that manually for now.")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             msg = f"Reref on {varfile.name:<100} size:"
@@ -469,10 +470,14 @@ def db(ctx):
     vars_list = search_files_indir(dir, pattern)
     for varfile in vars_list:
         with Var(varfile, dir, use_db=True) as var:
+            if not var.exists():
+                warn("Nothing found in DB")
             if remove:
-                var.db_delete()
-                var.db_commit()
-            else:
+                if var.exists():
+                    var.db_delete()
+                    var.db_commit()
+                    info(f"Removed {var.var} from DB")
+            elif setref:
                 #TODO setref
                 assert(False)
 
@@ -499,6 +504,7 @@ def orig(ctx):
 #TODO when rerefing also reref var which depend on the var
 #TODO choice for selectively taking/removing reref for a set of files
 #TODO for vam (and others?) files, do a json comparison and ask user which to keep. Example Oeshii.Iris_Reflection.1.var\Custom\Clothing\Female\Oeshii\CorneaSD1\CorneaSD1.vam and Stenzelo.Nicole:Custom/Clothing/Female/CorneaSD1/CorneaSD1.vam
+#TODO some differ only because of json indentation..
 #TODO replaces: make a "clean morphs, .. " for json files and modify all morphs to a reference .vmi, .. vaj might only differ from texture path
 #TODO these files actually differ from EOL only.. some by tag only.
 #TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..

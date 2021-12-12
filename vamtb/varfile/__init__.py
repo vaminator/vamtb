@@ -120,6 +120,8 @@ class VarFile:
         """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
         creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
         size = FileName(self.path).size
+        # Will force var files (but not creator) to be ISREF
+        force_isref = any([ pattern in self.var for pattern in C_REF_VARPATTERNS ])
         v_isref="YES" if creator in C_REF_CREATORS else "UNKNOWN"
 
         meta = self.meta()
@@ -132,7 +134,10 @@ class VarFile:
         for f in self.files(with_meta=True):
             crcf = f.crc
             sizef = f.size
-            f_isref = "YES" if creator in C_REF_CREATORS else "UNKNOWN"
+            if creator in C_REF_CREATORS or force_isref:
+                f_isref = "YES"
+            else:
+                f_isref = "UNKNOWN"
 
             sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
             row = (None, self.ziprel(f.path), f_isref, self.var, sizef, crcf)
