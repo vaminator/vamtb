@@ -395,7 +395,7 @@ def reref(ctx):
     dup = ctx.obj['dup']
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
-    critical("CAUTION. You need to know what you're doing. When bundled content is unchanged this should work. But if content was modified, you might get some split content..")
+    critical("Be cautious with what you accept (Y). If some bundled content was modified, you might get some split content.")
     critical("Also vars referencing this content will have broken dependencies. Check that manually for now.")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
@@ -450,6 +450,22 @@ def dupinfo(ctx):
             else:
                 msg = red(msg)
             print(msg)
+
+@cli.command('info')
+@click.pass_context
+@catch_exception
+def dupinfo(ctx):
+    """
+    Return information on var.
+
+    vamtb [-vv] [-f <file pattern> ] info
+
+    """
+    file, dir, pattern = get_filepattern(ctx)
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir) as var:
+            for zinfo in var.get_zipinfolist:
+                print(zinfo)
 
 @cli.command('dbdel')
 @click.pass_context

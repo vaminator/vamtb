@@ -5,6 +5,7 @@ import zipfile
 import binascii
 from functools import wraps
 from pathlib import Path
+from datetime import datetime
 from vamtb.log import *
 from vamtb.vamex import *
 
@@ -22,6 +23,16 @@ C_REF_CREATORS = (
 C_REF_VARPATTERNS = (
     "Damarmau.DAMAR_morphs.", "Damarmau.Damar_Textures.", "vecterror._Morphs2021."
     )
+
+C_CREATORS_ALIAS = {
+    "splineVR": [ "s p l i n e  VR", "s p l i n e VR", "s_p_l_i_n_e_VR"],
+    "MrCadillacV8": ["Mr_CadillacV8"],
+    "MK47": "MK_47",
+    "MareProductions": [ "Mare_Productions", "Mare Productions"],
+    "Anonymous": ["AnonymousPerson", "Anon"],
+    "Oeshii": ["oeshi"]
+}
+
 C_NEXT_CREATOR = 127
 C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
@@ -45,6 +56,8 @@ def crc32c(content):
 def zipdir(path, zipname):
     debug("Repacking var...")
     with zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.comment = f"Repacked on {datetime.now().strftime('%Y%m%dT%H%M%S')}".encode('ascii')
+        # zipf.compresslevel = 1
         for root, dirs, files in os.walk(path):
             for file in files:
                 zipf.write(os.path.join(root, file), 

@@ -152,11 +152,12 @@ class VarFile:
             self.db_exec(sql, row)
 
         self.db_commit()
+        info(f"Stored var {self.var} in DB")
         return True
 
     def store_update(self, confirm = True):
         if self.exists():
-            info(f"{self.var} already in database")
+            debug(f"{self.var} already in database")
             if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:
                 return False
             info(f"Database is not inline.")

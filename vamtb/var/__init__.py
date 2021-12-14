@@ -67,6 +67,10 @@ class Var(VarFile):
         return self._path
 
     @property
+    def get_zipinfolist(self):
+        return ZipFile(self.path).infolist()
+
+    @property
     def evar(self) -> str:
         """ var from pathname (latest and min resolved) """
         return f"{Path(self.path).with_suffix('').name}"
@@ -181,11 +185,11 @@ class Var(VarFile):
 
     @unzip
     def load_json_file(self, filename) -> dict:
-        return FileName(Path(self.__tmpDir, filename)).json
+        return FileName(self.__tmpDir / filename).json
 
     @unzip
     def open_file(self, fname):
-        fn = FileName(Path(self.__tmpDir, fname))
+        fn = FileName(self.__tmpDir / fname)
         return fn.open()
 
     @unzip
@@ -294,8 +298,13 @@ class Var(VarFile):
             files_to_move.append(self.__thumb)
 
         for file_to_move in files_to_move:
-            newpath = Path(self.__AddonDir, self.creator,
-                        f"{file_to_move.name}")
+            creator_dir = self.creator
+            for ca in C_CREATORS_ALIAS:
+                if self.creator in C_CREATORS_ALIAS[ca]:
+                    creator_dir = ca
+                    break
+
+            newpath = self.__AddonDir / creator_dir / file_to_move.name
 
             if str(file_to_move).lower() == str(newpath).lower():
                 debug(f"Not moving {self.path}")
@@ -314,13 +323,13 @@ class Var(VarFile):
             ncrc = FileName(newpath, calc_crc=True).crc
 
             if fcrc == ncrc:
-                info(f"Exact same file exists, removing duplicate {self.path}")
+                debug(f"Exact same file exists, removing duplicate {self.path}")
                 try:
                     Path.unlink(file_to_move)
                 except PermissionError:
                     error(f"Couldnt remove {file_to_move}")
             else:
-                error(f"File {file_to_move} and {newpath} have same name but crc differ {fcrc} , {ncrc}. Remove yourself.") 
+                error(f"File {file_to_move} and {newpath} have same name but crc differ {fcrc} vs {ncrc}. Remove yourself.") 
 
     def treedown(self):
         """
@@ -423,7 +432,7 @@ class Var(VarFile):
     def delete_files(self, newref):
         tdir = self.tmpDir
         for nr in newref:
-            file = Path(tdir, nr)
+            file = tdir / nr
             debug(f"!! Erased {file.relative_to(self.tmpDir)}")
             try:
                 os.unlink(file)
@@ -444,7 +453,7 @@ class Var(VarFile):
             except ValueError:
                 # The exact file was not mentionned in the contentList
                 pass
-        with open(Path(tdir, "meta.json"), 'w') as f:
+        with open(tdir / "meta.json", 'w') as f:
             f.write(prettyjson(meta))
         debug("Modified meta")
 
