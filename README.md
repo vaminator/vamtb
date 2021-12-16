@@ -43,7 +43,7 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
   Database:
   vamtb dbsscan will scan your vars and create or if modification time is higher, update database
-  vamtb db allows running simple commands against the DB
+  vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
 
   Dependency graph (uses database)
   vamtb graph will graph your collection one graph per var
@@ -84,11 +84,12 @@ Options:
 Commands:
   checkdeps     Check dependencies of all var files.
   checkvars     Check all var files for consistency.
-  db            Execute commands on DB.
+  dbdel         Remove one var from DB.
   dbscan        Scan vars and store props in db.
   dump          Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
+  info          Return information on var.
   noroot        Remove root node stored in pose presets.
   orig          Revert to orig files.
   printdep      Print dependencies of a var from reading meta.
