@@ -633,9 +633,8 @@ class Var(VarFile):
         if confirm and iavar.exists or not iavar.identifier_available():
             if input("Item exists, update Y [N] ? ").upper() != "Y":
                 return False
-            res = iavar.upload(files = files, metadata=md, verbose=True)
-            debug(res)
-            return all(resp.status_code == 200 for resp in res)
+        res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
+        debug(res)
         else:
             error(f"Identifier {identifier} not available")
             return False
