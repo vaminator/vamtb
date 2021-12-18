@@ -34,17 +34,17 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, p
     """ VAM Toolbox
 
     \b
-    Dependency handling (from disk or database)
+    Dependency handling (from disk or database):
     vamtb checkdeps
     vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
     vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
     vamtb -f ClubJulze.Bangkok.1 printdep
     vamtb -f ClubJulze.Bangkok.1 printrealdep
     \b
-    Meta json handling (from disk)
+    Meta json handling (from disk):
     vamtb -f sapuzex.Cooking_Lesson.1 dump
     \b
-    Organizing (from disk)
+    Organizing (from disk):
     vamtb sortvar  Reorganize your var directories with <creator>/*
                 If a file already exists in that directory, CRC is checked before overwritting.
     vamtb statsvar will dump some statistics    
@@ -53,15 +53,18 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, p
     vamtb dbsscan will scan your vars and create or if modification time is higher, update database 
     vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
     \b
-    Dependency graph (uses database)
+    Dependency graph (uses database):
     vamtb graph will graph your collection one graph per var
     vamtb -f sapuzex.Cooking_Lesson.1 graph will graph this var
     vamtb -f sapuzex.* graph will graph vars matching
     \b
-    Duplication (uses database)
+    Deduplication (uses database):
     vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
     vamtb -f Wolverine333.% reref will dedup files from creator
     vamtb -x colorcorrect.assetbundle reref will remove all embedded colorcorrect.assetbundle from every var BUT the reference var
+    \b
+    Upload (uses database):
+    vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
 
     \b
     Character encoding on windows:
@@ -516,10 +519,12 @@ def orig(ctx):
 @catch_exception
 def ia(ctx):
     """
-    Upload to internet archive.
+    Upload var to Internet Archive item.
 
 
-    vamtb [-vv] [-f <file pattern>] ia
+    vamtb [-vv] [-a] [-f <file pattern>] ia
+
+    -a: Do not confirm, always answer yes (will overwrite IA with new content)
 
     """
 
@@ -527,7 +532,7 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload()
+                res = var.ia_upload(confirm=not ctx.obj['force'])
                 if res :
                     info(f"Var {var.var} uploaded successfully")
                 else:

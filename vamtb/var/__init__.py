@@ -590,8 +590,7 @@ class Var(VarFile):
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
 
-    def ia_upload(self):
-
+    def ia_upload(self, confirm = True):
         title = self.var
         mediatype = 'data'
         coll = "opensource_media"
@@ -631,8 +630,9 @@ class Var(VarFile):
         }
 
         iavar = get_item(identifier)
-        if iavar.identifier_available():
-            debug(f"Uploading {files} to identifier {identifier}")
+        if confirm and iavar.exists or not iavar.identifier_available():
+            if input("Item exists, update Y [N] ? ").upper() != "Y":
+                return False
             res = iavar.upload(files = files, metadata=md, verbose=True)
             debug(res)
             return all(resp.status_code == 200 for resp in res)
