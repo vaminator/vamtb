@@ -26,17 +26,17 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
   VAM Toolbox
 
-  Dependency handling (from disk or database)
+  Dependency handling (from disk or database):
   vamtb checkdeps
   vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
   vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
   vamtb -f ClubJulze.Bangkok.1 printdep
   vamtb -f ClubJulze.Bangkok.1 printrealdep
 
-  Meta json handling (from disk)
+  Meta json handling (from disk):
   vamtb -f sapuzex.Cooking_Lesson.1 dump
 
-  Organizing (from disk)
+  Organizing (from disk):
   vamtb sortvar  Reorganize your var directories with <creator>/*
               If a file already exists in that directory, CRC is checked before overwritting.
   vamtb statsvar will dump some statistics
@@ -45,15 +45,18 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   vamtb dbsscan will scan your vars and create or if modification time is higher, update database
   vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
 
-  Dependency graph (uses database)
+  Dependency graph (uses database):
   vamtb graph will graph your collection one graph per var
   vamtb -f sapuzex.Cooking_Lesson.1 graph will graph this var
   vamtb -f sapuzex.* graph will graph vars matching
 
-  Duplication (uses database)
+  Deduplication (uses database):
   vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
   vamtb -f Wolverine333.% reref will dedup files from creator
   vamtb -x colorcorrect.assetbundle reref will remove all embedded colorcorrect.assetbundle from every var BUT the reference var
+
+  Upload (uses database):
+  vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
 
   Character encoding on windows:
   On windows cmd will use cp1252 so you might get some errors displaying international characters.
@@ -89,6 +92,7 @@ Commands:
   dump          Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
+  ia            Upload var to Internet Archive item.
   info          Return information on var.
   noroot        Remove root node stored in pose presets.
   orig          Revert to orig files.
