@@ -623,7 +623,7 @@ class Var(VarFile):
             debug(f"Uploading {files} to identifier {identifier}")
             res = iavar.upload(files = files, metadata=md, verbose=True)
             debug(res)
-            return all(resp.status_code == "200" for resp in res)
+            return all(resp.status_code == 200 for resp in res)
         else:
             error(f"Identifier {identifier} not available")
             return False
