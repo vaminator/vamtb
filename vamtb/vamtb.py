@@ -510,4 +510,30 @@ def orig(ctx):
             os.unlink(mvarfile)
         os.rename(mfile, mvarfile)
 
+
+@cli.command('ia')
+@click.pass_context
+@catch_exception
+def ia(ctx):
+    """
+    Upload to internet archive.
+
+
+    vamtb [-vv] [-f <file pattern>] ia
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True) as var:
+            try:
+                res = var.ia_upload()
+                if res :
+                    info("Var {var.var} uploaded successfully")
+                else:
+                    error(f"Var {var.var} could not be uploaded")
+            except Exception as e:
+                error(f"Var {var.var} could not be uploaded, error is:\n{e}")
+
+
 #TODO add command for morph region /.. editing

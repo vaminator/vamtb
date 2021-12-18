@@ -5,9 +5,12 @@ import re
 import shutil
 import tempfile
 import json
+import time
 from pprint import pp
 from pathlib import Path
 from zipfile import ZipFile
+
+from internetarchive import get_item
 
 from vamtb.file import FileName
 from vamtb.varfile import VarFile
@@ -577,3 +580,51 @@ class Var(VarFile):
         print(green(f"Modified {self.path}"))
         self.store_update(confirm=False)
         print(green(f"Updated DB for {self.var}"))
+
+    @unzip
+    def scene_jpg(self):
+        jpgfn = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg")
+        if jpgfn:
+            return jpgfn[0]
+        else:
+            return []
+
+    def ia_upload(self):
+
+        title = self.var
+        mediatype = 'data'
+        coll = "opensource_media"
+        mtime = self.mtime
+        date = time.strftime("%Y-%m-%d", time.gmtime(mtime))
+        identifier = f'vam1__{self.var}'
+
+        license_url = { "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/"}
+        if self.license not in license_url:
+            return
+
+        scene_jpg = self.scene_jpg()
+        if not scene_jpg:
+            return
+        debug(f"Found thumb : {scene_jpg} ")
+        files = [str(self.path), str(scene_jpg)]
+        md = {
+            'title': title,
+            'mediatype' : mediatype,
+            'collection': coll,
+            'date': date,
+            'description': f"<div><i>{self.var}</i></div><br /><div><br />By {self.creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{self.creator}</a> <br /></div>",
+            'subject': ['virtamate', 'var', 'scene', self.var, self.creator],
+            'creator': self.creator,
+            'licenseurl': license_url[self.license]
+        }
+
+        iavar = get_item(identifier)
+        if iavar.identifier_available():
+            debug(f"Uploading {files} to identifier {identifier}")
+            res = iavar.upload(files = files, metadata=md, verbose=True)
+            debug(res)
+            return all(resp.status_code == "200" for resp in res)
+        else:
+            error(f"Identifier {identifier} not available")
+            return False
+
