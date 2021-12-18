@@ -583,8 +583,8 @@ class Var(VarFile):
 
     @unzip
     def get_thumbs(self)->str:
-        thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg")
-        custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vab") + search_files_indir(self.tmpDir / "Custom", "*.vmb")
+        thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+        custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
         for v in custom_bin:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
@@ -611,7 +611,7 @@ class Var(VarFile):
         thumbs = self.get_thumbs()
         if not thumbs:
             warn(f"No thumbs, not uploading.")
-            return
+            return False
 
         files = thumbs
         files.append(str(self.path))
@@ -621,19 +621,18 @@ class Var(VarFile):
             'mediatype' : mediatype,
             'collection': coll,
             'date': date,
-            'description': f"<div><i>{self.var}</i></div><br /><div><br />By {self.creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{self.creator}</a> <br /></div>",
+            'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
             'subject': ['virtamate', 'var', 'scene', self.var, self.creator],
-            'creator': self.creator,
-            'licenseurl': license_url[self.license]
+            'creator': creator,
+            'licenseurl': license_url
         }
 
         iavar = get_item(identifier)
         if confirm and iavar.exists or not iavar.identifier_available():
             if input("Item exists, update Y [N] ? ").upper() != "Y":
                 return False
+        debug(f"Uploading {files} to identifier {identifier}")
         res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
         debug(res)
-        else:
-            error(f"Identifier {identifier} not available")
-            return False
+        return all(resp.status_code == 200 for resp in res)
 
