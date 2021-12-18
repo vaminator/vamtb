@@ -529,7 +529,7 @@ def ia(ctx):
             try:
                 res = var.ia_upload()
                 if res :
-                    info("Var {var.var} uploaded successfully")
+                    info(f"Var {var.var} uploaded successfully")
                 else:
                     error(f"Var {var.var} could not be uploaded")
             except Exception as e:
