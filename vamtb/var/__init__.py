@@ -582,12 +582,13 @@ class Var(VarFile):
         print(green(f"Updated DB for {self.var}"))
 
     @unzip
-    def scene_jpg(self):
-        jpgfn = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg")
-        if jpgfn:
-            return jpgfn[0]
-        else:
-            return []
+    def get_thumbs(self)->str:
+        thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg")
+        custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vab") + search_files_indir(self.tmpDir / "Custom", "*.vmb")
+        for v in custom_bin:
+            if v.with_suffix(".jpg").exists():
+                thumbs.append(v.with_suffix(".jpg"))
+        return [ str(e) for e in thumbs ]
 
     def ia_upload(self):
 
@@ -596,17 +597,28 @@ class Var(VarFile):
         coll = "opensource_media"
         mtime = self.mtime
         date = time.strftime("%Y-%m-%d", time.gmtime(mtime))
-        identifier = f'vam1__{self.var}'
+        identifier = f"vam1__{self.var.replace(' ','_')}"
 
-        license_url = { "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/"}
+        license_url = {
+            "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/",
+            "CC BY": "https://creativecommons.org/licenses/by/4.0/",
+            "CC BY-NC": "https://creativecommons.org/licenses/by-nc/4.0",
+            "CC BY-ND": "https://creativecommons.org/licenses/by-nd/4.0",
+            "CC BY-SA": "https://creativecommons.org/licenses/by-sa/4.0",
+            }
         if self.license not in license_url:
+            warn(f"License is {self.license}, not uploading.")
+            return
+        debug(f"License is  : {self.license} ")
+
+        thumbs = self.get_thumbs()
+        if not thumbs:
+            warn(f"No thumbs, not uploading.")
             return
 
-        scene_jpg = self.scene_jpg()
-        if not scene_jpg:
-            return
-        debug(f"Found thumb : {scene_jpg} ")
-        files = [str(self.path), str(scene_jpg)]
+        files = thumbs
+        files.append(str(self.path))
+
         md = {
             'title': title,
             'mediatype' : mediatype,
