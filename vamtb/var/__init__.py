@@ -585,7 +585,8 @@ class Var(VarFile):
     def get_thumbs(self)->str:
         thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
         custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
-        for v in custom_bin:
+        custom_asset = search_files_indir(self.tmpDir / "Custom", "*.assetbundle", ign=True)
+        for v in custom_bin + custom_asset:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
