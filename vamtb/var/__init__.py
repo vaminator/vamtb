@@ -596,19 +596,17 @@ class Var(VarFile):
         coll = "opensource_media"
         mtime = self.mtime
         date = time.strftime("%Y-%m-%d", time.gmtime(mtime))
-        identifier = f"vam1__{self.var.replace(' ','_')}"
+        license_url = get_license_url(self.license)
+        creator = self.creator
+        identifier = ia_identifier(self.var)
 
-        license_url = {
-            "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/",
-            "CC BY": "https://creativecommons.org/licenses/by/4.0/",
-            "CC BY-NC": "https://creativecommons.org/licenses/by-nc/4.0",
-            "CC BY-ND": "https://creativecommons.org/licenses/by-nd/4.0",
-            "CC BY-SA": "https://creativecommons.org/licenses/by-sa/4.0",
-            }
-        if self.license not in license_url:
-            warn(f"License is {self.license}, not uploading.")
-            return
-        debug(f"License is  : {self.license} ")
+        if self.latest() != self.var:
+            warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
+            return False
+        if not license_url:
+            warn(f"License is {self.license}, no URL.")
+            license_url = ""
+            # return
 
         thumbs = self.get_thumbs()
         if not thumbs:

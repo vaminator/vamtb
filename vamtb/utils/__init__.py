@@ -145,3 +145,18 @@ def del_empty_dirs(target_path):
                 os.removedirs(p)
             except:
                 pass
+
+def ia_identifier(s:str)->str:
+    return "vam1__"  + s.replace(' ','_').replace('&', '_').replace("'", "_")
+
+def get_license_url(s):
+    license_url = {
+        "CC BY": "https://creativecommons.org/licenses/by/4.0/",
+        "CC BY-NC": "https://creativecommons.org/licenses/by-nc/4.0",
+        "CC BY-NC-ND": "https://creativecommons.org/licenses/by-nc-nd/4.0",
+        "CC BY-ND": "https://creativecommons.org/licenses/by-nd/4.0",
+        "CC BY-SA": "https://creativecommons.org/licenses/by-sa/4.0",
+        "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/",
+        }
+
+    return license_url.get(s, None)
