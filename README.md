@@ -107,3 +107,10 @@ The dbscan subcommand will generate a sqlite file that you can browse. You will 
 
 ## Graphs
 For graph subcommand to work, you will need dot from [graphviz](https://www.graphviz.org/download/) installed in c:\Graphviz\bin\dot.exe
+
+## Internet archive
+Your IA credentials should be configured before using ia to upload to archive.org
+
+```text
+ia configure
+```

@@ -29,7 +29,8 @@ setup(
         "Pillow", 
         "piexif",
         "tqdm",
-        "colorama"
+        "colorama",
+        "internetarchive"
       ],
       extras_require={
          'test': [
