@@ -183,7 +183,7 @@ class VarFile:
             return (self.get_prop_vars("VARNAME") != None)
 
     def latest(self):
-        assert(self.var.endswith(".latest"))
+        # assert(self.var.endswith(".latest"))
         sql="SELECT VARNAME FROM VARS WHERE VARNAME LIKE ? COLLATE NOCASE"
         var_nov = self.var_nov
         row = (f"{var_nov}%", )
