@@ -42,10 +42,10 @@ C_MAX_SIZE = 20 * 1024 * 1024
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)
 
-def search_files_indir(fpath, pattern):
+def search_files_indir(fpath, pattern, ign = False):
     pattern = re.sub(r'([\[\]])','[\\1]',pattern)
     res = [ x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file() ]
-    if not res:
+    if not ign and not res:
         warn("No files found matching pattern")
     return res
 
