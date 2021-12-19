@@ -645,7 +645,7 @@ class Var(VarFile):
         iavar = get_item(identifier)
         # Meta only: no overwrite confirmation
         if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
-            if input("Item exists, update Y [N] ? ").upper() != "Y":
+            if input(f"Item {self.var} exists, update Y [N] ? ").upper() != "Y":
                 return False
         if meta_only:
             if iavar.exists:
