@@ -29,6 +29,7 @@ setup(
         "Pillow", 
         "piexif",
         "tqdm",
+        "pyyaml",
         "colorama",
         "internetarchive"
       ],
