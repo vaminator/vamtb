@@ -600,6 +600,7 @@ class Var(VarFile):
         license_url = get_license_url(self.license)
         creator = self.creator
         identifier = ia_identifier(self.var)
+        tags = ["virtamate"]
 
         if self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
@@ -624,7 +625,8 @@ class Var(VarFile):
                 content_tag.append('clothes')
             if any("Hair" in thumb for thumb in thumbs):
                 content_tag.append('hairs')
-        subject = ["virtamate", creator].extend(content_tag)
+
+        content_tag.extend(tags)
 
         files = thumbs
         files.append(str(self.path))
@@ -635,7 +637,7 @@ class Var(VarFile):
             'collection': coll,
             'date': date,
             'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
-            'subject': subject,
+            'subject': content_tag,
             'creator': creator,
             'licenseurl': license_url
         }
@@ -647,7 +649,9 @@ class Var(VarFile):
                 return False
         if meta_only:
             debug(f"Modifying metadata for {identifier}")
-            res = iavar.modify_metadata(metadata=md)
+            # TODO JSON Patch syntax
+#            res = iavar.modify_metadata(metadata=md, append=False, append_list=False)
+            print(iavar.metadata)
             return True
         else:
             debug(f"Uploading {files} to identifier {identifier}")
