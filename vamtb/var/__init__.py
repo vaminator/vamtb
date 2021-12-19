@@ -623,7 +623,7 @@ class Var(VarFile):
             'collection': coll,
             'date': date,
             'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
-            'subject': ['virtamate', 'var', 'scene', self.var, self.creator],
+            'subject': ['virtamate', self.creator],
             'creator': creator,
             'licenseurl': license_url
         }
