@@ -648,11 +648,16 @@ class Var(VarFile):
             if input("Item exists, update Y [N] ? ").upper() != "Y":
                 return False
         if meta_only:
-            debug(f"Modifying metadata for {identifier}")
-            # TODO JSON Patch syntax
-#            res = iavar.modify_metadata(metadata=md, append=False, append_list=False)
-            print(iavar.metadata)
-            return True
+            if iavar.exists:
+                debug(f"Modifying metadata for {identifier}")
+                # TODO JSON Patch syntax
+                # print(iavar.metadata)
+                debug(f"\nMetadata was {iavar.metadata}\n\nNow setting to {md}")
+                res = iavar.modify_metadata(metadata=md, append=False, append_list=False)
+                return True
+            else:
+                warn("Item does not exists, can't update metadata")
+                return False
         else:
             debug(f"Uploading {files} to identifier {identifier}")
             res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
