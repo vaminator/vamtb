@@ -28,7 +28,7 @@ from vamtb.varfile import VarFile
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
-@click.option('-e', '--meta/--no-meta', default=False,          help="Only upload metadata.")
+@click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
 @click.pass_context
 def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress):
     # pylint: disable=anomalous-backslash-in-string

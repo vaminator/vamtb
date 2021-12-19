@@ -80,8 +80,8 @@ Options:
   -q, --remove / --no-remove      Remove var from DB.
   -z, --setref / --no-setref      Set var as reference.
   -b, --usedb / --no-usedb        Use DB.
-  -a, --force / --no-force        When scanning DB, always replace with new
-                                  files.
+  -a, --force / --no-force        Do not ask for confirmation.
+  -e, --meta / --no-meta          Only reset subject metadata.
   --help                          Show this message and exit.
 
 Commands:
