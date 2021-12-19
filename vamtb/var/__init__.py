@@ -602,7 +602,7 @@ class Var(VarFile):
         tags = ["virtamate"]
 
         info(f"Request to upload {self.var} [size {toh(self.size)}]")
-        if self.latest() != self.var:
+        if not meta_only and self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
             return False
         if not license_url:
