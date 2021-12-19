@@ -532,16 +532,18 @@ def ia(ctx):
     """
 
     file, dir, pattern = get_filepattern(ctx)
+    n_up = 0
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
                 res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False)
                 if res :
                     print(green(f"Var {var.var} uploaded successfully"))
+                    n_up += 1
                 else:
                     error(f"Var {var.var} could not be uploaded")
             except Exception as e:
                 error(f"Var {var.var} could not be uploaded, error is:\n{e}")
-
+    print(green(f"{n_up} vars were uploaded"))
 
 #TODO add command for morph region /.. editing

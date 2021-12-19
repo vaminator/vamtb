@@ -159,4 +159,4 @@ def get_license_url(s):
         "CC BY-NC-SA" : "http://creativecommons.org/licenses/by-nc-sa/4.0/",
         }
 
-    return license_url.get(s, None)
+    return license_url.get(s, "")

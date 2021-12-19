@@ -10,6 +10,7 @@ from pprint import pp
 from pathlib import Path
 from zipfile import ZipFile
 from internetarchive import get_item
+from requests.models import Response
 
 from vamtb.file import FileName
 from vamtb.varfile import VarFile
@@ -590,6 +591,19 @@ class Var(VarFile):
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
 
+    @unzip
+    def get_resources_type(self):
+        types = []
+        if search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True):
+            types.append("scene")
+        if search_files_indir(self.tmpDir / "Custom" / "Clothing", "*.vaj", ign=True):
+            types.append("clothes")
+        if search_files_indir(self.tmpDir / "Custom" / "Hair", "*.vaj", ign=True):
+            types.append("hairs")
+        if search_files_indir(self.tmpDir / "Custom" / "Assets", "*.assetbundle", ign=True):
+            types.append("asset")
+        return types
+
     def ia_upload(self, confirm = True, meta_only = False, verbose = False):
         title = self.var
         mediatype = 'data'
@@ -599,34 +613,26 @@ class Var(VarFile):
         license_url = get_license_url(self.license)
         creator = self.creator
         identifier = ia_identifier(self.var)
-        tags = ["virtamate"]
+        base_tags = ["virtamate"]
+        types = self.get_resources_type()
 
         info(f"Request to upload {self.var} [size {toh(self.size)}]")
+
         if not meta_only and self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
             return False
+
         if not license_url:
             warn(f"License is {self.license}, no URL.")
-            license_url = ""
-            # return
 
         thumbs = self.get_thumbs()
         if not thumbs:
             warn(f"No thumbs, not uploading.")
             return False
 
-        content_tag=[]
-        if any("scene" in thumb for thumb in thumbs):
-            content_tag.append('scene')
-        else:
-            if any(".assetbundle" in thumb for thumb in thumbs):
-                content_tag.append('asset')
-            if any("Clothing" in thumb for thumb in thumbs):
-                content_tag.append('clothes')
-            if any("Hair" in thumb for thumb in thumbs):
-                content_tag.append('hairs')
-
-        content_tag.extend(tags)
+        debug(f"var {self.var} contains: {types}")
+        subjects = ['scene'] if "scene" in types else types
+        subjects.extend(base_tags)
 
         files = thumbs
         files.append(str(self.path))
@@ -637,7 +643,7 @@ class Var(VarFile):
             'collection': coll,
             'date': date,
             'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
-            'subject': content_tag,
+            'subject': subjects,
             'creator': creator,
             'licenseurl': license_url
         }
@@ -657,9 +663,9 @@ class Var(VarFile):
                 else:
                     error(f"Subject was not changed: {res.content}")
                 # Apply new subject
-                res = iavar.modify_metadata(metadata = { "subject": content_tag }, append=True)
+                res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
                 if res:
-                    info(f"Subject and topics set to {content_tag}")
+                    info(f"Subject and topics set to {subjects}")
                 else:
                     error(f"Subject was not set: {res.content}")
                 return res.status_code == 200
@@ -675,6 +681,7 @@ class Var(VarFile):
                 files = files,
                 metadata=md,
                 verbose=verbose)
-        debug(res)
-        return all(resp.status_code == 200 for resp in res)
+            debug(res)
+        # Upload will return empty Response() when checksum match. BAD
+        return all(resp.status_code == 200 or resp.status_code == None for resp in res)
 
