@@ -27,9 +27,10 @@ from vamtb.varfile import VarFile
 @click.option('-q', '--remove/--no-remove', default=False,      help="Remove var from DB.")
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
-@click.option('-a', '--force/--no-force', default=False,        help="When scanning DB, always replace with new files.")
+@click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
+@click.option('-e', '--meta/--no-meta', default=False,          help="Only upload metadata.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, progress):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -93,6 +94,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, p
     ctx.obj['remove']      = remove
     ctx.obj['setref']      = setref
     ctx.obj['force']       = force
+    ctx.obj['meta']        = meta
     conf = {}
     
     try:
@@ -522,9 +524,10 @@ def ia(ctx):
     Upload var to Internet Archive item.
 
 
-    vamtb [-vv] [-a] [-f <file pattern>] ia
+    vamtb [-vv] [-a] [-e] [-f <file pattern>] ia
 
     -a: Do not confirm, always answer yes (will overwrite IA with new content)
+    -e: Only update metadata
 
     """
 
@@ -532,7 +535,7 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload(confirm=not ctx.obj['force'])
+                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'])
                 if res :
                     info(f"Var {var.var} uploaded successfully")
                 else:

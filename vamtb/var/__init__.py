@@ -591,7 +591,7 @@ class Var(VarFile):
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
 
-    def ia_upload(self, confirm = True):
+    def ia_upload(self, confirm = True, meta_only = False):
         title = self.var
         mediatype = 'data'
         coll = "opensource_media"
@@ -614,6 +614,18 @@ class Var(VarFile):
             warn(f"No thumbs, not uploading.")
             return False
 
+        content_tag=[]
+        if any("scene" in thumb for thumb in thumbs):
+            content_tag.append('scene')
+        else:
+            if any(".assetbundle" in thumb for thumb in thumbs):
+                content_tag.append('asset')
+            if any("Clothing" in thumb for thumb in thumbs):
+                content_tag.append('clothes')
+            if any("Hair" in thumb for thumb in thumbs):
+                content_tag.append('hairs')
+        subject = ["virtamate", creator].extend(content_tag)
+
         files = thumbs
         files.append(str(self.path))
 
@@ -623,17 +635,23 @@ class Var(VarFile):
             'collection': coll,
             'date': date,
             'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
-            'subject': ['virtamate', self.creator],
+            'subject': subject,
             'creator': creator,
             'licenseurl': license_url
         }
 
         iavar = get_item(identifier)
-        if confirm and iavar.exists or not iavar.identifier_available():
+        # Meta only: no overwrite confirmation
+        if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
             if input("Item exists, update Y [N] ? ").upper() != "Y":
                 return False
-        debug(f"Uploading {files} to identifier {identifier}")
-        res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
+        if meta_only:
+            debug(f"Modifying metadata for {identifier}")
+            res = iavar.modify_metadata(metadata=md)
+            return True
+        else:
+            debug(f"Uploading {files} to identifier {identifier}")
+            res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
         debug(res)
         return all(resp.status_code == 200 for resp in res)
 
