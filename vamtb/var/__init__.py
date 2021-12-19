@@ -9,7 +9,6 @@ import time
 from pprint import pp
 from pathlib import Path
 from zipfile import ZipFile
-
 from internetarchive import get_item
 
 from vamtb.file import FileName
@@ -591,7 +590,7 @@ class Var(VarFile):
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
 
-    def ia_upload(self, confirm = True, meta_only = False):
+    def ia_upload(self, confirm = True, meta_only = False, verbose = False):
         title = self.var
         mediatype = 'data'
         coll = "opensource_media"
@@ -602,6 +601,7 @@ class Var(VarFile):
         identifier = ia_identifier(self.var)
         tags = ["virtamate"]
 
+        info(f"Request to upload {self.var} [size {toh(self.size)}]")
         if self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
             return False
@@ -650,17 +650,25 @@ class Var(VarFile):
         if meta_only:
             if iavar.exists:
                 debug(f"Modifying metadata for {identifier}")
-                # TODO JSON Patch syntax
-                # print(iavar.metadata)
-                debug(f"\nMetadata was {iavar.metadata}\n\nNow setting to {md}")
-                res = iavar.modify_metadata(metadata=md, append=False, append_list=False)
-                return True
+                # Clear subject
+                res = iavar.modify_metadata(metadata = { "subject": "REMOVE_TAG" })
+                if res:
+                    info("Subject and topics cleared")
+                else:
+                    error(f"Subject was not changed: {res.content}")
+                # Apply new subject
+                res = iavar.modify_metadata(metadata = { "subject": content_tag }, append=True)
+                if res:
+                    info(f"Subject and topics set to {content_tag}")
+                else:
+                    error(f"Subject was not set: {res.content}")
+                return res.status_code == 200
             else:
                 warn("Item does not exists, can't update metadata")
                 return False
         else:
             debug(f"Uploading {files} to identifier {identifier}")
-            res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=True)
+            res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=verbose)
         debug(res)
         return all(resp.status_code == 200 for resp in res)
 

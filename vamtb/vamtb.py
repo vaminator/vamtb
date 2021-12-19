@@ -527,7 +527,7 @@ def ia(ctx):
     vamtb [-vv] [-a] [-e] [-f <file pattern>] ia
 
     -a: Do not confirm, always answer yes (will overwrite IA with new content)
-    -e: Only update metadata
+    -e: Only update metadata subject
 
     """
 
@@ -535,9 +535,9 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'])
+                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False)
                 if res :
-                    info(f"Var {var.var} uploaded successfully")
+                    print(green(f"Var {var.var} uploaded successfully"))
                 else:
                     error(f"Var {var.var} could not be uploaded")
             except Exception as e:
