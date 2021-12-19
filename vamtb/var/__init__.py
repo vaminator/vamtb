@@ -668,7 +668,13 @@ class Var(VarFile):
                 return False
         else:
             debug(f"Uploading {files} to identifier {identifier}")
-            res = iavar.upload(validate_identifier=True, files = files, metadata=md, verbose=verbose)
+            res = iavar.upload(
+                validate_identifier=True,
+                checksum=True,
+                verify=True,
+                files = files,
+                metadata=md,
+                verbose=verbose)
         debug(res)
         return all(resp.status_code == 200 for resp in res)
 
