@@ -147,7 +147,7 @@ def del_empty_dirs(target_path):
                 pass
 
 def ia_identifier(s:str)->str:
-    return "vam1__"  + s.replace(' ','_').replace('&', '_').replace("'", "_")
+    return "vam1__" + re.sub('[^0-9a-zA-Z\._\-]+', '_', s)
 
 def get_license_url(s):
     license_url = {
