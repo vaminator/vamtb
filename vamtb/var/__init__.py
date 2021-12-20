@@ -606,15 +606,14 @@ class Var(VarFile):
 
     def ia_upload(self, confirm = True, meta_only = False, verbose = False):
         title = self.var
+        creator = self.creator
+        date = time.strftime("%Y-%m-%d", time.gmtime(self.mtime))
+        license_url = get_license_url(self.license)
+        types = self.get_resources_type()
         mediatype = 'data'
         coll = "opensource_media"
-        mtime = self.mtime
-        date = time.strftime("%Y-%m-%d", time.gmtime(mtime))
-        license_url = get_license_url(self.license)
-        creator = self.creator
-        identifier = ia_identifier(self.var)
         base_tags = ["virtamate"]
-        types = self.get_resources_type()
+        identifier = ia_identifier(self.var)
 
         info(f"Request to upload {self.var} [size {toh(self.size)}]")
 
@@ -661,7 +660,7 @@ class Var(VarFile):
                 if res:
                     info("Subject and topics cleared")
                 else:
-                    error(f"Subject was not changed: {res.content}")
+                    warn(f"Subject was not changed: {res.content}")
                 # Apply new subject
                 res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
                 if res:

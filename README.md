@@ -58,10 +58,6 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   Upload (uses database):
   vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
 
-  Character encoding on windows:
-  On windows cmd will use cp1252 so you might get some errors displaying international characters.
-  Start vamtb with python -X utf8 vamtb.py <rest of parameters>
-
   File filters:
   You can use wildcards with % caracter: vamtb -f Community.% dupinfo
 
