@@ -169,7 +169,11 @@ class Var(VarFile):
 
     def meta(self) -> dict:
         if not self._meta:
-            self._meta = self.load_json_file("meta.json")
+            try:
+                self._meta = self.load_json_file("meta.json")
+            except json.decoder.JSONDecodeError as e:
+                critical(f"Meta.json from {self.var} is broken [{e}]", doexit=True)
+                raise VarMetaJson(self.var)
         return self._meta
 
     @property
