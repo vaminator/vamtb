@@ -505,11 +505,13 @@ def orig(ctx):
 
     file, dir, pattern = get_filepattern(ctx)
     for mfile in search_files_indir(dir, pattern.replace(".var", ".orig")):
-        mvarfile = mfile.with_suffix(".var")
-        debug(f"Restoring {mfile} to {mvarfile}")
-        if mvarfile.exists():
-            os.unlink(mvarfile)
-        os.rename(mfile, mvarfile)
+        varfile = mfile.with_suffix(".var")
+        debug(f"Restoring {mfile} to {varfile}")
+        if varfile.exists():
+            os.unlink(varfile)
+        os.rename(mfile, varfile)
+        with Var(varfile, dir, use_db=True, check_exists=False) as var:
+            var.store_update(confirm=False)
 
 
 @cli.command('ia')
