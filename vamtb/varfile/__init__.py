@@ -116,7 +116,7 @@ class VarFile:
         else:
             assert(False)
 
-    def store_var(self):
+    def _store_var(self):
         """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
         creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
         size = FileName(self.path).size
@@ -155,7 +155,7 @@ class VarFile:
         info(f"Stored var {self.var} in DB")
         return True
 
-    def store_update(self, confirm = True):
+    def _store_update(self, confirm = True):
         if self.exists():
             debug(f"{self.var} already in database")
             if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:

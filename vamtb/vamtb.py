@@ -234,7 +234,7 @@ def check_vars(ctx):
         iterator = tqdm(vars_list, desc="Checking vars…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for file in iterator:
         try:
-            with Var(file, dir, zipcheck=True) as var:
+            with Var(file, dir, checkVar=True) as var:
                 try:
                     _ = var.meta()
                 except FileNotFoundError:

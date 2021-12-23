@@ -21,7 +21,7 @@ from vamtb.log import *
 
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, use_db = False, zipcheck=False, check_exists = True):
+    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -62,8 +62,8 @@ class Var(VarFile):
             else:
                 warn(f"{self.var} at {self.path} is not in DB, run dbscan.")
         
-        if zipcheck:
-            self.zipcheck()
+        if checkVar:
+            self.check()
 
     @property
     def path(self) -> str:
@@ -102,6 +102,30 @@ class Var(VarFile):
             self.__tmpTempDir.cleanup()
         pass
 
+    def check(self):
+        self.zipcheck()
+        _ = self.meta()
+        if not (
+            Path(self.tmpDir / "Custom").exists() or 
+            Path(self.tmpDir / "Saves").exists()):
+            raise VarMalformed(self.var)
+
+    def store_var(self):
+        try:
+            self.check()
+        except Exception as e:
+            critical("Can't store var {self.var} as it has errors..")
+            return False
+        return super()._store_var(self)
+
+    def store_update(self, confirm):
+        try:
+            self.check()
+        except Exception as e:
+            critical("Can't store var {self.var} as it has errors..")
+            return False
+        return super()._store_update(self, confirm)
+
     def zipcheck(self):
         with ZipFile(self.path) as zipf:
             res = zipf.testzip()
@@ -109,7 +133,6 @@ class Var(VarFile):
                 critical(f"Zip {self.path} is corrupted, can't open file {res}.")
             else:
                 info(f"Zip {self.path} is ok.")
-
 
     def search(self, pattern)-> Path:
         fpath = self.__AddonDir
@@ -677,6 +700,7 @@ class Var(VarFile):
                 return False
         else:
             debug(f"Uploading {files} to identifier {identifier}")
+            # FIXME when var has same filename in different directory, only last one will be kept
             res = iavar.upload(
                 validate_identifier=True,
                 checksum=True,

@@ -25,6 +25,14 @@ class VarNotFound(OneParamException):
         super().__init__(varname, "VarNotFound")
 
 
+class VarMalformed(Exception):
+    """Exception raised for VAR not having a normal file structure.
+
+    """
+
+    def __init__(self, varname):
+        super().__init__(varname, "VarMalformed")
+
 class VarNameNotCorrect(Exception):
     """Exception raised for incorrectly named VAR.
 
