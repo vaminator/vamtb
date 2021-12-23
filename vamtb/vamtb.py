@@ -355,8 +355,11 @@ def dbscan(ctx):
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
-            if var.store_update(confirm=False if ctx.obj['force'] else True):
-                stored += 1
+            try:
+                if var.store_update(confirm=False if ctx.obj['force'] else True):
+                    stored += 1
+            except VarMalformed as e:
+                error(f"Var {var.var} malformed [{e}].")
     info(f"{stored} var files stored")
 
 @cli.command('graph')
@@ -511,8 +514,11 @@ def orig(ctx):
             os.unlink(varfile)
         os.rename(mfile, varfile)
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
-            var.store_update(confirm=False)
-
+            # If someone corrupted an .orig file
+            try:
+                var.store_update(confirm=False)
+            except Exception as e:
+                error(f"Var {var.var} could not be uploaded, error is:\n{e}")
 
 @cli.command('ia')
 @click.pass_context

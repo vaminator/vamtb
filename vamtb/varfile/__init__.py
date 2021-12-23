@@ -116,7 +116,7 @@ class VarFile:
         else:
             assert(False)
 
-    def _store_var(self):
+    def _store_var(self) -> None:
         """ Insert (if NE) or update (if Time>) or do nothing (if Time=) """
         creator, version, modified_time, cksum = (self.creator, self.version, self.mtime, self.crc)
         size = FileName(self.path).size
@@ -153,26 +153,6 @@ class VarFile:
 
         self.db_commit()
         info(f"Stored var {self.var} in DB")
-        return True
-
-    def _store_update(self, confirm = True):
-        if self.exists():
-            debug(f"{self.var} already in database")
-            if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:
-                return False
-            info(f"Database is not inline.")
-            if confirm == False:
-                res = "Y"
-            else:
-                #TODO don't allow anything else than Enter, Y, N
-                res = input(blue(f"Remove older DB for {self.path} [Y]N  ?"))
-            if not res or res == "Y":
-                self.db_delete() 
-                self.db_commit()
-            else:
-                self.db_commit(rollback = True)
-                return False
-        return self.store_var()
 
     def exists(self):
         if self.var.endswith(".latest"):

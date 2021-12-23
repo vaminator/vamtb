@@ -105,26 +105,35 @@ class Var(VarFile):
     def check(self):
         self.zipcheck()
         _ = self.meta()
-        if not (
+
+        if self.tmpDir.exists() and not (
             Path(self.tmpDir / "Custom").exists() or 
             Path(self.tmpDir / "Saves").exists()):
             raise VarMalformed(self.var)
 
-    def store_var(self):
-        try:
-            self.check()
-        except Exception as e:
-            critical("Can't store var {self.var} as it has errors..")
-            return False
-        return super()._store_var(self)
+    def store_var(self)->None:
+        self.check()
+        super()._store_var()
 
-    def store_update(self, confirm):
-        try:
-            self.check()
-        except Exception as e:
-            critical("Can't store var {self.var} as it has errors..")
-            return False
-        return super()._store_update(self, confirm)
+    def store_update(self, confirm = True) -> bool:
+        if self.exists():
+            debug(f"{self.var} already in database")
+            if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:
+                return False
+            info(f"Database is not inline.")
+            if confirm == False:
+                res = "Y"
+            else:
+                #TODO don't allow anything else than Enter, Y, N
+                res = input(blue(f"Remove older DB for {self.path} [Y]N  ?"))
+            if not res or res == "Y":
+                self.db_delete() 
+                self.db_commit()
+            else:
+                self.db_commit(rollback = True)
+                return False
+        self.store_var()
+        return True
 
     def zipcheck(self):
         with ZipFile(self.path) as zipf:
@@ -700,7 +709,8 @@ class Var(VarFile):
                 return False
         else:
             debug(f"Uploading {files} to identifier {identifier}")
-            # FIXME when var has same filename in different directory, only last one will be kept
+            # TODO when var has same filename in different directory, only last one will be kept
+            # TODO but files could have same filename and be identical, in that case no need to clutter thumbs..
             res = iavar.upload(
                 validate_identifier=True,
                 checksum=True,
