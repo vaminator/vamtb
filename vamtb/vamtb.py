@@ -585,4 +585,19 @@ def anon(ctx):
                 error(f"Var {var.var} could not be uploaded, error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
 
+@cli.command('multiup')
+@click.pass_context
+@catch_exception
+def multiup(ctx):
+    """
+    Upload var to multiple place.
+
+
+    vamtb [-vv] [-f <file pattern>] multiup
+
+    """
+
+    ia(ctx)
+    anon(ctx)
+
 #TODO add command for morph region /.. editing
