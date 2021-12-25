@@ -724,4 +724,10 @@ class Var(VarFile):
     def anon_upload(self, apikey):
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         r =  requests.post(url, files={'file': open(self.path, 'rb')})
-        return r.status_code == 200
+        j = r.json()
+        if r.status_code == 200:
+            print(green(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}"))
+            return True
+        else:
+            error(f"Anonfiles gave response:{j}")
+            return False
