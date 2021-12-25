@@ -81,6 +81,7 @@ Options:
   --help                          Show this message and exit.
 
 Commands:
+  anon          Upload var to Anonfiles.
   checkdeps     Check dependencies of all var files.
   checkvars     Check all var files for consistency.
   dbdel         Remove one var from DB.
@@ -90,6 +91,7 @@ Commands:
   graph         Generate graph of deps, one per var.
   ia            Upload var to Internet Archive item.
   info          Return information on var.
+  multiup       Upload var to multiple place.
   noroot        Remove root node stored in pose presets.
   orig          Revert to orig files.
   printdep      Print dependencies of a var from reading meta.
