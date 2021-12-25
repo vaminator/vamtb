@@ -597,7 +597,7 @@ def multiup(ctx):
 
     """
 
-    ia(ctx)
-    anon(ctx)
+    ctx.invoke(ia)
+    ctx.invoke(anon)
 
 #TODO add command for morph region /.. editing

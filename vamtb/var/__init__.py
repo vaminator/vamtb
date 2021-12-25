@@ -650,7 +650,7 @@ class Var(VarFile):
         base_tags = ["virtamate"]
         identifier = ia_identifier(self.var)
 
-        info(f"Request to upload {self.var} [size {toh(self.size)}]")
+        info(f"Request to upload {self.var} [size {toh(self.size)}] to Internet archive...")
 
         if not meta_only and self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
@@ -722,6 +722,7 @@ class Var(VarFile):
         return all(resp.status_code == 200 or resp.status_code == None for resp in res)
 
     def anon_upload(self, apikey):
+        info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         r =  requests.post(url, files={'file': open(self.path, 'rb')})
         j = r.json()
