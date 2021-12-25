@@ -550,4 +550,39 @@ def ia(ctx):
                 error(f"Var {var.var} could not be uploaded, error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
 
+@cli.command('anon')
+@click.pass_context
+@catch_exception
+def anon(ctx):
+    """
+    Upload var to Anonfiles. You need an account overthere.
+
+
+    vamtb [-vv] [-f <file pattern>] anon
+
+    """
+
+    with open(C_YAML, 'r') as stream:
+        conf = yaml.load(stream, Loader=yaml.BaseLoader)
+    if 'anon_apikey' not in conf or not conf['anon_apikey']:
+        conf['anon_apikey'] = input(blue("Enter Anonfiles apikey ?:"))
+        with open(C_YAML, 'w') as outfile:
+            yaml.dump(conf, outfile, default_flow_style=False)
+        info(f"Stored apikey for future use.")
+
+    file, dir, pattern = get_filepattern(ctx)
+    n_up = 0
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True) as var:
+            try:
+                res = var.anon_upload(apikey = conf['anon_apikey'])
+                if res :
+                    print(green(f"Var {var.var} uploaded successfully"))
+                    n_up += 1
+                else:
+                    error(f"Var {var.var} could not be uploaded")
+            except Exception as e:
+                error(f"Var {var.var} could not be uploaded, error is:\n{e}")
+    print(green(f"{n_up} vars were uploaded"))
+
 #TODO add command for morph region /.. editing

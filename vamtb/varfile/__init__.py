@@ -1,13 +1,6 @@
 '''Var file naming'''
-import json
-import os
-import re
-import shutil
-import tempfile
-import json
 from pprint import pp
 from pathlib import Path
-from zipfile import ZipFile
 
 from vamtb.db import Dbs
 from vamtb.file import FileName

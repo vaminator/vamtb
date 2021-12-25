@@ -6,11 +6,10 @@ import shutil
 import tempfile
 import json
 import time
-from pprint import pp
+import requests
 from pathlib import Path
 from zipfile import ZipFile
 from internetarchive import get_item
-from requests.models import Response
 
 from vamtb.file import FileName
 from vamtb.varfile import VarFile
@@ -722,3 +721,7 @@ class Var(VarFile):
         # Upload will return empty Response() when checksum match. BAD
         return all(resp.status_code == 200 or resp.status_code == None for resp in res)
 
+    def anon_upload(self, apikey):
+        url = f"https://api.anonfiles.com/upload?token={apikey}"
+        r =  requests.post(url, files={'file': open(self.path, 'rb')})
+        return r.status_code == 200
