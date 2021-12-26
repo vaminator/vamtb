@@ -266,9 +266,10 @@ class Var(VarFile):
         global depend_node
 
         # For dependency loop tracking, init nodes
+        info(f"Checking dep of {self.var}")
         if init:
             depend_node = [ self.var ]
-        for dep in self.dep_fromfiles():
+        for dep in sorted(self.dep_fromfiles()):
             if dep not in depend_node:
                 depend_node.append(dep)
                 try:
@@ -278,7 +279,7 @@ class Var(VarFile):
                             var.depend(recurse=True, init = False, check = check)
                 except VarNotFound as e:
                     if check:
-                        error(f"{dep} Not found")
+                        warn(f"{dep} Not found")
                     if stop:
                         raise
                 else:

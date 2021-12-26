@@ -126,17 +126,20 @@ def printdep(ctx):
     vamtb [-vv] [-f <file pattern> ] printdep
 
     Recursive (will print deps of deps etc)"""
+
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
-    with Var(file, dir) as var:
-        for depvar in sorted(var.dep_frommeta(), key=str.casefold):
-            try:
-                var = Var(depvar, dir)
-            except VarNotFound:
-                mess = red("Not found")
-            else:
-                mess = green("Found")
-            print(f"{depvar:<60}: {mess}")
+    for varfile in search_files_indir(dir, pattern):
+        with Var(file, dir) as var:
+            depvarfiles = sorted(var.dep_frommeta(), key=str.casefold)
+            print(f"Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
+            for depvarfile in sorted(var.dep_frommeta(), key=str.casefold):
+                try:
+                    _ = Var(depvarfile, dir)
+                except VarNotFound:
+                    mess = red("Not found")
+                else:
+                    mess = green("Found")
+                print(f"{depvarfile:<68}: {mess}")
 
 @cli.command('printrealdep')
 @click.pass_context
@@ -149,19 +152,20 @@ def printrealdep(ctx):
 
     Not recursive"""
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
-
-    var = Var(file, dir)
-    deps = var.dep_fromfiles()
-    for depvar in sorted(deps, key=str.casefold):
-        mess = green("Found")
-        try:
-            var = Var(depvar, dir)
-        except VarNotFound:
-            mess = red("Not found")
-        else:
-            mess = green("Found")
-        print(f"{depvar:<60}: {mess}")
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir) as var:
+            deps = var.dep_fromfiles()
+            depvarfiles = sorted(deps, key=str.casefold)
+            print(f"Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
+            for depvarfile in depvarfiles:
+                mess = green("Found")
+                try:
+                    _ = Var(depvarfile, dir)
+                except VarNotFound:
+                    mess = red("Not found")
+                else:
+                    mess = green("Found")
+                print(f"{depvarfile:<68}: {mess}")
 
 @cli.command('dump')
 @click.pass_context
@@ -271,14 +275,14 @@ def stats_vars(ctx):
     for k, v in reversed(sorted(creators_file.items(), key=lambda item: len(item[1]))):
         print("Creator %s has %d files" % (k, len(v)))
 
-@cli.command('checkdeps')
+@cli.command('checkdep')
 @click.pass_context
 @catch_exception
-def checkdeps(ctx):
-    """Check dependencies of all var files.
+def checkdep(ctx):
+    """Check dependencies of var recursively.
 
 
-    vamtb [-vv] [-m] [-b] [-f <file pattern> ] checkdeps
+    vamtb [-vv] [-m] [-b] [-f <file pattern> ] checkdep
 
     When using -m, files considered bad will be moved to directory "00Dep". This directory can then be moved away from the directory.
 
@@ -290,13 +294,12 @@ def checkdeps(ctx):
     usedb = ctx.obj['usedb']
 
     file, dir, pattern = get_filepattern(ctx)
-    full_bad_dir = Path(dir) / C_BAD_DIR
     if move:
-        movepath = Path(dir, C_BAD_DIR)
-        Path(movepath).mkdir(parents=True, exist_ok=True)
+        full_bad_dir = Path(dir) / C_BAD_DIR
+        full_bad_dir.mkdir(parents=True, exist_ok=True)
     stop = True if move else False
 
-    for mfile in search_files_indir(dir, pattern):
+    for mfile in sorted(search_files_indir(dir, pattern)):
         try:
             with Var(mfile, dir, use_db=usedb) as var:
                 try:
@@ -311,7 +314,7 @@ def checkdeps(ctx):
                             shutil.copy(var.path, str(full_bad_dir))
                             os.remove(var.path)
                         except shutil.SameFileError:
-                            dvar = Path(full_bad_dir) / var.file
+                            dvar = full_bad_dir / var.file
                             scrc = var.crc
                             dcrc = FileName(dvar).crc
                             if scrc == dcrc:
