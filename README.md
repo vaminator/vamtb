@@ -78,12 +78,13 @@ Options:
   -b, --usedb / --no-usedb        Use DB.
   -a, --force / --no-force        Do not ask for confirmation.
   -e, --meta / --no-meta          Only reset subject metadata.
+  -n, --dryrun / --no-dryrun      Dry run on what would be uploaded.
   --help                          Show this message and exit.
 
 Commands:
   anon          Upload var to Anonfiles.
-  checkdeps     Check dependencies of all var files.
-  checkvars     Check all var files for consistency.
+  checkdep      Check dependencies of var recursively.
+  checkvar      Check all var files for consistency.
   dbdel         Remove one var from DB.
   dbscan        Scan vars and store props in db.
   dump          Dump meta.json from var.

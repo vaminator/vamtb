@@ -219,14 +219,14 @@ def sort_vars(ctx):
         except zlib.error:
             error(f"Zip error on var {file}")
 
-@cli.command('checkvars')
+@cli.command('checkvar')
 @click.pass_context
 @catch_exception
 def check_vars(ctx):
     """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
 
-    vamtb [-vv] [-p] [-f <file pattern> ] checkvars
+    vamtb [-vv] [-p] [-f <file pattern> ] checkvar
 
     -p: progress bar
     """
