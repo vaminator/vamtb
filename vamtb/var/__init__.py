@@ -436,7 +436,7 @@ class Var(VarFile):
     def reref_files(self, newref):
         tdir = self.tmpDir
         for globf in search_files_indir(tdir, "*"):
-            if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".tif", ".jpg", ".png", ".dll"):
+            if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
                 continue
             try:
                 file = FileName(globf)
@@ -621,7 +621,8 @@ class Var(VarFile):
         thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
         custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
         custom_asset = search_files_indir(self.tmpDir / "Custom", "*.assetbundle", ign=True)
-        for v in custom_bin + custom_asset:
+        custom_asset_2 = search_files_indir(self.tmpDir / "Custom", "*.scene", ign=True)
+        for v in custom_bin + custom_asset + custom_asset_2:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
@@ -636,6 +637,8 @@ class Var(VarFile):
         if search_files_indir(self.tmpDir / "Custom" / "Hair", "*.vaj", ign=True):
             types.append("hairs")
         if search_files_indir(self.tmpDir / "Custom" / "Assets", "*.assetbundle", ign=True):
+            types.append("asset")
+        if search_files_indir(self.tmpDir / "Custom" / "Assets", "*.scene", ign=True):
             types.append("asset")
         return types
 

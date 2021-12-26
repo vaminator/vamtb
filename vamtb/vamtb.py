@@ -596,8 +596,7 @@ def multiup(ctx):
     vamtb [-vv] [-f <file pattern>] multiup
 
     """
-
-    ctx.invoke(ia)
-    ctx.invoke(anon)
+    for func in (ia, anon):
+        ctx.invoke(func)
 
 #TODO add command for morph region /.. editing
