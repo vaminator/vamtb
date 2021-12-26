@@ -623,7 +623,8 @@ class Var(VarFile):
         custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
         custom_asset = search_files_indir(self.tmpDir / "Custom", "*.assetbundle", ign=True)
         custom_asset_2 = search_files_indir(self.tmpDir / "Custom", "*.scene", ign=True)
-        for v in custom_bin + custom_asset + custom_asset_2:
+        old_json = search_files_indir(self.tmpDir, "*.json", ign=True)
+        for v in custom_bin + custom_asset + custom_asset_2 + old_json:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
         return [ str(e) for e in thumbs ]
@@ -643,7 +644,7 @@ class Var(VarFile):
             types.append("asset")
         return types
 
-    def ia_upload(self, confirm = True, meta_only = False, verbose = False):
+    def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False):
         title = self.var
         creator = self.creator
         date = time.strftime("%Y-%m-%d", time.gmtime(self.mtime))
@@ -695,18 +696,20 @@ class Var(VarFile):
             if iavar.exists:
                 debug(f"Modifying metadata for {identifier}")
                 # Clear subject
-                res = iavar.modify_metadata(metadata = { "subject": "REMOVE_TAG" })
-                if res:
-                    info("Subject and topics cleared")
-                else:
-                    warn(f"Subject was not changed: {res.content}")
+                if not dry_run:
+                    res = iavar.modify_metadata(metadata = { "subject": "REMOVE_TAG" })
+                    if res:
+                        info("Subject and topics cleared")
+                    else:
+                        warn(f"Subject was not changed: {res.content}")
                 # Apply new subject
-                res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
-                if res:
-                    info(f"Subject and topics set to {subjects}")
-                else:
-                    error(f"Subject was not set: {res.content}")
-                return res.status_code == 200
+                if not dry_run:
+                    res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
+                    if res:
+                        info(f"Subject and topics set to {subjects}")
+                    else:
+                        error(f"Subject was not set: {res.content}")
+                return res.status_code == 200 if not dry_run else True
             else:
                 warn("Item does not exists, can't update metadata")
                 return False
@@ -714,20 +717,23 @@ class Var(VarFile):
             debug(f"Uploading {files} to identifier {identifier}")
             # TODO when var has same filename in different directory, only last one will be kept
             # TODO but files could have same filename and be identical, in that case no need to clutter thumbs..
-            res = iavar.upload(
-                validate_identifier=True,
-                checksum=True,
-                verify=True,
-                files = files,
-                metadata=md,
-                verbose=verbose)
-            debug(res)
+            if not dry_run:
+                res = iavar.upload(
+                    validate_identifier=True,
+                    checksum=True,
+                    verify=True,
+                    files = files,
+                    metadata=md,
+                    verbose=verbose)
+                debug(res)
         # Upload will return empty Response() when checksum match. BAD
-        return all(resp.status_code == 200 or resp.status_code == None for resp in res)
+        return all(resp.status_code == 200 or resp.status_code == None for resp in res) if not dry_run else True
 
-    def anon_upload(self, apikey):
+    def anon_upload(self, apikey, dry_run = False):
         info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")
         url = f"https://api.anonfiles.com/upload?token={apikey}"
+        if dry_run: 
+            return True
         r =  requests.post(url, files={'file': open(self.path, 'rb')})
         j = r.json()
         if r.status_code == 200:

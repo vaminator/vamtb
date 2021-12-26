@@ -29,8 +29,9 @@ from vamtb.varfile import VarFile
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
 @click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
+@click.option('-n', '--dryrun/--no-dryrun', default=False,      help="Dry run on what would be uploaded.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -91,6 +92,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     ctx.obj['setref']      = setref
     ctx.obj['force']       = force
     ctx.obj['meta']        = meta
+    ctx.obj['dryrun']      = dryrun
     conf = {}
     
     try:
@@ -227,7 +229,6 @@ def check_vars(ctx):
     vamtb [-vv] [-p] [-f <file pattern> ] checkvars
 
     -p: progress bar
-
     """
 
     file, dir, pattern = get_filepattern(ctx)
@@ -343,8 +344,7 @@ def dbscan(ctx):
 
     vamtb [-vv] [-a] [-p] [-f <file pattern> ] dbscan
 
-    -p: Display progress bar (only when not using -v)
-
+    -p: Display progress bar (only when not using -v)                                  
     -a: Do not confirm, always answer yes (will overwrite DB with new content)
     """
 
@@ -395,8 +395,7 @@ def reref(ctx):
 
     vamtb [-vv] [-f <file pattern> ] [-x reference_to_remove.xxx] reref
 
-    -f: will operate only on this var
-
+    -f: will operate only on this var                                          
     -x: will remove only this embedded content
     """
     dup = ctx.obj['dup']
@@ -531,10 +530,11 @@ def ia(ctx):
     Upload var to Internet Archive item.
 
 
-    vamtb [-vv] [-a] [-e] [-f <file pattern>] ia
+    vamtb [-vv] [-f <file pattern>] [-a] [-e] [-n] ia
 
     -a: Do not confirm, always answer yes (will overwrite IA with new content)
-    -e: Only update metadata subject
+    -e: Only update metadata subject                                         
+    -n: Dry-run upload, don't do anything
 
     """
 
@@ -543,7 +543,7 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False)
+                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False, dry_run=ctx.obj['dryrun'])
                 if res :
                     print(green(f"Var {var.var} uploaded successfully"))
                     n_up += 1
@@ -561,7 +561,9 @@ def anon(ctx):
     Upload var to Anonfiles. You need an account overthere.
 
 
-    vamtb [-vv] [-f <file pattern>] anon
+    vamtb [-vv] [-f <file pattern>] [-n] anon
+
+    -n : Dry-run upload, don't do anything. 
 
     """
 
@@ -578,7 +580,7 @@ def anon(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.anon_upload(apikey = conf['anon_apikey'])
+                res = var.anon_upload(apikey = conf['anon_apikey'], dry_run=ctx.obj['dryrun'])
                 if res :
                     print(green(f"Var {var.var} uploaded successfully"))
                     n_up += 1
@@ -596,7 +598,9 @@ def multiup(ctx):
     Upload var to multiple place.
 
 
-    vamtb [-vv] [-f <file pattern>] multiup
+    vamtb [-vv] [-n] [-f <file pattern>] multiup
+
+    -n : Dry-run upload, don't do anything. 
 
     """
     for func in (ia, anon):
