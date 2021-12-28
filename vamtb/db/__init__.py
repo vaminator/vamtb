@@ -76,5 +76,9 @@ class Dbs:
     def get_db_deps():
         return Dbs.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
 
+    @staticmethod
+    def get_vars():
+        return [ e[0] for e in Dbs.fetchall("SELECT VARNAME FROM VARS", None) ]
+
 # Singleton as Global variable 
 __dbs = Dbs()

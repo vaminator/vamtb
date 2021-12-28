@@ -15,6 +15,7 @@ from vamtb.vamex import *
 from vamtb.log import *
 from vamtb.utils import *
 from vamtb.varfile import VarFile
+from vamtb.db import Dbs
 
 @click.group()
 @click.option('file','-f',                                      help='Var file to act on.')
@@ -363,6 +364,32 @@ def dbscan(ctx):
             except VarMalformed as e:
                 error(f"Var {var.var} malformed [{e}].")
     info(f"{stored} var files stored")
+
+
+@cli.command('dbclean')
+@click.pass_context
+def dbclean(ctx):
+    """
+    Remove vars from DB which are not found on disk.
+
+    vamtb [-vv] [-a] dbscan
+
+    -a: Always delete without prompting
+    """
+
+    files = search_files_indir(ctx.obj['dir'], f"*.var", ign=True)
+    varnames = set([ e.with_suffix("").name for e in files ])
+    dbvars = set(Dbs.get_vars())
+    diff = sorted(list(varnames - dbvars) + list(dbvars - varnames))
+    for var in diff:
+        print(f"Var {red(var)} is in DB but not on disk  ")
+        if ctx.obj['force'] or input("Delete from DB: Y [N] ?").upper() == "Y":
+            varfile = VarFile(var, use_db=True)
+            print(f"Deleting {varfile.file}")
+            varfile.db_delete()
+            varfile.db_commit()
+            info(f"Removed {var} from DB")
+
 
 @cli.command('graph')
 @click.pass_context
