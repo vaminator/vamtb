@@ -324,13 +324,12 @@ def checkdep(ctx):
                                 error(f"Can't move {var} (crc {scrc}) as {dvar} exists with diferent crc ({dcrc})")
 
                         except shutil.Error:
-                            # Old code for older python?
+                            # Old code for older python
                             assert(False)
-                            pass
-                            raise
                         else:
                             print(f"Moved {var} to {full_bad_dir}")
         except (VarExtNotCorrect, VarMetaJson, VarNameNotCorrect, VarVersionNotCorrect):
+            # info(f"Wrong file {mfile}")
             pass
 
 

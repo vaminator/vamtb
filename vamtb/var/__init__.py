@@ -619,7 +619,7 @@ class Var(VarFile):
 
     @unzip
     def get_thumbs(self)->str:
-        thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+        thumbs = []
         custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
         custom_asset = search_files_indir(self.tmpDir / "Custom", "*.assetbundle", ign=True)
         custom_asset_2 = search_files_indir(self.tmpDir / "Custom", "*.scene", ign=True)
@@ -627,7 +627,7 @@ class Var(VarFile):
         for v in custom_bin + custom_asset + custom_asset_2 + old_json:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
-        return [ str(e) for e in thumbs ]
+        return [ str(e) for e in list(set(thumbs)) ]
 
     @unzip
     def get_resources_type(self):
@@ -654,6 +654,10 @@ class Var(VarFile):
         coll = "opensource_media"
         base_tags = ["virtamate"]
         identifier = ia_identifier(self.var)
+
+        if not self.exists():
+            critical(f"Var {self.var} is not in the database. Can't upload to IA.")
+            return False
 
         info(f"Request to upload {self.var} [size {toh(self.size)}] to Internet archive...")
 
@@ -690,7 +694,7 @@ class Var(VarFile):
         iavar = get_item(identifier)
         # Meta only: no overwrite confirmation
         if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
-            if input(f"Item {self.var} exists, update Y [N] ? ").upper() != "Y":
+            if input(f"Item {self.var} exists, update if different Y [N] ? ").upper() != "Y":
                 return False
         if meta_only:
             if iavar.exists:
@@ -704,12 +708,14 @@ class Var(VarFile):
                         warn(f"Subject was not changed: {res.content}")
                 # Apply new subject
                 if not dry_run:
+                    return True
+                else:
                     res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
                     if res:
                         info(f"Subject and topics set to {subjects}")
                     else:
                         error(f"Subject was not set: {res.content}")
-                return res.status_code == 200 if not dry_run else True
+                    return res.status_code == 200 if not dry_run else True
             else:
                 warn("Item does not exists, can't update metadata")
                 return False
@@ -717,28 +723,53 @@ class Var(VarFile):
             debug(f"Uploading {files} to identifier {identifier}")
             # TODO when var has same filename in different directory, only last one will be kept
             # TODO but files could have same filename and be identical, in that case no need to clutter thumbs..
-            if not dry_run:
-                res = iavar.upload(
+        if dry_run:
+            return False
+        else:
+            scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+            scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
+            files = [ e for e in files if e not in scene_thumbs_fn ]
+
+            if scene_thumbs:
+                scene_files = { "00-" + e.name:str(e) for e in scene_thumbs }
+                res_s = iavar.upload(
                     validate_identifier=True,
                     checksum=True,
                     verify=True,
-                    files = files,
+                    files = scene_files,
                     metadata=md,
                     verbose=verbose)
-                debug(res)
-        # Upload will return empty Response() when checksum match. BAD
-        return all(resp.status_code == 200 or resp.status_code == None for resp in res) if not dry_run else True
+                debug(res_s)
+                ok_s = all(resp.status_code == 200 or resp.status_code == None for resp in res_s)
+            else:
+                ok_s = True
+
+            res = iavar.upload(
+                validate_identifier=True,
+                checksum=True,
+                verify=True,
+                files = files,
+                metadata=md,
+                verbose=verbose)
+            debug(res)
+            # Upload will return empty Response() when checksum match. BAD
+            if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
+                print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
+                return True
+            else:
+                return False
 
     def anon_upload(self, apikey, dry_run = False):
         info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         if dry_run: 
-            return True
-        r =  requests.post(url, files={'file': open(self.path, 'rb')})
-        j = r.json()
-        if r.status_code == 200:
-            print(green(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}"))
-            return True
-        else:
-            error(f"Anonfiles gave response:{j}")
             return False
+        else:
+            r =  requests.post(url, files={'file': open(self.path, 'rb')})
+            j = r.json()
+            if r.status_code == 200:
+                print(green(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}"))
+                return True
+            else:
+                error(f"Anonfiles gave response:{j}")
+                return False
