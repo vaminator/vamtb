@@ -717,7 +717,7 @@ class Var(VarFile):
                 warn("Item does not exists, can't update metadata")
                 return False
 
-        if not full_thumbs:
+        if full_thumbs:
             files = thumbs
         else:
             files = []
