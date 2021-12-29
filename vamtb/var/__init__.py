@@ -644,7 +644,7 @@ class Var(VarFile):
             types.append("asset")
         return types
 
-    def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False):
+    def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False, full_thumbs = False):
         title = self.var
         creator = self.creator
         date = time.strftime("%Y-%m-%d", time.gmtime(self.mtime))
@@ -676,9 +676,6 @@ class Var(VarFile):
         debug(f"var {self.var} contains: {types}")
         subjects = ['scene'] if "scene" in types else types
         subjects.extend(base_tags)
-
-        files = thumbs
-        files.append(str(self.path))
 
         md = {
             'title': title,
@@ -719,19 +716,28 @@ class Var(VarFile):
             else:
                 warn("Item does not exists, can't update metadata")
                 return False
-        else:
-            debug(f"Uploading {files} to identifier {identifier}")
-            # TODO when var has same filename in different directory, only last one will be kept
-            # TODO but files could have same filename and be identical, in that case no need to clutter thumbs..
-        if dry_run:
-            return False
-        else:
-            scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
-            scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
-            files = [ e for e in files if e not in scene_thumbs_fn ]
 
-            if scene_thumbs:
-                scene_files = { "00-" + e.name:str(e) for e in scene_thumbs }
+        if not full_thumbs:
+            files = thumbs
+        else:
+            files = []
+
+        files.append(str(self.path))
+
+        scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+
+        # Remove scene thumbs from files
+        scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
+        files = [ e for e in files if e not in scene_thumbs_fn ]
+
+        ok_s = True
+        if scene_thumbs:
+            scene_files = { "00-" + e.name:str(e) for e in scene_thumbs }
+            if dry_run:
+                cr="\n"
+                print(f"Would upload:\n{cr.join([Path(a).as_posix() for a in scene_files])}")
+                ok_s = False
+            else:
                 res_s = iavar.upload(
                     validate_identifier=True,
                     checksum=True,
@@ -741,9 +747,8 @@ class Var(VarFile):
                     verbose=verbose)
                 debug(res_s)
                 ok_s = all(resp.status_code == 200 or resp.status_code == None for resp in res_s)
-            else:
-                ok_s = True
 
+        if not dry_run:
             res = iavar.upload(
                 validate_identifier=True,
                 checksum=True,
@@ -752,23 +757,28 @@ class Var(VarFile):
                 metadata=md,
                 verbose=verbose)
             debug(res)
-            # Upload will return empty Response() when checksum match. BAD
-            if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
-                print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
-                return True
-            else:
-                return False
+        else:
+            cr="\n"
+            print(f"Would upload:\n{cr.join([Path(a).as_posix() for a in files])}")
+            return False
+        # Upload will return empty Response() when checksum match. BAD
+        if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
+            print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
+            return True
+        else:
+            return False
 
     def anon_upload(self, apikey, dry_run = False):
         info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         if dry_run: 
+            print(f"Would upload\n{self.path}")
             return False
         else:
             r =  requests.post(url, files={'file': open(self.path, 'rb')})
             j = r.json()
             if r.status_code == 200:
-                print(green(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}"))
+                print(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}")
                 return True
             else:
                 error(f"Anonfiles gave response:{j}")

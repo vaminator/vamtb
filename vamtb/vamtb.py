@@ -31,8 +31,9 @@ from vamtb.db import Dbs
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
 @click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
 @click.option('-n', '--dryrun/--no-dryrun', default=False,      help="Dry run on what would be uploaded.")
+@click.option('-s', '--full/--no-full', default=False,          help="For scenes, upload not only scene jpg but all jpg to IA.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
@@ -94,6 +95,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     ctx.obj['force']       = force
     ctx.obj['meta']        = meta
     ctx.obj['dryrun']      = dryrun
+    ctx.obj['full']        = full
     conf = {}
     
     try:
@@ -561,6 +563,7 @@ def ia(ctx):
     -a: Do not confirm, always answer yes (will overwrite IA with new content)
     -e: Only update metadata subject                                         
     -n: Dry-run upload, don't do anything
+    -f: Upload all jpg, not only scene jpgs.
 
     """
 
@@ -569,7 +572,7 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False, dry_run=ctx.obj['dryrun'])
+                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False, dry_run=ctx.obj['dryrun'], full_thumbs=ctx.obj['full'])
                 if res :
                     print(green(f"Var {var.var} uploaded successfully"))
                     n_up += 1
