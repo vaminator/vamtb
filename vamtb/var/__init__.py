@@ -704,7 +704,7 @@ class Var(VarFile):
                     else:
                         warn(f"Subject was not changed: {res.content}")
                 # Apply new subject
-                if not dry_run:
+                if dry_run:
                     return True
                 else:
                     res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
