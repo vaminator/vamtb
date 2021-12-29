@@ -719,10 +719,10 @@ class Var(VarFile):
 
         scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
 
-        if not full_thumbs or scene_thumbs:
-            files = []
-        else:
+        if full_thumbs or not scene_thumbs:
             files = thumbs
+        else:
+            files = []
 
         files.append(str(self.path))
 
