@@ -717,14 +717,15 @@ class Var(VarFile):
                 warn("Item does not exists, can't update metadata")
                 return False
 
-        if full_thumbs:
+        scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+
+        if full_thumbs and scene_thumbs:
             files = thumbs
         else:
             files = []
 
         files.append(str(self.path))
 
-        scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
 
         # Remove scene thumbs from files
         scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
