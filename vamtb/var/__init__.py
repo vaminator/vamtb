@@ -105,9 +105,8 @@ class Var(VarFile):
         self.zipcheck()
         metaj = self.meta()
         if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
-            cr = "\n"
             try:
-                warn(f"{self.var} had {len(metaj['referenceIssues'])} references issues:\n{cr.join([e['reference'] for e in metaj['referenceIssues']])}")
+                warn(f"{self.var} had {len(metaj['referenceIssues'])} references issues:\n{CR.join([e['reference'] for e in metaj['referenceIssues']])}")
             except KeyError:
                 error(f"{self.var} had reference issues but no issue given, its likely that var was modified manually!")
 
@@ -653,12 +652,8 @@ class Var(VarFile):
     def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False, full_thumbs = False):
         title = self.var
         creator = self.creator
-        date = time.strftime("%Y-%m-%d", time.gmtime(self.mtime))
         license_url = get_license_url(self.license)
         types = self.get_resources_type()
-        mediatype = 'data'
-        coll = "opensource_media"
-        base_tags = ["virtamate"]
         identifier = ia_identifier(self.var)
 
         if not self.exists():
@@ -681,20 +676,26 @@ class Var(VarFile):
 
         debug(f"var {self.var} contains: {types}")
         subjects = ['scene'] if "scene" in types else types
-        subjects.extend(base_tags)
+        subjects.extend(IA_BASETAGS)
+
+        description = f"<div><i>{self.var}</i></div><br />"
+        f"<div><br />By {creator}<br /></div>"
+        f"<div><br />{self.meta()['description']}<br /></div>"
+        f"<div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>"
 
         md = {
             'title': title,
-            'mediatype' : mediatype,
-            'collection': coll,
-            'date': date,
-            'description': f"<div><i>{self.var}</i></div><br /><div><br />By {creator}<br /></div><div><br />{self.meta()['description']}<br /></div><div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>",
+            'mediatype' : IA_MEDIATYPE,
+            'collection': IA_COLL,
+            'date': time.strftime("%Y-%m-%d", time.gmtime(self.mtime)),
+            'description': description,
             'subject': subjects,
             'creator': creator,
             'licenseurl': license_url
         }
 
         iavar = get_item(identifier)
+        
         # Meta only: no overwrite confirmation
         if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
             if input(f"Item {self.var} exists, update if different Y [N] ? ").upper() != "Y":
@@ -703,16 +704,14 @@ class Var(VarFile):
             if iavar.exists:
                 debug(f"Modifying metadata for {identifier}")
                 # Clear subject
-                if not dry_run:
+                if dry_run:
+                    return True
+                else :
                     res = iavar.modify_metadata(metadata = { "subject": "REMOVE_TAG" })
                     if res:
                         info("Subject and topics cleared")
                     else:
                         warn(f"Subject was not changed: {res.content}")
-                # Apply new subject
-                if dry_run:
-                    return True
-                else:
                     res = iavar.modify_metadata(metadata = { "subject": subjects }, append=True)
                     if res:
                         info(f"Subject and topics set to {subjects}")
@@ -720,60 +719,58 @@ class Var(VarFile):
                         error(f"Subject was not set: {res.content}")
                     return res.status_code == 200 if not dry_run else True
             else:
-                warn("Item does not exists, can't update metadata")
+                warn("Item does not exists on IA, can't update metadata")
                 return False
-
-        scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
-
-        if full_thumbs or not scene_thumbs:
-            files = thumbs
         else:
-            files = []
+            scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
 
-        files.append(str(self.path))
-
-
-        # Remove scene thumbs from files
-        scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
-        files = [ e for e in files if e not in scene_thumbs_fn ]
-
-        ok_s = True
-        if scene_thumbs:
-            scene_files = { "00-" + e.name:str(e) for e in scene_thumbs }
-            if dry_run:
-                cr="\n"
-                print(f"Would upload:\n{cr.join([Path(a).as_posix() for a in scene_files])}")
-                ok_s = False
+            if full_thumbs or not scene_thumbs:
+                files = thumbs
             else:
-                res_s = iavar.upload(
+                files = []
+
+            files.append(str(self.path))
+
+
+            # Remove scene thumbs from files
+            scene_thumbs_fn = [ str(e) for e in scene_thumbs ]
+            files = [ e for e in files if e not in scene_thumbs_fn ]
+
+            ok_s = True
+            if scene_thumbs:
+                scene_files = { "00-" + e.name:str(e) for e in scene_thumbs }
+                if dry_run:
+                    print(f"Would upload:\n{CR.join([Path(a).as_posix() for a in scene_files])}")
+                    ok_s = False
+                else:
+                    res_s = iavar.upload(
+                        validate_identifier=True,
+                        checksum=True,
+                        verify=True,
+                        files = scene_files,
+                        metadata=md,
+                        verbose=verbose)
+                    debug(res_s)
+                    ok_s = all(resp.status_code == 200 or resp.status_code == None for resp in res_s)
+
+            if not dry_run:
+                res = iavar.upload(
                     validate_identifier=True,
                     checksum=True,
                     verify=True,
-                    files = scene_files,
+                    files = files,
                     metadata=md,
                     verbose=verbose)
-                debug(res_s)
-                ok_s = all(resp.status_code == 200 or resp.status_code == None for resp in res_s)
-
-        if not dry_run:
-            res = iavar.upload(
-                validate_identifier=True,
-                checksum=True,
-                verify=True,
-                files = files,
-                metadata=md,
-                verbose=verbose)
-            debug(res)
-        else:
-            cr="\n"
-            print(f"Would upload:\n{cr.join([Path(a).as_posix() for a in files])}")
-            return False
-        # Upload will return empty Response() when checksum match. BAD
-        if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
-            print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
-            return True
-        else:
-            return False
+                debug(res)
+            else:
+                print(f"Would upload:\n{CR.join([Path(a).as_posix() for a in files])}")
+                return False
+            # Upload will return empty Response() when checksum match. BAD
+            if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
+                print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
+                return True
+            else:
+                return False
 
     def anon_upload(self, apikey, dry_run = False):
         info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")

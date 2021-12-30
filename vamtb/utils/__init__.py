@@ -38,6 +38,12 @@ C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 C_MAX_FILES = 50
 C_MAX_SIZE = 20 * 1024 * 1024
+CR = "\n"
+
+IA_MEDIATYPE = "data"
+IA_COLL = "opensource_media"
+IA_BASETAGS = [ "virtamate" ]
+IA_IDENTIFIER_PREFIX = "vam1__"
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)
@@ -147,7 +153,7 @@ def del_empty_dirs(target_path):
                 pass
 
 def ia_identifier(s:str)->str:
-    return "vam1__" + re.sub('[^0-9a-zA-Z\._\-]+', '_', s)
+    return IA_IDENTIFIER_PREFIX + re.sub('[^0-9a-zA-Z\._\-]+', '_', s)
 
 def get_license_url(s):
     license_url = {
