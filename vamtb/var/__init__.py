@@ -103,7 +103,13 @@ class Var(VarFile):
 
     def check(self):
         self.zipcheck()
-        _ = self.meta()
+        metaj = self.meta()
+        if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
+            cr = "\n"
+            try:
+                warn(f"{self.var} had {len(metaj['referenceIssues'])} references issues:\n{cr.join([e['reference'] for e in metaj['referenceIssues']])}")
+            except KeyError:
+                error(f"{self.var} had reference issues but no issue given, its likely that var was modified manually!")
 
         if self.tmpDir.exists() and not (
             Path(self.tmpDir / "Custom").exists() or 
