@@ -574,12 +574,12 @@ def ia(ctx):
             try:
                 res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False, dry_run=ctx.obj['dryrun'], full_thumbs=ctx.obj['full'])
                 if res :
-                    print(green(f"Var {var.var} uploaded successfully"))
+                    info(f"Var {var.var} uploaded successfully to Internet Archive.")
                     n_up += 1
                 else:
-                    error(f"Var {var.var} could not be uploaded")
+                    error(f"Var {var.var} could not be uploaded to Internet Archive.")
             except Exception as e:
-                error(f"Var {var.var} could not be uploaded, error is:\n{e}")
+                error(f"Var {var.var} could not be uploaded to Internet Archive., error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
 
 @cli.command('anon')
@@ -611,12 +611,12 @@ def anon(ctx):
             try:
                 res = var.anon_upload(apikey = conf['anon_apikey'], dry_run=ctx.obj['dryrun'])
                 if res :
-                    print(green(f"Var {var.var} uploaded successfully"))
+                    info(f"Var {var.var} uploaded successfully to anonfiles.")
                     n_up += 1
                 else:
-                    error(f"Var {var.var} could not be uploaded")
+                    error(f"Var {var.var} could not be uploaded to anonfiles.")
             except Exception as e:
-                error(f"Var {var.var} could not be uploaded, error is:\n{e}")
+                error(f"Var {var.var} could not be uploaded to anonfiles, error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
 
 @cli.command('multiup')
