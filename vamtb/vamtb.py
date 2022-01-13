@@ -35,7 +35,7 @@ from vamtb.db import Dbs
 @click.option('dup', '-x',                                      help='Only dedup this file.')
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full):
+def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
 
