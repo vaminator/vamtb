@@ -98,8 +98,9 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     ctx.obj['meta']        = meta
     ctx.obj['dryrun']      = dryrun
     ctx.obj['full']        = full
+    ctx.obj['cc']          = cc
+    ctx.obj['iaprefix']    = iaprefix
     conf = {}
-    
     try:
         with open(C_YAML, 'r') as stream:
             conf = yaml.load(stream, Loader=yaml.BaseLoader)
@@ -560,12 +561,14 @@ def ia(ctx):
     Upload var to Internet Archive item.
 
 
-    vamtb [-vv] [-f <file pattern>] [-a] [-e] [-n] ia
+    vamtb [-vv] [-f <file pattern>] [-a] [-e] [-n] [-i <prefix>] ia
 
-    -a: Do not confirm, always answer yes (will overwrite IA with new content)
-    -e: Only update metadata subject                                         
-    -n: Dry-run upload, don't do anything
-    -f: Upload all jpg, not only scene jpgs.
+    -a: Do not confirm, always answer yes (will overwrite IA with new content).
+    -e: Only update metadata subject.                                         
+    -n: Dry-run upload, don't do anything.                                     
+    -f: Upload all jpg, not only scene jpgs.                                   
+    -c: Only upload CC* license content.                                       
+    -i: Change prefix used for the identifier on IA (use only when you are sure the default identifer is already used).
 
     """
 
@@ -574,7 +577,14 @@ def ia(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.ia_upload(meta_only=ctx.obj['meta'], confirm=not ctx.obj['force'], verbose=True if ctx.obj['debug_level'] else False, dry_run=ctx.obj['dryrun'], full_thumbs=ctx.obj['full'])
+                res = var.ia_upload(
+                    meta_only=ctx.obj['meta'], 
+                    confirm=not ctx.obj['force'], 
+                    verbose=True if ctx.obj['debug_level'] else False, 
+                    dry_run=ctx.obj['dryrun'], 
+                    full_thumbs=ctx.obj['full'], 
+                    only_cc=ctx.obj['cc'], 
+                    iaprefix=ctx.obj['iaprefix'])
                 if res :
                     info(f"Var {var.var} uploaded successfully to Internet Archive.")
                     n_up += 1

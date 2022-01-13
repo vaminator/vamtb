@@ -649,18 +649,27 @@ class Var(VarFile):
             types.append("asset")
         return types
 
-    def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False, full_thumbs = False):
+    def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False, full_thumbs = False, only_cc = False, iaprefix=None):
+
+        info(f"Uploading {self.var} [size {toh(self.size)}] to IA")
         title = self.var
         creator = self.creator
         license_url = get_license_url(self.license)
+        if not license_url and only_cc:
+            info('License is not CC')
+            return False
+        #
+        choice = True
+        if choice and input("Confirm [Y]N ?").upper() == "N":
+            error("Cancelled")
+            return
+
         types = self.get_resources_type()
-        identifier = ia_identifier(self.var)
+        identifier = ia_identifier(self.var, iaprefix)
 
         if not self.exists():
             critical(f"Var {self.var} is not in the database. Can't upload to IA.")
             return False
-
-        info(f"Request to upload {self.var} [size {toh(self.size)}] to Internet archive...")
 
         if not meta_only and self.latest() != self.var:
             warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
@@ -773,7 +782,7 @@ class Var(VarFile):
                 return False
 
     def anon_upload(self, apikey, dry_run = False):
-        info(f"Request to upload {self.var} [size {toh(self.size)}] to Anonfiles ...")
+        info(f"Uploading {self.var} [size {toh(self.size)}] to Anonfiles")
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         if dry_run: 
             print(f"Would upload\n{self.path}")
@@ -787,3 +796,4 @@ class Var(VarFile):
             else:
                 error(f"Anonfiles gave response:{j}")
                 return False
+

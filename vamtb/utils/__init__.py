@@ -152,8 +152,8 @@ def del_empty_dirs(target_path):
             except:
                 pass
 
-def ia_identifier(s:str)->str:
-    return IA_IDENTIFIER_PREFIX + re.sub('[^0-9a-zA-Z\._\-]+', '_', s)
+def ia_identifier(s:str, prefix = IA_IDENTIFIER_PREFIX)->str:
+    return prefix + re.sub('[^0-9a-zA-Z\._\-]+', '_', s)
 
 def get_license_url(s):
     license_url = {
