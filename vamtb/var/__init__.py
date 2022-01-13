@@ -659,7 +659,7 @@ class Var(VarFile):
             info('License is not CC')
             return False
         #
-        choice = True
+        choice = False
         if choice and input("Confirm [Y]N ?").upper() == "N":
             error("Cancelled")
             return
