@@ -18,20 +18,22 @@ from vamtb.varfile import VarFile
 from vamtb.db import Dbs
 
 @click.group()
-@click.option('file','-f',                                      help='Var file to act on.')
-@click.option('dir', '-d',                                      help='Use a specific VAM directory.')
-@click.option('dup', '-x',                                      help='Only dedup this file.')
-@click.option('-v', '--verbose', count=True,                    help="Verbose (twice for debug).")
-@click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
-@click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
-@click.option('-r', '--ref/--no-ref', default=False,            help="Only select non reference vars for dupinfo.")
-@click.option('-q', '--remove/--no-remove', default=False,      help="Remove var from DB.")
-@click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
-@click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
+@click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
+@click.option('dir', '-d',                                      help='Use a specific VAM directory.')
+@click.option('-c', '--cc/--no-cc', default=False,              help="Only upload CC license content")
 @click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
+@click.option('file','-f',                                      help='Var file to act on.')
+@click.option('iaprefix','-i',                                  help=f'Internet Archive identifier prefix (defaults to {IA_IDENTIFIER_PREFIX}).')
+@click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-n', '--dryrun/--no-dryrun', default=False,      help="Dry run on what would be uploaded.")
+@click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
+@click.option('-q', '--remove/--no-remove', default=False,      help="Remove var from DB.")
+@click.option('-r', '--ref/--no-ref', default=False,            help="Only select non reference vars for dupinfo.")
 @click.option('-s', '--full/--no-full', default=False,          help="For scenes, upload not only scene jpg but all jpg to IA.")
+@click.option('-v', '--verbose', count=True,                    help="Verbose (twice for debug).")
+@click.option('dup', '-x',                                      help='Only dedup this file.')
+@click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.pass_context
 def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full):
     # pylint: disable=anomalous-backslash-in-string
