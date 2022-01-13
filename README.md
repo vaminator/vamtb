@@ -65,26 +65,32 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   vamtb <command> --help
 
 Options:
-  -f TEXT                         Var file to act on.
+  -a, --force / --no-force        Do not ask for confirmation.
+  -b, --usedb / --no-usedb        Use DB.
   -d TEXT                         Use a specific VAM directory.
-  -x TEXT                         Only dedup this file.
-  -v, --verbose                   Verbose (twice for debug).
-  -p, --progress / --no-progress  Add progress bar.
+  -c, --cc / --no-cc              Only upload CC license content
+  -e, --meta / --no-meta          Only reset subject metadata.
+  -f TEXT                         Var file to act on.
+  -i TEXT                         Internet Archive identifier prefix (defaults
+                                  to vam1__).
   -m, --move / --no-move          When checking dependencies move vars with
                                   missing dep in 00Dep.
-  -r, --ref / --no-ref            Only select non reference vars for dupinfo.
-  -q, --remove / --no-remove      Remove var from DB.
-  -z, --setref / --no-setref      Set var as reference.
-  -b, --usedb / --no-usedb        Use DB.
-  -a, --force / --no-force        Do not ask for confirmation.
-  -e, --meta / --no-meta          Only reset subject metadata.
   -n, --dryrun / --no-dryrun      Dry run on what would be uploaded.
+  -p, --progress / --no-progress  Add progress bar.
+  -q, --remove / --no-remove      Remove var from DB.
+  -r, --ref / --no-ref            Only select non reference vars for dupinfo.
+  -s, --full / --no-full          For scenes, upload not only scene jpg but
+                                  all jpg to IA.
+  -v, --verbose                   Verbose (twice for debug).
+  -x TEXT                         Only dedup this file.
+  -z, --setref / --no-setref      Set var as reference.
   --help                          Show this message and exit.
 
 Commands:
   anon          Upload var to Anonfiles.
   checkdep      Check dependencies of var recursively.
   checkvar      Check all var files for consistency.
+  dbclean       Remove vars from DB which are not found on disk.
   dbdel         Remove one var from DB.
   dbscan        Scan vars and store props in db.
   dump          Dump meta.json from var.

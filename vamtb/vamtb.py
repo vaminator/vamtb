@@ -71,6 +71,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     \b
     Upload (uses database):
     vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
+    vamtb -f sapuzex.Cooking_Lesson.1 anon will upload each var to anonfiles (need an account for the API key)
 
     \b
     File filters:
