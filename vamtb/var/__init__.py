@@ -665,7 +665,7 @@ class Var(VarFile):
             return
 
         types = self.get_resources_type()
-        identifier = ia_identifier(self.var, iaprefix)
+        identifier = ia_identifier(self.var, iaprefix or IA_IDENTIFIER_PREFIX)
 
         if not self.exists():
             critical(f"Var {self.var} is not in the database. Can't upload to IA.")
