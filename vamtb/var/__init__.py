@@ -428,8 +428,8 @@ class Var(VarFile):
 
             ckdup_creator = []
             for v, f in ckdup:
-                creator = VarFile(v, use_db=True).get_prop_vars("CREATOR")
-                if creator != self.creator:
+                tvar = VarFile(v, use_db=True)
+                if not( tvar.creator == self.creator and tvar.resource == self.resource ):
                     ckdup_creator.append((v, f))
 
             if ckdup_creator:
