@@ -279,6 +279,8 @@ class VarFile:
         self.db_exec(sql, row)
         sql = f"DELETE FROM DEPS WHERE VAR=?"
         self.db_exec(sql, row)
+        sql = f"DELETE FROM UPLOAD WHERE VARNAME=?"
+        self.db_exec(sql, row)
 
     def db_var_setref(self, isref, files=False):
         self.db_update("VARS", {"VARNAME": self.var}, {"ISREF": "YES" if isref else "UNKNOWN"})
