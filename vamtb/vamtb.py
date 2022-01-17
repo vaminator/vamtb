@@ -609,7 +609,7 @@ def ia(ctx):
                     info(f"Var {var.var} uploaded successfully to Internet Archive.")
                     n_up += 1
                 else:
-                    error(f"Var {var.var} could not be uploaded to Internet Archive.")
+                    error(f"Var {var.var} was not uploaded to Internet Archive.")
             except Exception as e:
                 error(f"Var {var.var} could not be uploaded to Internet Archive., error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
@@ -646,7 +646,7 @@ def anon(ctx):
                     info(f"Var {var.var} uploaded successfully to anonfiles.")
                     n_up += 1
                 else:
-                    error(f"Var {var.var} could not be uploaded to anonfiles.")
+                    error(f"Var {var.var} was not uploaded to anonfiles.")
             except Exception as e:
                 error(f"Var {var.var} could not be uploaded to anonfiles, error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
