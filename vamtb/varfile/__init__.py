@@ -88,9 +88,24 @@ class VarFile:
     def minversion(self) -> int:
         return self.__iMinVer
 
+    @property
+    def is_uploaded_on_ia(self) -> bool:
+        return self.get_prop_upload("IA") == "YES"
+
+    @property
+    def is_uploaded_on_anon(self) -> bool:
+        return self.get_prop_upload("ANON") == "YES"
+
     def db_exec(self, sql, row):
         if self.__Dbs:
             self.__Dbs.execute(sql, row)
+        else:
+            assert(False)
+
+    def db_update(self, table, selectors: dict, values: dict):
+        if self.__Dbs:
+            self.__Dbs.update_values(table, selectors, values)
+            self.db_commit()
         else:
             assert(False)
 
@@ -122,6 +137,10 @@ class VarFile:
 
         sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
         row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
+        self.db_exec(sql, row)
+
+        sql = """INSERT INTO UPLOAD(VARNAME, IA, ANON) VALUES (?,?,?)"""
+        row = (self.var, "NO", "NO")
         self.db_exec(sql, row)
 
         for f in self.files(with_meta=True):
@@ -202,6 +221,16 @@ class VarFile:
         else:
             return None
 
+    def get_prop_upload(self, prop_name):
+
+        sql = f"SELECT {prop_name} FROM UPLOAD WHERE VARNAME=?"
+        row = (self.var,)
+        res = self.db_fetch(sql, row)
+        if res:
+            return res[0][0]
+        else:
+            return None
+
     def get_dep(self):
         sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
         row = (self.var,)
@@ -250,6 +279,17 @@ class VarFile:
         self.db_exec(sql, row)
         sql = f"DELETE FROM DEPS WHERE VAR=?"
         self.db_exec(sql, row)
+
+    def db_var_setref(self, isref, files=False):
+        self.db_update("VARS", {"VARNAME": self.var}, {"ISREF": "YES" if isref else "UNKNOWN"})
+        if files:
+            self.db_update("FILES", {"VARNAME": self.var}, {"ISREF": "YES" if isref else "UNKNOWN"})
+
+    def ia_set_uploaded(self):
+        self.db_update("UPLOAD", {"VARNAME": self.var}, {"IA": "YES"})
+
+    def anon_set_uploaded(self):
+        self.db_update("UPLOAD", {"VARNAME": self.var}, {"ANON": "YES"})
 
     def get_file_cksum(self, filename):
         return self.get_prop_files(filename, "CKSUM")

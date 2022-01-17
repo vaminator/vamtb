@@ -652,6 +652,10 @@ class Var(VarFile):
     def ia_upload(self, confirm = True, meta_only = False, verbose = False, dry_run = False, full_thumbs = False, only_cc = False, iaprefix=None):
 
         info(f"Uploading {self.var} [size {toh(self.size)}] to IA")
+        if self.is_uploaded_on_ia:
+            warn(f"{self.var} already on IA, not uploading")
+            return
+
         title = self.var
         creator = self.creator
         license_url = get_license_url(self.license)
@@ -707,6 +711,7 @@ class Var(VarFile):
         
         # Meta only: no overwrite confirmation
         if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
+            self.ia_set_uploaded()
             if input(f"Item {self.var} exists, update if different Y [N] ? ").upper() != "Y":
                 return False
         if meta_only:
@@ -777,12 +782,17 @@ class Var(VarFile):
             # Upload will return empty Response() when checksum match. BAD
             if ok_s and all(resp.status_code == 200 or resp.status_code == None for resp in res):
                 print(f"Var file url is https://archive.org/download/{ia_identifier(self.var)}/{self.file}")
+                self.ia_set_uploaded()
                 return True
             else:
                 return False
 
     def anon_upload(self, apikey, dry_run = False):
         info(f"Uploading {self.var} [size {toh(self.size)}] to Anonfiles")
+        if self.is_uploaded_on_anon:
+            warn(f"{self.var} already on anonfiles, not uploading")
+            return
+
         url = f"https://api.anonfiles.com/upload?token={apikey}"
         if dry_run: 
             print(f"Would upload\n{self.path}")
@@ -792,6 +802,7 @@ class Var(VarFile):
             j = r.json()
             if r.status_code == 200:
                 print(f"{self.var} upload to Full url: {j['data']['file']['url']['full']}, Short url: {j['data']['file']['url']['short']}")
+                self.anon_set_uploaded()
                 return True
             else:
                 error(f"Anonfiles gave response:{j}")

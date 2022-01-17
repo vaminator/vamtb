@@ -49,6 +49,11 @@ class Dbs:
             SIZE     INT     NOT NULL,
             CKSUM    CHAR(4) NOT NULL);''')
 
+        Dbs.getConn().execute('''CREATE TABLE IF NOT EXISTS UPLOAD
+         (VARNAME TEXT PRIMARY KEY     NOT NULL,
+         IA TEXT NOT NULL,
+         ANON TEXT NOT NULL);''')
+
     @staticmethod
     def fetchall(sql, row):
         """
@@ -79,6 +84,16 @@ class Dbs:
     @staticmethod
     def get_vars():
         return [ e[0] for e in Dbs.fetchall("SELECT VARNAME FROM VARS", None) ]
+
+    @staticmethod
+    def update_values(table, d_sel: dict, d_col: dict):
+        """
+        update_value("TABLE", {"VARNAME": "foo.bar.1"}, {"COL1": "newvalue", "COL2": "newvalue"})
+        """
+        set_clause = " ".join(f"SET {key}='{value}'" for key, value in d_col.items())
+        where_clause = " AND ".join(f"{key}='{value}'" for key, value in d_sel.items())
+        sql = f"UPDATE {table} {set_clause} WHERE {where_clause}"
+        Dbs.execute(sql, ())
 
 # Singleton as Global variable 
 __dbs = Dbs()

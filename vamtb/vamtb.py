@@ -528,6 +528,25 @@ def dbdel(ctx):
         varfile.db_commit()
         info(f"Removed {file} from DB")
 
+@cli.command()
+@click.pass_context
+@catch_exception
+def setref(ctx):
+    """
+    Set var and files as reference.
+
+
+    vamtb [-vv] -f file setref
+
+    """
+#TODO set noref..
+    file, dir, pattern = get_filepattern(ctx)
+    file or critical("Need a file parameter", doexit=True)
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True, check_exists=False) as var:
+            info(f"Setting var {var} as reference")
+            var.db_var_setref(isref=True, files=True)
+
 @cli.command('orig')
 @click.pass_context
 @catch_exception
