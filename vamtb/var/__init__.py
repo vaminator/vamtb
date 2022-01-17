@@ -436,7 +436,9 @@ class Var(VarFile):
                 dups['numdupfiles'] += 1
                 dups['dupsize'] += self.get_file_size(file)
                 for dupvar, dupfile in ckdup:
-                    info(f"{self.var}:/{Path(file).name} is dup of {dupvar}:/{dupfile}")
+                    info(f"{self.var}:/{file} is dup of {dupvar}:/{dupfile}")
+            else:
+                info(f"No dup for {self.var}:/{file}")
         return dups
 
     def reref_files(self, newref):
