@@ -596,6 +596,9 @@ def ia(ctx):
     n_up = 0
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
+            if not var.exists():
+                info("Skipping")
+                continue
             try:
                 res = var.ia_upload(
                     meta_only=ctx.obj['meta'], 
