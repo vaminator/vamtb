@@ -427,6 +427,7 @@ def reref(ctx):
 
     vamtb [-vv] [-f <file pattern> ] [-x reference_to_remove.xxx] reref
 
+    -a: Do not confirm, always answer yes (there will still be a prompt if there's two reference)
     -f: will operate only on this var                                          
     -x: will remove only this embedded content
     """
@@ -446,7 +447,7 @@ def reref(ctx):
                 debug("Skipping creator..")
                 continue
             if var.exists():
-                res = var.reref(dryrun=False, dup=dup)
+                res = var.reref(dryrun=False, dup=dup, confirm=not ctx.obj['force'])
                 if res and res == C_NEXT_CREATOR:
                     creator = var.creator
                 else:
