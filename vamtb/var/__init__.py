@@ -565,7 +565,7 @@ class Var(VarFile):
                 debug(f"{ red(pre) } {red(':')} { red('NO REFERENCE') }")
         return new_ref
 
-    def reref(self, dryrun=True, dup=None):
+    def reref(self, dryrun=True, dup=None, confirm=True):
         info(f"Searching for dups in {self.var}")
         if self.get_ref == "YES":
             debug(f"Asked to reref {self.var} but it is a reference var!")
@@ -586,7 +586,10 @@ class Var(VarFile):
         #TODO don't remove a jpg if all the rest (vam, vaj and vab) are kept. Otherwise that leads to white icons in clothing list..
 
         while True:
-            choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 
+            if confirm:
+                choice = input(blue("Confirm [Enter: Skip, Y: to modify, S: skip creator]? ")).upper() 
+            else:
+                break
             if not choice:
                 return
             elif choice == "S":
