@@ -1,5 +1,4 @@
 '''Var file naming'''
-from pprint import pp
 from pathlib import Path
 
 from vamtb.db import Dbs
