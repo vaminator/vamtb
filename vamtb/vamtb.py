@@ -163,10 +163,21 @@ def printrealdep(ctx):
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir) as var:
-            deps = var.dep_fromfiles()
+            deps = list(set(var.dep_fromfiles()))
             depvarfiles = sorted(deps, key=str.casefold)
             print(f"Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
             for depvarfile in depvarfiles:
+                #var.license
+                xvar = VarFile(depvarfile).var_nov
+                xlicense = "Unknown"
+#                print(VarFile(depvarfile).license)
+                s=( f'"{xvar}.latest":{{\n'
+                    f'    "licenseType" : "{xlicense},"\n'
+                     '    "dependencies" : {},\n'
+                     '},'
+                )
+                print(s)
+                continue
                 mess = green("Found")
                 try:
                     _ = Var(depvarfile, dir)
