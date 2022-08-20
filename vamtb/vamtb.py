@@ -169,11 +169,11 @@ def printrealdep(ctx):
             for depvarfile in depvarfiles:
                 #var.license
                 xvar = VarFile(depvarfile).var_nov
-                xlicense = "Unknown"
-#                print(VarFile(depvarfile).license)
+                with Var(depvarfile, dir, use_db=True) as dvar:
+                    xlicense = Var(dvar.latest(), dir, use_db=True).license
                 s=( f'"{xvar}.latest":{{\n'
-                    f'    "licenseType" : "{xlicense},"\n'
-                     '    "dependencies" : {},\n'
+                    f'    "licenseType" : "{xlicense}",\n'
+                     '    "dependencies" : {}\n'
                      '},'
                 )
                 print(s)
