@@ -661,20 +661,27 @@ class Var(VarFile):
             warn(f"{self.var} already on IA, not uploading")
             return
 
-        title = self.var
+        title = self.varq
         creator = self.creator
         license_url = get_license_url(self.license)
         if not license_url and only_cc:
             info('License is not CC')
             return False
         #
-        choice = False
-        if choice and input("Confirm [Y]N ?").upper() == "N":
-            error("Cancelled")
-            return
+        choice = True
+        mchoice = "N"
+        if choice:
+            mchoice = input("Confirm [Y]ND ?").upper()
+            if mchoice == "N":
+                error("Cancelled")
+                return
+            elif mchoice == "D":
+                error("Will not ask anymore")
+                self.ia_set_uploaded()
+                return
 
         types = self.get_resources_type()
-        identifier = ia_identifier(self.var, iaprefix or IA_IDENTIFIER_PREFIX)
+        identifier = ia_identifier(self.varq, iaprefix or IA_IDENTIFIER_PREFIX)
 
         if not self.exists():
             critical(f"Var {self.var} is not in the database. Can't upload to IA.")
@@ -696,7 +703,7 @@ class Var(VarFile):
         subjects = ['scene'] if "scene" in types else types
         subjects.extend(IA_BASETAGS)
 
-        description = f"<div><i>{self.var}</i></div><br />"
+        description = f"<div><i>{self.varq}</i></div><br />"
         f"<div><br />By {creator}<br /></div>"
         f"<div><br />{self.meta()['description']}<br /></div>"
         f"<div><br /> <a href=\"{self.meta()['promotionalLink']}\">{creator}</a> <br /></div>"
@@ -718,6 +725,7 @@ class Var(VarFile):
         if not meta_only and confirm and (iavar.exists or not iavar.identifier_available()):
             self.ia_set_uploaded()
             if input(f"Item {self.var} exists, update if different Y [N] ? ").upper() != "Y":
+                self.ia_set_uploaded()
                 return False
         if meta_only:
             if iavar.exists:

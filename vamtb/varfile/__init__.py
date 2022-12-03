@@ -60,8 +60,16 @@ class VarFile:
         return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}"
 
     @property
+    def varq(self) -> str:
+        return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}".replace("'","''")
+
+    @property
     def var_nov(self) -> str:
         return f"{self.__Creator}.{self.__Resource}"
+
+    @property
+    def var_novq(self) -> str:
+        return f"{self.__Creator}.{self.__Resource}".replace("'","''")
 
     @property
     def file(self) -> str:
@@ -135,11 +143,11 @@ class VarFile:
         license = meta['licenseType']
 
         sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
-        row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
+        row = (self.varq, v_isref, creator, version, license, modified_time, size, cksum)
         self.db_exec(sql, row)
 
         sql = """INSERT INTO UPLOAD(VARNAME, IA, ANON) VALUES (?,?,?)"""
-        row = (self.var, "NO", "NO")
+        row = (self.varq, "NO", "NO")
         self.db_exec(sql, row)
 
         for f in self.files(with_meta=True):
@@ -151,7 +159,7 @@ class VarFile:
                 f_isref = "UNKNOWN"
 
             sql = """INSERT INTO FILES (ID,FILENAME,ISREF,VARNAME,SIZE,CKSUM) VALUES (?,?,?,?,?,?)"""
-            row = (None, self.ziprel(f.path), f_isref, self.var, sizef, crcf)
+            row = (None, self.ziprel(f.path), f_isref, self.varq, sizef, crcf)
             self.db_exec(sql, row)
 
         debug(f"Stored var {self.var} and files in databases")
@@ -159,7 +167,7 @@ class VarFile:
         for dep in self.dep_fromfiles(with_file=True):
             depvar, depfile = dep.split(':')
             depfile = depfile.lstrip('/')
-            row = (None, self.var, depvar, depfile)
+            row = (None, self.varq, depvar, depfile)
             self.db_exec(sql, row)
 
         self.db_commit()
@@ -271,7 +279,7 @@ class VarFile:
             return []
 
     def db_delete(self):
-        row = (self.var,)
+        row = (self.varq,)
         sql = f"DELETE FROM VARS WHERE VARNAME=?"
         self.db_exec(sql, row)
         sql = f"DELETE FROM FILES WHERE VARNAME=?"
