@@ -615,7 +615,7 @@ def ia(ctx):
                 res = var.ia_upload(
                     meta_only=ctx.obj['meta'], 
                     confirm=not ctx.obj['force'], 
-                    verbose=True if ctx.obj['debug_level'] else False, 
+                    verbose=True, 
                     dry_run=ctx.obj['dryrun'], 
                     full_thumbs=ctx.obj['full'], 
                     only_cc=ctx.obj['cc'], 
@@ -624,7 +624,7 @@ def ia(ctx):
                     info(f"Var {var.var} uploaded successfully to Internet Archive.")
                     n_up += 1
                 else:
-                    error(f"Var {var.var} was not uploaded to Internet Archive.")
+                    info(f"Var {var.var} was not uploaded to Internet Archive.")
             except Exception as e:
                 error(f"Var {var.var} could not be uploaded to Internet Archive., error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))

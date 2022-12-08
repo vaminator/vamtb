@@ -143,11 +143,11 @@ class VarFile:
         license = meta['licenseType']
 
         sql = """INSERT INTO VARS(VARNAME,ISREF,CREATOR,VERSION,LICENSE,MODIFICATION_TIME,SIZE,CKSUM) VALUES (?,?,?,?,?,?,?,?)"""
-        row = (self.varq, v_isref, creator, version, license, modified_time, size, cksum)
+        row = (self.var, v_isref, creator, version, license, modified_time, size, cksum)
         self.db_exec(sql, row)
 
         sql = """INSERT INTO UPLOAD(VARNAME, IA, ANON) VALUES (?,?,?)"""
-        row = (self.varq, "NO", "NO")
+        row = (self.var, "NO", "NO")
         self.db_exec(sql, row)
 
         for f in self.files(with_meta=True):
@@ -167,7 +167,7 @@ class VarFile:
         for dep in self.dep_fromfiles(with_file=True):
             depvar, depfile = dep.split(':')
             depfile = depfile.lstrip('/')
-            row = (None, self.varq, depvar, depfile)
+            row = (None, self.var, depvar, depfile)
             self.db_exec(sql, row)
 
         self.db_commit()
@@ -279,7 +279,7 @@ class VarFile:
             return []
 
     def db_delete(self):
-        row = (self.varq,)
+        row = (self.var,)
         sql = f"DELETE FROM VARS WHERE VARNAME=?"
         self.db_exec(sql, row)
         sql = f"DELETE FROM FILES WHERE VARNAME=?"

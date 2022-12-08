@@ -91,6 +91,7 @@ class Dbs:
         update_value("TABLE", {"VARNAME": "foo.bar.1"}, {"COL1": "newvalue", "COL2": "newvalue"})
         """
         set_clause = " ".join(f"SET {key}='{value}'" for key, value in d_col.items())
+        # TODO escape values
         where_clause = " AND ".join(f"{key}='{value}'" for key, value in d_sel.items())
         sql = f"UPDATE {table} {set_clause} WHERE {where_clause}"
         Dbs.execute(sql, ())

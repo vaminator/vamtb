@@ -658,16 +658,17 @@ class Var(VarFile):
 
         info(f"Uploading {self.var} [size {toh(self.size)}] to IA")
         if self.is_uploaded_on_ia:
-            warn(f"{self.var} already on IA, not uploading")
+            info(f"{self.var} already on IA, not uploading")
             return
 
-        title = self.varq
+        title = self.var
         creator = self.creator
         license_url = get_license_url(self.license)
         if not license_url and only_cc:
             info('License is not CC')
             return False
         #
+        print(f"Uploading {self}, {int(self.size/1000)/1000}MB")
         choice = True
         mchoice = "N"
         if choice:
@@ -688,7 +689,8 @@ class Var(VarFile):
             return False
 
         if not meta_only and self.latest() != self.var:
-            warn(f"Not uploading {self.var}, there is a higher version {self.latest()}")
+            info(f"Not uploading {self.var}, there is a higher version {self.latest()}")
+            self.ia_set_uploaded()
             return False
 
         if not license_url:
@@ -803,7 +805,7 @@ class Var(VarFile):
     def anon_upload(self, apikey, dry_run = False):
         info(f"Uploading {self.var} [size {toh(self.size)}] to Anonfiles")
         if self.is_uploaded_on_anon:
-            warn(f"{self.var} already on anonfiles, not uploading")
+            info(f"{self.var} already on anonfiles, not uploading")
             return
 
         url = f"https://api.anonfiles.com/upload?token={apikey}"
