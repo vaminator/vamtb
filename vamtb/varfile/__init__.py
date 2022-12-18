@@ -16,8 +16,8 @@ class VarFile:
         self.__Resource = ""
         # Version as string 1, latest, min
         self.__sVersion = ""
-        # integer version or 0
-        self.__iVersion = 0
+        # integer version or -1. Because Logan.Bounce_Bunny.0..
+        self.__iVersion = -1
         # Min version or 0
         self.__iMinVer = 0
         # Db if a reference was provided

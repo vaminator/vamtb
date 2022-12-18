@@ -160,11 +160,12 @@ class Var(VarFile):
             return Path(multiname)
 
         # Not a full path var, search var on disk
-        if self.iversion :
+        if self.iversion != -1:
             pattern = self.file
         elif self.version == "latest" or self.minversion:
             pattern = self.creator + "." + self.resource + ".*.var"
         else:
+            print(f"Got that in resolvevar: {multiname}")
             assert(False)
 
         vars = self.search(pattern = pattern)

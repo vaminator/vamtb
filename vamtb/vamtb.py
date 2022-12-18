@@ -169,8 +169,12 @@ def printrealdep(ctx):
             for depvarfile in depvarfiles:
                 #var.license
                 xvar = VarFile(depvarfile).var_nov
-                with Var(depvarfile, dir, use_db=True) as dvar:
-                    xlicense = Var(dvar.latest(), dir, use_db=True).license
+                try:
+                    with Var(depvarfile, dir, use_db=True) as dvar:
+                        xlicense = Var(dvar.latest(), dir, use_db=True).license
+                except VarNotFound:
+                    #print(f"Didnt find {depvarfile}")
+                    xlicense="Questionable"
                 s=( f'"{xvar}.latest":{{\n'
                     f'    "licenseType" : "{xlicense}",\n'
                      '    "dependencies" : {}\n'
