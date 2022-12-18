@@ -83,7 +83,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     """
 
     log_setlevel(verbose)
-    #info("Welcome to vamtb")
+    info("Welcome to vamtb")
 
     ctx.ensure_object(dict)
     ctx.obj['file']        = file
@@ -508,7 +508,7 @@ def dupinfo(ctx):
 @cli.command('info')
 @click.pass_context
 @catch_exception
-def info(ctx):
+def dupinfo(ctx):
     """
     Return information on var.
 
@@ -520,40 +520,6 @@ def info(ctx):
         with Var(varfile, dir) as var:
             for zinfo in var.get_zipinfolist:
                 print(zinfo)
-
-@cli.command('sizedup')
-@click.pass_context
-@catch_exception
-def sizedup(ctx):
-    """
-    Sort biggest dups.
-
-    vamtb [-vv] sizedup
-
-    """
-    mins = 30*1024*1024
-    idx = 0
-    bdup = Dbs.get_size_files_ck()
-    while( idx <= len(bdup) ):
-        v, f, c, s = bdup[idx]
-#        print(f"Inspecting {v}:{f}")
-        if s < mins:
-            break
-        idx2 = idx + 1
-        idx = idx + 1
-        dupsf = []
-        while ( idx2 < len(bdup) ):
-            v2, f2, c2, s2 = bdup[idx2]
-            if c2 == c and s2 == s:
-                dupsf.append( [ v2, f2] )
-                idx2 = idx2 + 1
-                idx = idx + 1
-            else:
-                break
-        if len(dupsf):
-            print(f"{v}:{f} [size {int(s/1024/1024*10)/10}M] has {len(dupsf)} duplicates:")
-            for v,f in dupsf:
-                print(f"\t{v}:{f}")
 
 @cli.command('dbdel')
 @click.pass_context
