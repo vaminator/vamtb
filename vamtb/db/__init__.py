@@ -82,6 +82,10 @@ class Dbs:
         return Dbs.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
 
     @staticmethod
+    def get_size_files_ck():
+        return Dbs.fetchall("SELECT VARNAME, FILENAME, CKSUM, SIZE FROM FILES ORDER BY SIZE DESC", None)
+
+    @staticmethod
     def get_vars():
         return [ e[0] for e in Dbs.fetchall("SELECT VARNAME FROM VARS", None) ]
 
