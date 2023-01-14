@@ -465,8 +465,8 @@ class Var(VarFile):
                     debug(f"In {globf.relative_to(self.tmpDir).as_posix()}, {nr} --> {rep}")
                     try:
                         _ = json.loads(replace_string)
-                    except (UnicodeDecodeError, json.decoder.JSONDecodeError):
-                        error("While rerefing, something went wrong as we are trying to write non json content")
+                    except (UnicodeDecodeError, json.decoder.JSONDecodeError) as e:
+                        error(f"While rerefing, something went wrong as we are trying to write non json content\n{e}")
                         critical(replace_string, doexit=True)
                     with open(globf, "w") as f:
                         f.write(replace_string)
@@ -823,4 +823,38 @@ class Var(VarFile):
             else:
                 error(f"Anonfiles gave response:{j}")
                 return False
+
+    def rec_dep(self, stop = True, dir=None, func = None):
+        def rec(var:Var, depth=0):
+            msg = " " * depth + f"Checking dep of {var.var}"
+            if not var.exists():
+                warn(f"{msg:<130}" + ": Not Found")
+                if stop:
+                    raise VarNotFound(var.var)
+            else:
+                info(f"{msg:<130}" + ":     Found")
+            sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
+            row = (var.var,)
+            res = self.db_fetch(sql, row)
+            res = sorted([ e[0] for e in res ])
+            for varfile in res:
+                try:
+                    if dir == None:
+                        depvar = VarFile(varfile, use_db=True)                        
+                    else:
+                        try:
+                            depvar = Var(varfile, dir=dir, use_db=True)
+                        except VarNotFound as e:
+                            if stop:
+                                raise VarNotFound(varfile.var)
+                            else:
+                                error(f"Var {varfile} not found")
+                                continue
+                    if func:
+                        func(depvar)
+                except (VarExtNotCorrect, VarNameNotCorrect, VarVersionNotCorrect):
+                    error(f"We skipped a broken dependency from {self.var}")
+                    continue
+                rec(depvar, depth+1 )
+        rec(self)
 

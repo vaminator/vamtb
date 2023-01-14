@@ -245,28 +245,6 @@ class VarFile:
         res = sorted([ e[0] for e in res ], key = str.casefold)
         return res if res else []
 
-    def rec_dep(self, stop = True):
-        def rec(var:VarFile, depth=0):
-            msg = " " * depth + f"Checking dep of {var.var}"
-            if not var.exists():
-                warn(f"{msg:<130}" + ": Not Found")
-                if stop:
-                    raise VarNotFound(var.var)
-            else:
-                info(f"{msg:<130}" + ":     Found")
-            sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
-            row = (var.var,)
-            res = self.db_fetch(sql, row)
-            res = sorted([ e[0] for e in res ])
-            for varfile in res:
-                try:
-                    depvar = VarFile(varfile, use_db=True)
-                except (VarExtNotCorrect, VarNameNotCorrect, VarVersionNotCorrect):
-                    error(f"We skipped a broken dependency from {self.var}")
-                    continue
-                rec(depvar, depth+1 )
-        rec(self)
-
     def db_files(self, with_meta = True):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
         if not with_meta:

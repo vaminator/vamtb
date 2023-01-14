@@ -1,1 +1,2 @@
-@python -X utf8 vamtb.py %*
+@set ddir=%~dp0
+@python -X utf8 %ddir%/vamtb.py %*

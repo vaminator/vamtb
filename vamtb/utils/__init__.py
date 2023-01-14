@@ -11,6 +11,8 @@ from vamtb.vamex import *
 
 # Constants
 C_YAML = "vamtb.yml"
+C_DB = "vars.db"
+C_LOG = "log-vamtb.txt"
 C_DDIR = "graph"
 C_BAD_DIR = "00Dep"
 C_REF_CREATORS = (
@@ -34,7 +36,6 @@ C_CREATORS_ALIAS = {
 }
 
 C_NEXT_CREATOR = 127
-C_DB = "vars.db"
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 C_MAX_FILES = 50
 C_MAX_SIZE = 20 * 1024 * 1024

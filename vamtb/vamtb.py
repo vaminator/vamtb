@@ -38,6 +38,7 @@ from vamtb.db import Dbs
 def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
+    For full help and all commands use vamtb --help
 
     \b
     Dependency handling (from disk or database):
@@ -102,18 +103,27 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     ctx.obj['cc']          = cc
     ctx.obj['iaprefix']    = iaprefix
     conf = {}
-    try:
-        with open(C_YAML, 'r') as stream:
-            conf = yaml.load(stream, Loader=yaml.BaseLoader)
-    except FileNotFoundError:
-        conf['dir'] = input(blue("Directory of Vam ?:"))
-        with open(C_YAML, 'w') as outfile:
-            yaml.dump(conf, outfile, default_flow_style=False)
-        info(f"Created {C_YAML}")
-    except yaml.YAMLError as exc:
-        error(f"YAML error in {C_YAML}: {exc}")
 
-    dir = Path(conf['dir'])
+    global C_YAML
+    exec_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    C_YAML = os.path.join(exec_dir, C_YAML)
+
+    if not dir:
+        try:
+            C_YAML = os.path.join(exec_dir, C_YAML)
+            with open(C_YAML, 'r') as stream:
+                conf = yaml.load(stream, Loader=yaml.BaseLoader)
+        except FileNotFoundError:
+            conf['dir'] = input(blue("Directory of Vam ?:"))
+            with open(C_YAML, 'w') as outfile:
+                yaml.dump(conf, outfile, default_flow_style=False)
+            info(f"Created {C_YAML}")
+        except yaml.YAMLError as exc:
+            error(f"YAML error in {C_YAML}: {exc}")
+
+        dir = Path(conf['dir'])
+    else:
+        dir = Path(dir)
 
     if dir.stem != "AddonPackages":
         dir = dir / "AddonPackages"
@@ -159,8 +169,13 @@ def printrealdep(ctx):
 
     vamtb [-vv] [-f <file pattern> ] printrealdep
 
-    Not recursive"""
+    Not recursive
+
+    -m: print as json
+
+    """
     file, dir, pattern = get_filepattern(ctx)
+    json = ctx.obj['move']
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir) as var:
             deps = list(set(var.dep_fromfiles()))
@@ -175,21 +190,22 @@ def printrealdep(ctx):
                 except VarNotFound:
                     #print(f"Didnt find {depvarfile}")
                     xlicense="Questionable"
-                s=( f'"{xvar}.latest":{{\n'
-                    f'    "licenseType" : "{xlicense}",\n'
-                     '    "dependencies" : {}\n'
-                     '},'
-                )
-                print(s)
-                continue
-                mess = green("Found")
-                try:
-                    _ = Var(depvarfile, dir)
-                except VarNotFound:
-                    mess = red("Not found")
+                if json:
+                    s=( f'"{xvar}.latest":{{\n'
+                        f'    "licenseType" : "{xlicense}",\n'
+                        '    "dependencies" : {}\n'
+                        '},'
+                    )
+                    print(s)
                 else:
                     mess = green("Found")
-                print(f"{depvarfile:<68}: {mess}")
+                    try:
+                        _ = Var(depvarfile, dir)
+                    except VarNotFound:
+                        mess = red("Not found")
+                    else:
+                        mess = green("Found")
+                    print(f"{depvarfile:<68}: {xlicense:<16} {mess}")
 
 @cli.command('dump')
 @click.pass_context
@@ -237,6 +253,7 @@ def sort_vars(ctx):
     for file in search_files_indir(dir, pattern):
         try:
             with Var(file, dir) as var:
+                warn(f"Moving var {var}")
                 var.move_creator()
         except zlib.error:
             error(f"Zip error on var {file}")
@@ -649,7 +666,7 @@ def anon(ctx):
 
     with open(C_YAML, 'r') as stream:
         conf = yaml.load(stream, Loader=yaml.BaseLoader)
-    if 'anon_apikey' not in conf or not conf['anon_apikey']:
+    if not conf.get('anon_apikey', False):
         conf['anon_apikey'] = input(blue("Enter Anonfiles apikey ?:"))
         with open(C_YAML, 'w') as outfile:
             yaml.dump(conf, outfile, default_flow_style=False)
@@ -685,5 +702,61 @@ def multiup(ctx):
     """
     for func in (ia, anon):
         ctx.invoke(func)
+
+@cli.command('link')
+@click.pass_context
+@catch_exception
+def link(ctx):
+    """
+    Link var and dependent to configured directory.
+
+
+    vamtb [-vv] [-f <file pattern> ] [-m] link
+
+    -m : Don't recurse.
+    -z : Use configured linked dir in config file for destination directory (otherwise uses current dir)
+    -f : When using configured linked dir, don't confirm destination directory 
+
+    """
+    ddir = ""
+
+    def linkfile(mvar):
+        srcfile = mvar.path
+        basefile = os.path.basename(srcfile)
+        linkdir = ddir
+        if not os.path.islink(f"{linkdir}/{basefile}"):
+            try:
+                info(f"{linkdir}/{basefile}  ->  {srcfile}")
+                os.symlink(f"{srcfile}", f"{linkdir}/{basefile}")
+            except FileExistsError:
+                warn(f"ERROR exists {linkdir}/{basefile}")
+
+    conf = {}
+    writeconf = False
+    file, dir, pattern = get_filepattern(ctx)
+
+    if conf.get('setref', False):
+        with open(C_YAML, 'r') as stream:
+            conf = yaml.load(stream, Loader=yaml.BaseLoader)
+            if 'linkdir' not in conf or \
+                (not ctx.obj['force'] and input(red(f"Link to {conf['linkdir']} ? [Y]N")).upper() == "N") :
+                writeconf = True
+        dir = Path(conf['dir'])
+
+        if writeconf:
+            conf['linkdir'] = input(blue("Where to link to ?:"))
+            with open(C_YAML, 'w+') as stream:
+                yaml.dump(conf, stream, default_flow_style=False)
+                info(f"Configured {conf['linkdir']} in {C_YAML}")
+            ddir = conf['linkdir']
+    else:
+        ddir = os.getcwd()
+
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True) as var:
+            warn(f"Linking {var} {'' if ctx.obj['move'] else 'and dependencies'}")
+            linkfile(var)
+            if not ctx.obj['move']:
+                var.rec_dep(stop=False, dir=dir, func = linkfile)
 
 #TODO add command for morph region /.. editing

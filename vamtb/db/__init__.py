@@ -6,12 +6,23 @@ from vamtb.vamex import *
 from vamtb.utils import *
 from vamtb.log import *
 
+# At import, modify our variables
+global C_DB
+exec_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+C_DB = os.path.join(exec_dir, C_DB)
+
+
 class Dbs:
     __instance = None
     __conn = None
 
     def __init__(self, dbfilename=C_DB):
+        """
+            This is a singleton (see at end) getting called quite early at import time
+            Before any main code is executed.
+        """
         if not Dbs.__instance:
+            warn(f"Opened database {dbfilename}")
             Dbs.__conn = sqlite3.connect(dbfilename)
             Dbs.init_dbs()
             Dbs.__instance = self
