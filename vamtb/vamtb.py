@@ -7,6 +7,7 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 from tqdm import tqdm
+import PySimpleGUI as sg
 
 from vamtb.graph import Graph
 from vamtb.var import Var
@@ -25,6 +26,7 @@ from vamtb.db import Dbs
 @click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
 @click.option('file','-f',                                      help='Var file to act on.')
 @click.option('iaprefix','-i',                                  help=f'Internet Archive identifier prefix (defaults to {IA_IDENTIFIER_PREFIX}).')
+@click.option('-j', '--optimize', count=True,                   help="Image Optimize level (none:No png to jpg that is lossless, 1: Jpeg qual 90%, 2: Jpeg qual 75%).")
 @click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-n', '--dryrun/--no-dryrun', default=False,      help="Dry run on what would be uploaded.")
 @click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
@@ -35,7 +37,7 @@ from vamtb.db import Dbs
 @click.option('dup', '-x',                                      help='Only dedup this file.')
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.pass_context
-def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
+def cli(ctx, verbose, optimize, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
     For full help and all commands use vamtb --help
@@ -92,6 +94,7 @@ def cli(ctx, verbose, move, ref, usedb, dir, file, dup, remove, setref, force, m
     ctx.obj['ref']         = ref
     ctx.obj['usedb']       = usedb
     ctx.obj['debug_level'] = verbose
+    ctx.obj['optimize']    = optimize
     ctx.obj['progress']    = progress
     ctx.obj['dup']         = dup
     ctx.obj['remove']      = remove
@@ -487,6 +490,39 @@ def reref(ctx):
             else:
                 warn(f"{var.var} exists as {var.path} but is not in the DB, skipping..")
 
+@cli.command('imageopt')
+@click.pass_context
+@catch_exception
+def imageopt(ctx):
+    """
+    Optimize images in vars.
+
+
+    vamtb [-jj] [-f <file pattern> ] imageopt
+
+    Without option: no loss of quality, just optimize png
+    -j:             same but convert png to jpg of qual 90%
+    -jj:            same but convert png to jpg of qual 75%
+    
+    -f: will operate only on this var                                          
+    """
+    oldsz = 0
+    opt_level = ctx.obj['optimize']
+    file, dir, pattern = get_filepattern(ctx)
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True) as var:
+            msg = f"Image optimisation on {varfile.name:<100} size:"
+            if not var.exists():
+                print(red(f"{msg} UNKNOWN"))
+                continue
+            oldsz = var.size
+            print(green(f"{msg} {toh(var.size)}"))
+            if var.exists():
+                res = var.var_opt_images(opt_level)
+            else:
+                warn(f"{var.var} exists as {var.path} but is not in the DB, skipping..")
+
+
 @cli.command('dupinfo')
 @click.pass_context
 @catch_exception
@@ -525,7 +561,7 @@ def dupinfo(ctx):
 @cli.command('info')
 @click.pass_context
 @catch_exception
-def dupinfo(ctx):
+def minfo(ctx):
     """
     Return information on var.
 
@@ -536,7 +572,7 @@ def dupinfo(ctx):
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir) as var:
             for zinfo in var.get_zipinfolist:
-                print(zinfo)
+                print(f"{zinfo.filename}, Compress={zinfo.compress_type}, FSize={zinfo.file_size}, CSize={zinfo.compress_size}")
 
 @cli.command('dbdel')
 @click.pass_context
@@ -714,7 +750,9 @@ def link(ctx):
     vamtb [-vv] [-f <file pattern> ] [-m] link
 
     -m : Don't recurse.
+
     -z : Use configured linked dir in config file for destination directory (otherwise uses current dir)
+
     -f : When using configured linked dir, don't confirm destination directory 
 
     """
@@ -759,4 +797,102 @@ def link(ctx):
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
 
+def files_in_dir(folder):
+    try:
+        # Get list of files in folder
+        file_list = os.listdir(folder)
+    except:
+        file_list = []
+
+    fnames = [
+        f
+        for f in file_list
+        if os.path.isfile(os.path.join(folder, f))
+        and f.lower().endswith((".var"))
+    ]
+    return fnames
+
+@cli.command('gui')
+@click.pass_context
+@catch_exception
+def gui(ctx):
+    """
+    Run the graphical user interface
+    """
+    # First the window layout in 2 columns
+
+    buttons_column = [
+        [ sg.Button("Meta", key="-META-") ],
+        [ sg.Button("Dep", key="-DEP-") ],
+        [ sg.Button("Rdep", key="-RDEP-") ],
+    ]
+
+    file_list_column = [
+        [
+            sg.Listbox(
+                values=[], enable_events=True, size=(40, 40), key="-FILE LIST-"
+            )
+        ],
+    ]
+
+
+    # For now will only show the name of the file that was chosen
+
+    image_viewer_column = [
+        [sg.Text(key="-IMAGE-")],
+    ]
+
+    # ----- Full layout -----
+    layout = [
+        [
+            [
+                sg.Text("AddonPackages Folder"),
+                sg.In(enable_events=True, visible=False, key="-FOLDER-"),
+                sg.FolderBrowse(),
+                sg.Text(size=(40, 1), key="-TOUT-", justification="right"),
+            ],
+            sg.Column(buttons_column),
+            sg.Column(file_list_column),
+            sg.VSeperator(),
+            sg.Column(image_viewer_column),
+        ]
+    ]
+
+    window = sg.Window("Vam Tool Box", layout, resizable=True, finalize=True, location=(0,0))
+    
+    folder = ctx.obj['dir']
+    fnames = files_in_dir(folder)    
+    window["-FILE LIST-"].update(fnames)
+
+    # Run the Event Loop
+    while True:
+        event, values = window.read()
+        if event == "Exit" or event == sg.WIN_CLOSED:
+            break
+        # Folder name was filled in, make a list of files in the folder
+        if event == "-FOLDER-":
+            folder = values["-FOLDER-"]
+
+            fnames = files_in_dir(folder)
+            window["-FILE LIST-"].update(fnames)
+
+        elif event == "-FILE LIST-":  # A file was chosen from the listbox
+            try:
+                window["-TOUT-"].update(values["-FILE LIST-"][0])
+#                window["-IMAGE-"].update(text=filename)
+            except:
+                pass
+        elif event == "-META-":
+            with Var(values["-FILE LIST-"][0], folder) as var:
+                window["-IMAGE-"].update(prettyjson(var.load_json_file("meta.json")) )
+        elif event == "-DEP-":
+            with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
+                deps = var.get_dep()
+            window["-IMAGE-"].update("\n".join(deps) )
+        elif event == "-RDEP-":
+            with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
+                rdeps = var.get_rdep()
+            window["-IMAGE-"].update("\n".join(rdeps) )
+             
+    window.close()
 #TODO add command for morph region /.. editing

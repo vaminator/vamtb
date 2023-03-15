@@ -10,6 +10,7 @@ import requests
 from pathlib import Path
 from zipfile import ZipFile
 from internetarchive import get_item
+from PIL import Image, ImageFile
 
 from vamtb.file import FileName
 from vamtb.varfile import VarFile
@@ -20,7 +21,7 @@ from vamtb.log import *
 
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True):
+    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True, check_file_exists=True):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -48,9 +49,12 @@ class Var(VarFile):
         self.__thumb = None
 
         # Verify and resolve var on disk
-        self._path = Path(self.__resolvevar(multiFileName))
+        if check_file_exists:
+            self._path = Path(self.__resolvevar(multiFileName))
+        else:
+            self._path = None
 
-        if self._path.with_suffix(".jpg").exists():
+        if self._path and self._path.with_suffix(".jpg").exists():
             self.__thumb = self.path.with_suffix(".jpg")
 
         debug(f"Var {multiFileName} is found as {self._path}")
@@ -98,8 +102,11 @@ class Var(VarFile):
     def __del__(self):
         if self.__tmpDir:
             debug(f"Erasing directory {self.__tmpDir}")
-            self.__tmpTempDir.cleanup()
-        pass
+            try:
+                self.__tmpTempDir.cleanup()
+            except AttributeError:
+                # We didn't unpack ourselves
+                pass
 
     def check(self):
         self.zipcheck()
@@ -198,7 +205,7 @@ class Var(VarFile):
             debug(f"Extracting done...")
         except Exception as e:
             #self.__del__()
-            critical(f"Var {self.var} has CRC problems.")
+            critical(f"Var {self.var} has problems unpacking {e}.")
             raise
         else:
             self.__tmpDir = tmpPathdir
@@ -442,6 +449,149 @@ class Var(VarFile):
                 info(f"No dup for {self.var}:/{file}")
         return dups
 
+    def opt_image(self, fname, optlevel):
+        """
+            1 (1-bit pixels, black and white, stored with one pixel per byte)
+            L (8-bit pixels, black and white)
+            P (8-bit pixels, mapped to any other mode using a color palette)
+            RGB (3x8-bit pixels, true color)
+            RGBA (4x8-bit pixels, true color with transparency mask)
+        """
+        fname = str(Path(fname).as_posix())
+        # Use a temp image for reading
+        old_image = str(Path(fname).with_suffix(".orig"))
+        osize = FileName(fname).size
+        shutil.copyfile(fname, old_image)
+        picture = Image.open(old_image)
+        debug(f"Image mode is : {red(picture.mode)}")
+        if optlevel:
+            if picture.mode in ("RGBA", "P", "I"):
+                warn(f"Image {fname} is of mode {picture.mode} and we'll convert it to RGB")
+                picture = picture.convert("RGB")
+            new_image = str(Path(fname).with_suffix(".jpg"))
+            jpeg_qual = 90 if optlevel == 1 else 75
+        else:
+            jpeg_qual = "keep"
+            new_image = fname
+
+        pfname = os.path.relpath(fname, self.__tmpDir)
+        pdname = os.path.relpath(new_image, self.__tmpDir)
+        # Conversion of png to jpg ?
+        has_changed_format = True if fname != new_image else False
+        picture.save(new_image, optimize = True, quality = jpeg_qual, compress_level=9, progressive=False)
+        nsize = FileName(new_image).size
+        persize = int(100*(1-nsize/osize))
+        info(f"Level {optlevel} - JPEG qual {jpeg_qual} => {red(str(persize)+'% less')}\n{green(pfname+'->'+pdname)}")
+        os.unlink(old_image)
+        # We converted from png to jpg, remove old png
+        if has_changed_format:
+            os.unlink(fname)
+        return has_changed_format
+
+    backed = False
+    optimized = {}
+    def opt_images(self, json_file, optlevel):
+        """
+        optlevel: 0 => lossless
+        optlevel: 1 => convert to 90% Jpg
+        optlevel: 2 => convert to 75% Jpg
+        """
+
+        minsize = 1024*1024*5  # 5MB
+        global backed
+        global optimized
+
+        with open(json_file, 'r') as f:
+            json_content = f.read()
+        if optlevel:
+            pattern = re.compile(r'(".+") : (?:"SELF:/(.+(?:jpg|png)))', re.IGNORECASE)
+        else:
+            pattern = re.compile(r'(".+") : (?:"SELF:/(.+(?:png)))', re.IGNORECASE)
+        for m in re.finditer(pattern, json_content):
+
+            # Don't optimized files aready optimized 
+            if m.group(2) in optimized:
+                continue
+            else:
+                optimized[m.group(2)] = True
+
+            img = FileName(f"{self.tmpDir}\{m.group(2)}")
+            debug(f">> {m.group(1)} image {m.group(2)} ")
+            if img.size > minsize:
+                if backed == False:
+                    #Backups are for sissies
+                    #if Path(self.path).with_suffix(".orig").exists():
+                    #    critical(f"File {Path(self.path).with_suffix('.orig')} already exists, remove backup", doexit=True)
+                    #shutil.copyfile(self.path, Path(self.path).with_suffix('.orig'))
+                    backed = True
+                # We default to conversion
+                l_optlevel = optlevel
+                if "Normal" in m.group(1) or "Decal" in m.group(1):
+                    # TODO
+                    # If that's a normal, we don't want to convert to jpg
+                    # If that's a decal, it should have transparency (png mode) and we shouldn't convert to RGB
+                    # For other png which don't require transparency, we should be able to convert to RGB and gain a lot
+                    l_optlevel = 0
+                debug(f">> size {toh(img.size)}, loss_level={l_optlevel}")
+                has_changed_format = self.opt_image(f"{self.tmpDir}\{m.group(2)}", l_optlevel)
+                if has_changed_format:
+                    debug(f"Replacing with {str(Path(m.group(2)).with_suffix('.jpg').as_posix())}")
+                    replace_string = json_content.replace(m.group(2), str(Path(m.group(2)).with_suffix(".jpg").as_posix()))
+                    with open(json_file, "w") as f:
+                        f.write(replace_string)
+        return backed
+
+
+    @unzip
+    def var_opt_images(self,opt_level):
+        global backed
+        global optimized
+        backed = False
+        optimized = {}
+        modified_var = False
+        tdir = self.tmpDir
+        ImageFile.MAXBLOCK = 2**20
+        osize = self.size
+        for globf in search_files_indir(tdir, "*"):
+            if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
+                continue
+            try:
+                file = FileName(globf)
+                js = file.json
+            except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                continue
+            debug(f"> Searching for images in {green(str(globf.relative_to(self.__tmpDir)))}")
+            modified_var = self.opt_images(globf, opt_level)
+
+        if modified_var:
+            sopt_level={0: "tc_lossless", 1: "tc_nearlossless", 2: "tc_good"}
+            nresource = f"{self.resource}_{sopt_level[opt_level]}"
+            nvar = f"{self.creator}.{nresource}.{self.version}"
+
+            # Create new var
+            new_var = Var(nvar, dir = self.addondir, use_db=True, check_exists=False, check_file_exists=False)
+            new_var._path = str(Path(new_var.addondir, f"{nvar}.var"))
+
+            ometa = self.meta()
+            ometa['packageName'] = nresource
+            new_var.__tmpDir = tdir
+            self.write_meta(tdir, ometa)
+
+            zipdir(tdir, new_var.path)
+            
+            #Check it
+            res = ZipFile(new_var.path).testzip()
+            if res != None:
+                critical(f"Warning, reconstructed zip {new_var.path} has CRC problem on file {res}.", doexit=True)
+            
+            warn(f"Modified {new_var.path}")
+            new_var.store_update(confirm=False)
+            info(f"Updated DB for {new_var.var}")
+            
+            nsize = new_var.size
+            persize = int(100*(1-nsize/osize))
+            warn(f"{toh(osize)}->{toh(nsize)}: {persize}% less")
+
     def reref_files(self, newref):
         tdir = self.tmpDir
         for globf in search_files_indir(tdir, "*"):
@@ -486,6 +636,10 @@ class Var(VarFile):
             except FileNotFoundError:
                 warn(f"File {file} not found in var {self.var}. Database is not up to date?")
 
+    def write_meta(self, tdir, mdict: dict):
+        with open(tdir / "meta.json", 'w') as f:
+            f.write(prettyjson(mdict))
+
     def modify_meta(self, newref):
         tdir = self.tmpDir
         meta = self.meta()
@@ -500,8 +654,8 @@ class Var(VarFile):
             except ValueError:
                 # The exact file was not mentionned in the contentList
                 pass
-        with open(tdir / "meta.json", 'w') as f:
-            f.write(prettyjson(meta))
+
+        self.write_meta(tdir, meta)
         debug("Modified meta")
 
     def get_new_ref(self, dup) -> dict:
@@ -670,7 +824,7 @@ class Var(VarFile):
             return False
         #
         print(f"Uploading {self}, {int(self.size/1000)/1000}MB")
-        choice = True
+        choice = False
         mchoice = "N"
         if choice:
             mchoice = input("Confirm [Y]ND ?").upper()
@@ -824,6 +978,20 @@ class Var(VarFile):
                 error(f"Anonfiles gave response:{j}")
                 return False
 
+    def get_dep(self):
+        sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
+        row = (self.latest(),)
+        res = self.db_fetch(sql, row)
+        res = sorted([ e[0] for e in res ], key = lambda s: s.casefold())
+        return res
+
+    def get_rdep(self):
+        sql = f"SELECT DISTINCT VAR FROM DEPS WHERE DEPVAR=?"
+        row = (self.latest(),)
+        res = self.db_fetch(sql, row)
+        res = sorted([ e[0] for e in res ], key = lambda s: s.casefold())
+        return res
+
     def rec_dep(self, stop = True, dir=None, func = None):
         def rec(var:Var, depth=0):
             msg = " " * depth + f"Checking dep of {var.var}"
@@ -833,10 +1001,8 @@ class Var(VarFile):
                     raise VarNotFound(var.var)
             else:
                 info(f"{msg:<130}" + ":     Found")
-            sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
-            row = (var.var,)
-            res = self.db_fetch(sql, row)
-            res = sorted([ e[0] for e in res ])
+            res = var.get_dep()
+            info(f"Found {len(res)} dependencies for {var}, searching their own dependencies")
             for varfile in res:
                 try:
                     if dir == None:
