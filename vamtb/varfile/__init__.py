@@ -11,7 +11,7 @@ from vamtb.log import *
 class VarFile:
 
     def __init__(self, inputName, use_db = False) -> None:
-        inputName or critical("Tried to create a var but gave no filename", doexit=True)
+        inputName or critical("Tried to create a var but gave no filename")
         self.__Creator = ""
         self.__Resource = ""
         # Version as string 1, latest, min

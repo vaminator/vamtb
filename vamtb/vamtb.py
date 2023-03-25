@@ -21,10 +21,11 @@ from vamtb.db import Dbs
 @click.group()
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
 @click.option('-b', '--usedb/--no-usedb', default=False,        help="Use DB.")
-@click.option('dir', '-d',                                      help='Use a specific VAM directory.')
 @click.option('-c', '--cc/--no-cc', default=False,              help="Only upload CC license content")
+@click.option('dir', '-d',                                      help='Use a specific VAM directory.')
 @click.option('-e', '--meta/--no-meta', default=False,          help="Only reset subject metadata.")
 @click.option('file','-f',                                      help='Var file to act on.')
+@click.option('inp', '-g',                                      help='Input directory for var creation.')
 @click.option('iaprefix','-i',                                  help=f'Internet Archive identifier prefix (defaults to {IA_IDENTIFIER_PREFIX}).')
 @click.option('-j', '--optimize', count=True,                   help="Image Optimize level (none:No png to jpg that is lossless, 1: Jpeg qual 90%, 2: Jpeg qual 75%).")
 @click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
@@ -37,7 +38,7 @@ from vamtb.db import Dbs
 @click.option('dup', '-x',                                      help='Only dedup this file.')
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.pass_context
-def cli(ctx, verbose, optimize, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
+def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
     For full help and all commands use vamtb --help
@@ -105,6 +106,7 @@ def cli(ctx, verbose, optimize, move, ref, usedb, dir, file, dup, remove, setref
     ctx.obj['full']        = full
     ctx.obj['cc']          = cc
     ctx.obj['iaprefix']    = iaprefix
+    ctx.obj['inp']         = inp
     conf = {}
 
     global C_YAML
@@ -132,7 +134,7 @@ def cli(ctx, verbose, optimize, move, ref, usedb, dir, file, dup, remove, setref
         dir = dir / "AddonPackages"
 
     if not ( dir.is_dir() and dir.exists() ):
-        critical(f"AddonPackages '{dir}' is not existing directory", doexit=True)
+        critical(f"AddonPackages '{dir}' is not existing directory")
 
     ctx.obj['dir'] = str(dir)
 
@@ -221,7 +223,7 @@ def dumpvar(ctx):
     
     """
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
+    file or critical("Need a file parameter")
     with Var(file, dir) as var:
         print(prettyjson( var.load_json_file("meta.json") ))
 
@@ -236,7 +238,7 @@ def noroot(ctx):
 
     """
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
+    file or critical("Need a file parameter")
     with Var(file, dir) as var:
         var.remroot()
 
@@ -402,8 +404,10 @@ def dbscan(ctx):
             try:
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
-            except VarMalformed as e:
+            except (VarMalformed, VarMetaJson) as e:
                 error(f"Var {var.var} malformed [{e}].")
+            except:
+                pass
     info(f"{stored} var files stored")
 
 
@@ -435,22 +439,23 @@ def dbclean(ctx):
 @cli.command('graph')
 @click.pass_context
 @catch_exception
-def dotty(ctx):
+def graph(ctx):
     """
     Generate graph of deps, one per var.
 
+    vamtb [-a] [-vv] [-f <file pattern> ] graph
 
-    vamtb [-vv] [-f <file pattern> ] graph
+    -a: Generate png rather than pdf
 
     """
     if shutil.which(C_DOT) is None:
-        critical(f"Make sure you have graphviz installed in {C_DOT}.", doexit=True)
+        critical(f"Make sure you have graphviz installed in {C_DOT}.")
 
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             info(f"Calculating dependency graph for {var.var}")
-            Graph.dotty(var)
+            Graph.dotty(var, ext="png" if ctx.obj['force'] else "pdf")
 
 @cli.command('reref')
 @click.pass_context
@@ -469,8 +474,8 @@ def reref(ctx):
     dup = ctx.obj['dup']
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
-    critical("Be cautious with what you accept (Y). If some bundled content was modified, you might get some split content.")
-    critical("Also vars referencing this content will have broken dependencies. Check that manually for now.")
+    critical("Be cautious with what you accept (Y). If some bundled content was modified, you might get some split content.", doexit=False)
+    critical("Also vars referencing this content will have broken dependencies. Check that manually for now.", doexit=False)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             msg = f"Reref on {varfile.name:<100} size:"
@@ -587,7 +592,7 @@ def dbdel(ctx):
     """
 
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
+    file or critical("Need a file parameter")
     varfile = VarFile(file, use_db=True)
     if not varfile.exists():
         warn(f"{varfile.file} not found in DB")
@@ -610,7 +615,7 @@ def setref(ctx):
     """
 #TODO set noref..
     file, dir, pattern = get_filepattern(ctx)
-    file or critical("Need a file parameter", doexit=True)
+    file or critical("Need a file parameter")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
             info(f"Setting var {var} as reference")
@@ -791,11 +796,47 @@ def link(ctx):
         ddir = os.getcwd()
 
     for varfile in search_files_indir(dir, pattern):
+        etarget = Path(ddir, os.path.basename(varfile))
+        if etarget.exists() and etarget.is_file():
+            info(f"{etarget} already exists")
+            continue
         with Var(varfile, dir, use_db=True) as var:
             warn(f"Linking {var} {'' if ctx.obj['move'] else 'and dependencies'}")
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
+
+@cli.command('makevar')
+@click.pass_context
+@catch_exception
+def makevar(ctx):
+    """
+    Create a var from a directory.
+
+    vamtb -c makevar
+
+    Without option: no loss of quality, just optimize png
+    -j:             same but convert png to jpg of qual 90%
+    -jj:            same but convert png to jpg of qual 75%
+    
+    -f: will operate only on this var                                          
+    """
+    oldsz = 0
+    opt_level = ctx.obj['optimize']
+    file, dir, pattern = get_filepattern(ctx)
+    for varfile in search_files_indir(dir, pattern):
+        with Var(varfile, dir, use_db=True) as var:
+            msg = f"Image optimisation on {varfile.name:<100} size:"
+            if not var.exists():
+                print(red(f"{msg} UNKNOWN"))
+                continue
+            oldsz = var.size
+            print(green(f"{msg} {toh(var.size)}"))
+            if var.exists():
+                res = var.var_opt_images(opt_level)
+            else:
+                warn(f"{var.var} exists as {var.path} but is not in the DB, skipping..")
+
 
 def files_in_dir(folder):
     try:

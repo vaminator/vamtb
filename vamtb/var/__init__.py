@@ -27,7 +27,7 @@ class Var(VarFile):
         in the two first cases, dir is required to find the var on disk
         """
         # tempdir to extracted var
-        multiFileName or critical("Tried to create a var but gave no filename", doexit=True)
+        multiFileName or critical("Tried to create a var but gave no filename")
     
         self.__tmpDir = None
         VarFile.__init__(self, multiFileName, use_db)
@@ -155,16 +155,21 @@ class Var(VarFile):
                 info(f"Zip {self.path} is ok.")
 
     def search(self, pattern)-> Path:
+        # TODO use os.walk much faster
         fpath = self.__AddonDir
         assert(fpath)
         debug(f"Listing files pattern **/{pattern} in {fpath}")
         pattern = re.sub(r'([\[\]])','[\\1]',pattern)
         return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
+            
+
 
     def __resolvevar(self, multiname):
         """This will return the real var as an existing Path"""
-        if Path(multiname).exists() and Path(multiname).is_file():
-            return Path(multiname)
+        #debug(f"__resolvar({multiname})")
+        for p in (multiname, f"{multiname}.var", f"{self.__AddonDir}/{multiname}", f"{self.__AddonDir}/{multiname}.var"):
+            if Path(p).exists() and Path(p).is_file():
+                return Path(p)
 
         # Not a full path var, search var on disk
         if self.iversion != -1:
@@ -216,7 +221,7 @@ class Var(VarFile):
             try:
                 self._meta = self.load_json_file("meta.json")
             except json.decoder.JSONDecodeError as e:
-                critical(f"Meta.json from {self.var} is broken [{e}]", doexit=True)
+                critical(f"Meta.json from {self.var} is broken [{e}]")
                 raise VarMetaJson(self.var)
         return self._meta
 
@@ -521,7 +526,7 @@ class Var(VarFile):
                 if backed == False:
                     #Backups are for sissies
                     #if Path(self.path).with_suffix(".orig").exists():
-                    #    critical(f"File {Path(self.path).with_suffix('.orig')} already exists, remove backup", doexit=True)
+                    #    critical(f"File {Path(self.path).with_suffix('.orig')} already exists, remove backup")
                     #shutil.copyfile(self.path, Path(self.path).with_suffix('.orig'))
                     backed = True
                 # We default to conversion
@@ -582,7 +587,7 @@ class Var(VarFile):
             #Check it
             res = ZipFile(new_var.path).testzip()
             if res != None:
-                critical(f"Warning, reconstructed zip {new_var.path} has CRC problem on file {res}.", doexit=True)
+                critical(f"Warning, reconstructed zip {new_var.path} has CRC problem on file {res}.")
             
             warn(f"Modified {new_var.path}")
             new_var.store_update(confirm=False)
@@ -617,7 +622,7 @@ class Var(VarFile):
                         _ = json.loads(replace_string)
                     except (UnicodeDecodeError, json.decoder.JSONDecodeError) as e:
                         error(f"While rerefing, something went wrong as we are trying to write non json content\n{e}")
-                        critical(replace_string, doexit=True)
+                        critical(replace_string)
                     with open(globf, "w") as f:
                         f.write(replace_string)
                     debug(f"!! Rewrote {globf.relative_to(self.tmpDir)}")
@@ -776,7 +781,7 @@ class Var(VarFile):
         zipdir(self.tmpDir, self.path)
         res = ZipFile(self.path).testzip()
         if res != None:
-            critical(f"Warning, reconstructed zip {self.path} has CRC problem on file {res}.", doexit=True)
+            critical(f"Warning, reconstructed zip {self.path} has CRC problem on file {res}.")
 
         print(green(f"Modified {self.path}"))
         self.store_update(confirm=False)

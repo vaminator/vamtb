@@ -36,7 +36,7 @@ class Graph:
         return res
 
     @staticmethod
-    def dotty(lvar=None):
+    def dotty(lvar=None, ext = "pdf"):
 
         direct_graphs=[]
 
@@ -70,11 +70,11 @@ class Graph:
             "\n".join(dot_lines) + "\n" +
             "}")
 
-        pdfname = f"{C_DDIR}\{lvar.var}.pdf" if lvar else f"{C_DDIR}\deps.pdf"
+        outname = f"{C_DDIR}\{lvar.var}.{ext}" if lvar else f"{C_DDIR}\deps.{ext}"
         if not os.path.exists(C_DDIR):
             os.makedirs(C_DDIR)
         try:
-            subprocess.run(f'{C_DOT} -Gcharset=latin1 -Tpdf -o "{pdfname}" deps.dot', check=True, capture_output=True, encoding="utf-8")
+            subprocess.run(f'{C_DOT} -Gcharset=latin1 -T{ext} -o "{outname}" deps.dot', check=True, capture_output=True, encoding="utf-8")
         except subprocess.CalledProcessError as e:
             error(f"Graphiz returned: {e.stderr.rstrip()}")
             error([line.strip() for line in open("deps.dot")])

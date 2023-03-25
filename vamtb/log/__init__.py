@@ -151,7 +151,7 @@ def warn(message):
 def warning(message):
     __log.warn(message)
 
-def critical(message, doexit=False):
+def critical(message, doexit=True):
     __log.critical(message)
     if doexit:
         exit(0)
