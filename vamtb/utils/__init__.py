@@ -46,12 +46,36 @@ IA_COLL = "opensource_media"
 IA_BASETAGS = [ "virtamate" ]
 IA_IDENTIFIER_PREFIX = "vam1__"
 
+
+def files_in_dir(folder):
+    try:
+        # Get list of files in folder
+        file_list = os.listdir(folder)
+    except:
+        file_list = []
+
+    fnames = [
+        f
+        for f in file_list
+        if os.path.isfile(os.path.join(folder, f))
+        and f.lower().endswith((".var"))
+    ]
+    return fnames
+
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)
 
 def search_files_indir(fpath, pattern, ign = False):
-    pattern = re.sub(r'([\[\]])','[\\1]',pattern)
-    res = [ x for x in Path(fpath).glob(f"**/{pattern}") if x.is_file() ]
+    return search_files_indir2(fpath, pattern, ign)
+
+def search_files_indir2(fpath, pattern, ign = False):
+    pattern = pattern.replace("%", ".*")
+    repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
+    res = []
+    debug(f"Searching for {pattern} in {fpath}")
+    for thing in os.scandir(fpath):
+        if thing.is_file and repat.match(thing.name):
+            res.append(Path(thing))
     if not ign and not res:
         warn("No files found matching pattern")
     return res
@@ -119,7 +143,7 @@ def ensure_binaryfiles(refi, prefix):
             refo[fn] = refi[fn]
     return refo
 
-def get_filepattern(ctx):
+def get_filepattern_old(ctx):
     file = ctx.obj['file']
     if file:
         if "%" in file:
@@ -130,6 +154,19 @@ def get_filepattern(ctx):
             pattern = pattern + ".var"
     else:
         pattern = "*.var"
+    return ctx.obj['file'] if 'file' in ctx.obj else None, ctx.obj['dir'], pattern
+
+def get_filepattern(ctx):
+    file = ctx.obj['file']
+    if file:
+        if "%" in file:
+            pattern = file.replace("%", ".*")
+        else:
+            pattern = file
+        if not pattern.endswith(".var"):
+            pattern = pattern + "\.var"
+    else:
+        pattern = ".*\.var"
     return ctx.obj['file'] if 'file' in ctx.obj else None, ctx.obj['dir'], pattern
 
 def catch_exception(func=None):

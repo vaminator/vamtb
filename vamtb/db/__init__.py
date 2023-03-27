@@ -22,7 +22,7 @@ class Dbs:
             Before any main code is executed.
         """
         if not Dbs.__instance:
-            warn(f"Opened database {dbfilename}")
+            debug(f"Opened database {dbfilename}")
             Dbs.__conn = sqlite3.connect(dbfilename)
             Dbs.init_dbs()
             Dbs.__instance = self

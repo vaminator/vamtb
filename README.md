@@ -24,7 +24,7 @@ At any time, to interrupt, hit twice ctrl-c.
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
-  VAM Toolbox
+  VAM Toolbox For full help and all commands use vamtb --help
 
   Dependency handling (from disk or database):
   vamtb checkdeps
@@ -57,6 +57,7 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
   Upload (uses database):
   vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
+  vamtb -f sapuzex.Cooking_Lesson.1 anon will upload each var to anonfiles (need an account for the API key)
 
   File filters:
   You can use wildcards with % caracter: vamtb -f Community.% dupinfo
@@ -67,12 +68,16 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 Options:
   -a, --force / --no-force        Do not ask for confirmation.
   -b, --usedb / --no-usedb        Use DB.
-  -d TEXT                         Use a specific VAM directory.
   -c, --cc / --no-cc              Only upload CC license content
+  -d TEXT                         Use a specific VAM directory.
   -e, --meta / --no-meta          Only reset subject metadata.
   -f TEXT                         Var file to act on.
+  -g TEXT                         Input directory for var creation.
   -i TEXT                         Internet Archive identifier prefix (defaults
                                   to vam1__).
+  -j, --optimize                  Image Optimize level (none:No png to jpg
+                                  that is lossless, 1: Jpeg qual 90%, 2: Jpeg
+                                  qual 75%).
   -m, --move / --no-move          When checking dependencies move vars with
                                   missing dep in 00Dep.
   -n, --dryrun / --no-dryrun      Dry run on what would be uploaded.
@@ -93,19 +98,23 @@ Commands:
   dbclean       Remove vars from DB which are not found on disk.
   dbdel         Remove one var from DB.
   dbscan        Scan vars and store props in db.
-  dump          Dump meta.json from var.
+  dumpvar       Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
+  gui           There's no graphical user interface
   ia            Upload var to Internet Archive item.
-  info          Return information on var.
+  imageopt      Optimize images in vars.
+  link          Link var and dependent to configured directory.
   multiup       Upload var to multiple place.
   noroot        Remove root node stored in pose presets.
   orig          Revert to orig files.
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
   reref         Remove embedded content and point to reference var.
+  setref        Set var and files as reference.
   sortvar       Moves vars to subdirectory named by its creator.
   statsvar      Get stats on all vars.
+  zinfo         Return zip meta info of files in var.
 ```
 ## Database
 The dbscan subcommand will generate a sqlite file that you can browse. You will find tables for your vars and files and you can access that with any compatible tool like [sqlitebrowser](https://sqlitebrowser.org/).

@@ -153,9 +153,9 @@ def printdep(ctx):
 
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
-        with Var(file, dir) as var:
+        with Var(varfile, dir) as var:
             depvarfiles = sorted(var.dep_frommeta(), key=str.casefold)
-            print(f"Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
+            print(f">Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
             for depvarfile in sorted(var.dep_frommeta(), key=str.casefold):
                 try:
                     _ = Var(depvarfile, dir)
@@ -185,7 +185,7 @@ def printrealdep(ctx):
         with Var(varfile, dir) as var:
             deps = list(set(var.dep_fromfiles()))
             depvarfiles = sorted(deps, key=str.casefold)
-            print(f"Printing dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
+            print(f">Printing real dependencies for {green(var.var):<50} : {len(depvarfiles) if len(depvarfiles) else 'No'} dependencies")
             for depvarfile in depvarfiles:
                 #var.license
                 xvar = VarFile(depvarfile).var_nov
@@ -212,7 +212,7 @@ def printrealdep(ctx):
                         mess = green("Found")
                     print(f"{depvarfile:<68}: {xlicense:<16} {mess}")
 
-@cli.command('dump')
+@cli.command('dumpvar')
 @click.pass_context
 @catch_exception
 def dumpvar(ctx):
@@ -266,7 +266,7 @@ def sort_vars(ctx):
 @cli.command('checkvar')
 @click.pass_context
 @catch_exception
-def check_vars(ctx):
+def checkvar(ctx):
     """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
 
@@ -284,6 +284,7 @@ def check_vars(ctx):
     for file in iterator:
         try:
             with Var(file, dir, checkVar=True) as var:
+                print(f">Checking {green(var.var):<50}")
                 try:
                     _ = var.meta()
                 except FileNotFoundError:
@@ -298,7 +299,7 @@ def check_vars(ctx):
 @cli.command('statsvar')
 @click.pass_context
 @catch_exception
-def stats_vars(ctx):
+def statsvars(ctx):
     """Get stats on all vars.
 
 
@@ -331,7 +332,7 @@ def checkdep(ctx):
 
     When using -m, files considered bad will be moved to directory "00Dep". This directory can then be moved away from the directory.
 
-    When using -b, use database rather than file system.
+    When using -b, don't use database but rather file system.
 
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
@@ -346,9 +347,10 @@ def checkdep(ctx):
 
     for mfile in sorted(search_files_indir(dir, pattern)):
         try:
-            with Var(mfile, dir, use_db=usedb) as var:
+            with Var(mfile, dir, use_db=not usedb) as var:
+                print(f">Checking dependencies of {green(var.var):<50}")
                 try:
-                    if usedb:
+                    if not usedb:
                         _ = var.rec_dep(stop=stop)
                     else:
                         _ = var.depend(recurse=True, stop=stop)
@@ -401,6 +403,7 @@ def dbscan(ctx):
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
+            info(f"Scanning {var}")
             try:
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
@@ -422,7 +425,7 @@ def dbclean(ctx):
     -a: Always delete without prompting
     """
 
-    files = search_files_indir(ctx.obj['dir'], f"*.var", ign=True)
+    files = search_files_indir(ctx.obj['dir'], f".*\.var", ign=True)
     varnames = set([ e.with_suffix("").name for e in files ])
     dbvars = set(Dbs.get_vars())
     diff = sorted(list(varnames - dbvars) + list(dbvars - varnames))
@@ -563,12 +566,12 @@ def dupinfo(ctx):
                 msg = red(msg)
             print(msg)
 
-@cli.command('info')
+@cli.command('zinfo')
 @click.pass_context
 @catch_exception
-def minfo(ctx):
+def zinfo(ctx):
     """
-    Return information on var.
+    Return zip meta info of files in var.
 
     vamtb [-vv] [-f <file pattern> ] info
 
@@ -754,7 +757,7 @@ def link(ctx):
 
     vamtb [-vv] [-f <file pattern> ] [-m] link
 
-    -m : Don't recurse.
+    -m : Don't recurse dependencies.
 
     -z : Use configured linked dir in config file for destination directory (otherwise uses current dir)
 
@@ -795,7 +798,7 @@ def link(ctx):
     else:
         ddir = os.getcwd()
 
-    for varfile in search_files_indir(dir, pattern):
+    for varfile in search_files_indir2(dir, pattern):
         etarget = Path(ddir, os.path.basename(varfile))
         if etarget.exists() and etarget.is_file():
             info(f"{etarget} already exists")
@@ -806,59 +809,12 @@ def link(ctx):
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
 
-@cli.command('makevar')
-@click.pass_context
-@catch_exception
-def makevar(ctx):
-    """
-    Create a var from a directory.
-
-    vamtb -c makevar
-
-    Without option: no loss of quality, just optimize png
-    -j:             same but convert png to jpg of qual 90%
-    -jj:            same but convert png to jpg of qual 75%
-    
-    -f: will operate only on this var                                          
-    """
-    oldsz = 0
-    opt_level = ctx.obj['optimize']
-    file, dir, pattern = get_filepattern(ctx)
-    for varfile in search_files_indir(dir, pattern):
-        with Var(varfile, dir, use_db=True) as var:
-            msg = f"Image optimisation on {varfile.name:<100} size:"
-            if not var.exists():
-                print(red(f"{msg} UNKNOWN"))
-                continue
-            oldsz = var.size
-            print(green(f"{msg} {toh(var.size)}"))
-            if var.exists():
-                res = var.var_opt_images(opt_level)
-            else:
-                warn(f"{var.var} exists as {var.path} but is not in the DB, skipping..")
-
-
-def files_in_dir(folder):
-    try:
-        # Get list of files in folder
-        file_list = os.listdir(folder)
-    except:
-        file_list = []
-
-    fnames = [
-        f
-        for f in file_list
-        if os.path.isfile(os.path.join(folder, f))
-        and f.lower().endswith((".var"))
-    ]
-    return fnames
-
 @cli.command('gui')
 @click.pass_context
 @catch_exception
 def gui(ctx):
     """
-    Run the graphical user interface
+    There's no graphical user interface
     """
     # First the window layout in 2 columns
 

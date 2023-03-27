@@ -129,8 +129,12 @@ class Var(VarFile):
     def store_update(self, confirm = True) -> bool:
         if self.exists():
             debug(f"{self.var} already in database")
-            if FileName(self.path).mtime == self.get_modtime or FileName(self.path).crc == self.get_cksum:
+            if FileName(self.path).mtime == self.get_modtime:
+                info("Same modtime")
                 return False
+#            if FileName(self.path).crc == self.get_cksum:
+#                info("Same checksum")
+#                return False
             info(f"Database is not inline.")
             if confirm == False:
                 res = "Y"
@@ -155,6 +159,11 @@ class Var(VarFile):
                 info(f"Zip {self.path} is ok.")
 
     def search(self, pattern)-> Path:
+        return search_files_indir2(self.__AddonDir, pattern)
+#        import traceback
+#        for line in traceback.format_stack():
+#            print(line.strip())
+#        exit(0)
         # TODO use os.walk much faster
         fpath = self.__AddonDir
         assert(fpath)
@@ -557,8 +566,10 @@ class Var(VarFile):
         tdir = self.tmpDir
         ImageFile.MAXBLOCK = 2**20
         osize = self.size
-        for globf in search_files_indir(tdir, "*"):
+        for globf in search_files_indir(tdir, ".*"):
             if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
+                continue
+            if not Path(globf).is_file():
                 continue
             try:
                 file = FileName(globf)
