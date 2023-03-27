@@ -84,7 +84,6 @@ class Log():
 
         logger = logging.getLogger("vamtb")
         logger.setLevel(logging.DEBUG)
-        
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         self.__fh = logging.FileHandler("log-vamtb.txt", mode="w")
         self.__fh.setFormatter(formatter)

@@ -1018,7 +1018,7 @@ class Var(VarFile):
             else:
                 info(f"{msg:<130}" + ":     Found")
             res = var.get_dep()
-            info(f"Found {len(res)} dependencies for {var}, searching their own dependencies")
+            info(f"Found {len(res)} dependencies for {var.var}, searching their own dependencies")
             for varfile in res:
                 try:
                     if dir == None:

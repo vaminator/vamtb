@@ -384,7 +384,7 @@ def dbclean(ctx):
 
     vamtb [-vv] [-a] dbclean
 
-    -a: Always delete without prompting
+    -a: Delete without prompting
     """
 
     files = search_files_indir(ctx.obj['dir'], f".*\.var", ign=True)
