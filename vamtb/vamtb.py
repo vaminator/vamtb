@@ -40,14 +40,10 @@ from vamtb.db import Dbs
 @click.pass_context
 def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
-    """ VAM Toolbox
-    For full help and all commands use vamtb --help
+    """
     For specific command help use vamtb <command> --help
 
-    For file patterns, 
-      You need to pass a regular expression like .*\.var
-      When windows shell sucks, * can be replaced by %
-
+    For file pattern OPTION, you need to pass a regular expression like .*\.var (* can be replaced by %)
     """
 
     log_setlevel(verbose)
@@ -210,7 +206,7 @@ def noroot(ctx):
 @cli.command('sortvar')
 @click.pass_context
 @catch_exception
-def sort_vars(ctx):
+def sortvars(ctx):
     """Moves vars to subdirectory named by its creator.
 
 
@@ -354,7 +350,8 @@ def dbscan(ctx):
 
     vamtb [-vv] [-a] [-p] [-f <file pattern> ] dbscan
 
-    -p: Display progress bar (only when not using -v)                                  
+    -p: Display progress bar (only when not using -v)
+
     -a: Do not confirm, always answer yes (will overwrite DB with new content)
     """
 
@@ -385,7 +382,7 @@ def dbclean(ctx):
     """
     Remove vars from DB which are not found on disk.
 
-    vamtb [-vv] [-a] dbscan
+    vamtb [-vv] [-a] dbclean
 
     -a: Always delete without prompting
     """
@@ -436,7 +433,9 @@ def reref(ctx):
     vamtb [-vv] [-f <file pattern> ] [-x reference_to_remove.xxx] reref
 
     -a: Do not confirm, always answer yes (there will still be a prompt if there's two reference)
-    -f: will operate only on this var                                          
+
+    -f: will operate only on this var
+
     -x: will remove only this embedded content
     """
     dup = ctx.obj['dup']
@@ -474,10 +473,10 @@ def imageopt(ctx):
     vamtb [-jj] [-f <file pattern> ] imageopt
 
     Without option: no loss of quality, just optimize png
+
     -j:             same but convert png to jpg of qual 90%
+
     -jj:            same but convert png to jpg of qual 75%
-    
-    -f: will operate only on this var                                          
     """
     oldsz = 0
     opt_level = ctx.obj['optimize']
@@ -538,7 +537,7 @@ def zinfo(ctx):
     """
     Return zip meta info of files in var.
 
-    vamtb [-vv] [-f <file pattern> ] info
+    vamtb [-vv] [-f <file pattern> ] zinfo
 
     """
     file, dir, pattern = get_filepattern(ctx)
@@ -570,7 +569,7 @@ def dbdel(ctx):
         varfile.db_commit()
         info(f"Removed {file} from DB")
 
-@cli.command()
+@cli.command('setref')
 @click.pass_context
 @catch_exception
 def setref(ctx):
@@ -626,12 +625,16 @@ def ia(ctx):
     vamtb [-vv] [-f <file pattern>] [-a] [-e] [-n] [-i <prefix>] ia
 
     -a: Do not confirm, always answer yes (will overwrite IA with new content).
-    -e: Only update metadata subject.                                         
-    -n: Dry-run upload, don't do anything.                                     
-    -f: Upload all jpg, not only scene jpgs.                                   
-    -c: Only upload CC* license content.                                       
-    -i: Change prefix used for the identifier on IA (use only when you are sure the default identifer is already used).
 
+    -e: Only update metadata subject.
+
+    -n: Dry-run upload, don't do anything.
+    
+    -f: Upload all jpg, not only scene jpgs.
+    
+    -c: Only upload CC* license content.
+    
+    -i: Change prefix used for the identifier on IA (use only when you are sure the default identifer is already used).
     """
 
     file, dir, pattern = get_filepattern(ctx)
@@ -669,7 +672,7 @@ def anon(ctx):
 
     vamtb [-vv] [-f <file pattern>] [-n] anon
 
-    -n : Dry-run upload, don't do anything. 
+    -n : Dry-run upload, don't do anything.
 
     """
 
@@ -706,7 +709,7 @@ def multiup(ctx):
 
     vamtb [-vv] [-n] [-f <file pattern>] multiup
 
-    -n : Dry-run upload, don't do anything. 
+    -n : Dry-run upload, don't do anything.
 
     """
     for func in (ia, anon):
@@ -726,7 +729,7 @@ def link(ctx):
 
     -z : Use configured linked dir in config file for destination directory (otherwise uses current dir)
 
-    -f : When using configured linked dir, don't confirm destination directory 
+    -f : When using configured linked dir, don't confirm destination directory.
 
     """
     ddir = ""
