@@ -9,6 +9,10 @@ from datetime import datetime
 from vamtb.log import *
 from vamtb.vamex import *
 
+#  Exec dir
+is_nuitka = "__compiled__" in globals()
+exec_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), os.pardir) if not is_nuitka else os.getcwd()
+
 # Constants
 C_YAML = "vamtb.yml"
 C_DB = "vars.db"

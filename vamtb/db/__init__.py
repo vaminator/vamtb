@@ -8,9 +8,9 @@ from vamtb.log import *
 
 # At import, modify our variables
 global C_DB
-exec_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-C_DB = os.path.join(exec_dir, C_DB)
+global exec_dir
 
+C_DB = os.path.join(exec_dir, C_DB)
 
 class Dbs:
     __instance = None

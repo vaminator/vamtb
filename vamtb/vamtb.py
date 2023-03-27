@@ -7,7 +7,7 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 from tqdm import tqdm
-import PySimpleGUI as sg
+#import PySimpleGUI as sg
 
 from vamtb.graph import Graph
 from vamtb.var import Var
@@ -42,47 +42,11 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     # pylint: disable=anomalous-backslash-in-string
     """ VAM Toolbox
     For full help and all commands use vamtb --help
+    For specific command help use vamtb <command> --help
 
-    \b
-    Dependency handling (from disk or database):
-    vamtb checkdeps
-    vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
-    vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
-    vamtb -f ClubJulze.Bangkok.1 printdep
-    vamtb -f ClubJulze.Bangkok.1 printrealdep
-    \b
-    Meta json handling (from disk):
-    vamtb -f sapuzex.Cooking_Lesson.1 dump
-    \b
-    Organizing (from disk):
-    vamtb sortvar  Reorganize your var directories with <creator>/*
-                If a file already exists in that directory, CRC is checked before overwritting.
-    vamtb statsvar will dump some statistics    
-    \b
-    Database:
-    vamtb dbsscan will scan your vars and create or if modification time is higher, update database 
-    vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
-    \b
-    Dependency graph (uses database):
-    vamtb graph will graph your collection one graph per var
-    vamtb -f sapuzex.Cooking_Lesson.1 graph will graph this var
-    vamtb -f sapuzex.* graph will graph vars matching
-    \b
-    Deduplication (uses database):
-    vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
-    vamtb -f Wolverine333.% reref will dedup files from creator
-    vamtb -x colorcorrect.assetbundle reref will remove all embedded colorcorrect.assetbundle from every var BUT the reference var
-    \b
-    Upload (uses database):
-    vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
-    vamtb -f sapuzex.Cooking_Lesson.1 anon will upload each var to anonfiles (need an account for the API key)
-
-    \b
-    File filters:
-    You can use wildcards with % caracter: vamtb -f Community.% dupinfo
-    \b
-    You can get help for a command with
-    vamtb <command> --help
+    For file patterns, 
+      You need to pass a regular expression like .*\.var
+      When windows shell sucks, * can be replaced by %
 
     """
 
@@ -110,8 +74,9 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     conf = {}
 
     global C_YAML
-    exec_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    global exec_dir
     C_YAML = os.path.join(exec_dir, C_YAML)
+    print(C_YAML)
 
     if not dir:
         try:
@@ -809,87 +774,87 @@ def link(ctx):
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
 
-@cli.command('gui')
-@click.pass_context
-@catch_exception
-def gui(ctx):
-    """
-    There's no graphical user interface
-    """
-    # First the window layout in 2 columns
+# @cli.command('gui')
+# @click.pass_context
+# @catch_exception
+# def gui(ctx):
+#     """
+#     There's no graphical user interface
+#     """
+#     # First the window layout in 2 columns
 
-    buttons_column = [
-        [ sg.Button("Meta", key="-META-") ],
-        [ sg.Button("Dep", key="-DEP-") ],
-        [ sg.Button("Rdep", key="-RDEP-") ],
-    ]
+#     buttons_column = [
+#         [ sg.Button("Meta", key="-META-") ],
+#         [ sg.Button("Dep", key="-DEP-") ],
+#         [ sg.Button("Rdep", key="-RDEP-") ],
+#     ]
 
-    file_list_column = [
-        [
-            sg.Listbox(
-                values=[], enable_events=True, size=(40, 40), key="-FILE LIST-"
-            )
-        ],
-    ]
+#     file_list_column = [
+#         [
+#             sg.Listbox(
+#                 values=[], enable_events=True, size=(40, 40), key="-FILE LIST-"
+#             )
+#         ],
+#     ]
 
 
-    # For now will only show the name of the file that was chosen
+#     # For now will only show the name of the file that was chosen
 
-    image_viewer_column = [
-        [sg.Text(key="-IMAGE-")],
-    ]
+#     image_viewer_column = [
+#         [sg.Text(key="-IMAGE-")],
+#     ]
 
-    # ----- Full layout -----
-    layout = [
-        [
-            [
-                sg.Text("AddonPackages Folder"),
-                sg.In(enable_events=True, visible=False, key="-FOLDER-"),
-                sg.FolderBrowse(),
-                sg.Text(size=(40, 1), key="-TOUT-", justification="right"),
-            ],
-            sg.Column(buttons_column),
-            sg.Column(file_list_column),
-            sg.VSeperator(),
-            sg.Column(image_viewer_column),
-        ]
-    ]
+#     # ----- Full layout -----
+#     layout = [
+#         [
+#             [
+#                 sg.Text("AddonPackages Folder"),
+#                 sg.In(enable_events=True, visible=False, key="-FOLDER-"),
+#                 sg.FolderBrowse(),
+#                 sg.Text(size=(40, 1), key="-TOUT-", justification="right"),
+#             ],
+#             sg.Column(buttons_column),
+#             sg.Column(file_list_column),
+#             sg.VSeperator(),
+#             sg.Column(image_viewer_column),
+#         ]
+#     ]
 
-    window = sg.Window("Vam Tool Box", layout, resizable=True, finalize=True, location=(0,0))
+#     window = sg.Window("Vam Tool Box", layout, resizable=True, finalize=True, location=(0,0))
     
-    folder = ctx.obj['dir']
-    fnames = files_in_dir(folder)    
-    window["-FILE LIST-"].update(fnames)
+#     folder = ctx.obj['dir']
+#     fnames = files_in_dir(folder)    
+#     window["-FILE LIST-"].update(fnames)
 
-    # Run the Event Loop
-    while True:
-        event, values = window.read()
-        if event == "Exit" or event == sg.WIN_CLOSED:
-            break
-        # Folder name was filled in, make a list of files in the folder
-        if event == "-FOLDER-":
-            folder = values["-FOLDER-"]
+#     # Run the Event Loop
+#     while True:
+#         event, values = window.read()
+#         if event == "Exit" or event == sg.WIN_CLOSED:
+#             break
+#         # Folder name was filled in, make a list of files in the folder
+#         if event == "-FOLDER-":
+#             folder = values["-FOLDER-"]
 
-            fnames = files_in_dir(folder)
-            window["-FILE LIST-"].update(fnames)
+#             fnames = files_in_dir(folder)
+#             window["-FILE LIST-"].update(fnames)
 
-        elif event == "-FILE LIST-":  # A file was chosen from the listbox
-            try:
-                window["-TOUT-"].update(values["-FILE LIST-"][0])
-#                window["-IMAGE-"].update(text=filename)
-            except:
-                pass
-        elif event == "-META-":
-            with Var(values["-FILE LIST-"][0], folder) as var:
-                window["-IMAGE-"].update(prettyjson(var.load_json_file("meta.json")) )
-        elif event == "-DEP-":
-            with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
-                deps = var.get_dep()
-            window["-IMAGE-"].update("\n".join(deps) )
-        elif event == "-RDEP-":
-            with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
-                rdeps = var.get_rdep()
-            window["-IMAGE-"].update("\n".join(rdeps) )
+#         elif event == "-FILE LIST-":  # A file was chosen from the listbox
+#             try:
+#                 window["-TOUT-"].update(values["-FILE LIST-"][0])
+# #                window["-IMAGE-"].update(text=filename)
+#             except:
+#                 pass
+#         elif event == "-META-":
+#             with Var(values["-FILE LIST-"][0], folder) as var:
+#                 window["-IMAGE-"].update(prettyjson(var.load_json_file("meta.json")) )
+#         elif event == "-DEP-":
+#             with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
+#                 deps = var.get_dep()
+#             window["-IMAGE-"].update("\n".join(deps) )
+#         elif event == "-RDEP-":
+#             with Var(values["-FILE LIST-"][0], folder, use_db=True) as var:
+#                 rdeps = var.get_rdep()
+#             window["-IMAGE-"].update("\n".join(rdeps) )
              
-    window.close()
+#     window.close()
 #TODO add command for morph region /.. editing
