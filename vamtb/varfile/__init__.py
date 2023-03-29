@@ -10,7 +10,7 @@ from vamtb.log import *
 
 class VarFile:
 
-    def __init__(self, inputName, use_db = False) -> None:
+    def __init__(self, inputName, use_db = False, check_naming = True) -> None:
         inputName or critical("Tried to create a var but gave no filename")
         self.__Creator = ""
         self.__Resource = ""
@@ -27,32 +27,33 @@ class VarFile:
             inputName = Path(inputName)
 
         f_basename = inputName.name
-        try:
-            self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
-        except ValueError:
-            error(f"Var has incorrect format: {inputName}")
-            raise VarNameNotCorrect(inputName)
-        try:
-            self.__iVersion = int(self.__sVersion)
-        except ValueError:
-            if self.__sVersion == "latest":
-                pass
-            elif self.__sVersion.startswith('min'):
-                try:
-                    self.__iMinVer = int(self.__sVersion[3:])
-                except ValueError:
+        if check_naming:
+            try:
+                self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
+            except ValueError:
+                error(f"Var has incorrect format: {inputName}")
+                raise VarNameNotCorrect(inputName)
+            try:
+                self.__iVersion = int(self.__sVersion)
+            except ValueError:
+                if self.__sVersion == "latest":
+                    pass
+                elif self.__sVersion.startswith('min'):
+                    try:
+                        self.__iMinVer = int(self.__sVersion[3:])
+                    except ValueError:
+                        raise VarExtNotCorrect(inputName)
+                else:
+                    error(f"Var has incorrect version: {inputName} version: {self.__sVersion}" )
                     raise VarExtNotCorrect(inputName)
+            try:
+                _, _, _, ext = f_basename.split('.',4)
+            except ValueError:
+                pass
             else:
-                error(f"Var has incorrect version: {inputName} version: {self.__sVersion}" )
-                raise VarExtNotCorrect(inputName)
-        try:
-            _, _, _, ext = f_basename.split('.',4)
-        except ValueError:
-            pass
-        else:
-            if ext != "var":
-                error(f"Var has incorrect extension: {inputName}" )
-                raise VarExtNotCorrect(inputName)
+                if ext != "var":
+                    error(f"Var has incorrect extension: {inputName}" )
+                    raise VarExtNotCorrect(inputName)
         # debug(f"Var {inputName} is compliant")
 
     @property

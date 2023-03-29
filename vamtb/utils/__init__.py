@@ -184,6 +184,9 @@ def catch_exception(func=None):
             error(f"Var filename incorrect:{e}")
         except zipfile.BadZipFile as e:
             error(f"Var has CRC problems:{e}")
+        except NoMetaJson as e:
+            error(f"Var doesnt have meta.json :{e}")
+
     return wrapper
 
 def del_empty_dirs(target_path):

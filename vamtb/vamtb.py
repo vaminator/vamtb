@@ -72,7 +72,6 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     global C_YAML
     global exec_dir
     C_YAML = os.path.join(exec_dir, C_YAML)
-    print(C_YAML)
 
     if not dir:
         try:
@@ -776,6 +775,38 @@ def link(ctx):
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
+
+@cli.command('renamevar')
+@click.pass_context
+@catch_exception
+def renamevar(ctx):
+    """
+    Rename file to var getting props from meta.json.
+
+
+    vamtb [-vv] -f file renamevar
+
+    Var version will be set to 1
+
+    """
+
+    if not ctx.obj['file']:
+        critical("Need a file name")
+
+    with Var(ctx.obj['file'], check_exists=False, check_naming=False) as var:
+        js = var.meta()
+        rcreator, rasset = js['creatorName'],js['packageName']
+
+    try:
+        creator, asset, version, _ = var.path.name.split('.', 4)
+    except ValueError:
+        creator = ""
+        asset = ""
+        version = 1
+    if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
+            rfile = var.path.parents[0] / f"{rcreator}.{rasset}.{version}.var".replace(" ", "_")
+            print(f"Renaming {var.path} to {rfile}")
+            os.rename(var.path, rfile)
 
 # @cli.command('gui')
 # @click.pass_context

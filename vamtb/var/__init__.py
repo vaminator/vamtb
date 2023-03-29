@@ -21,7 +21,7 @@ from vamtb.log import *
 
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True, check_file_exists=True):
+    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True, check_file_exists=True, check_naming=True):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -30,7 +30,7 @@ class Var(VarFile):
         multiFileName or critical("Tried to create a var but gave no filename")
     
         self.__tmpDir = None
-        VarFile.__init__(self, multiFileName, use_db)
+        VarFile.__init__(self, multiFileName, use_db, check_naming)
 
         # AddonDir if specified
         if dir:
@@ -160,18 +160,6 @@ class Var(VarFile):
 
     def search(self, pattern)-> Path:
         return search_files_indir2(self.__AddonDir, pattern)
-#        import traceback
-#        for line in traceback.format_stack():
-#            print(line.strip())
-#        exit(0)
-        # TODO use os.walk much faster
-        fpath = self.__AddonDir
-        assert(fpath)
-        debug(f"Listing files pattern **/{pattern} in {fpath}")
-        pattern = re.sub(r'([\[\]])','[\\1]',pattern)
-        return [ x for x in fpath.glob(f"**/{pattern}") if x.is_file() ]
-            
-
 
     def __resolvevar(self, multiname):
         """This will return the real var as an existing Path"""
@@ -186,8 +174,7 @@ class Var(VarFile):
         elif self.version == "latest" or self.minversion:
             pattern = self.creator + "." + self.resource + ".*.var"
         else:
-            print(f"Got that in resolvevar: {multiname}")
-            assert(False)
+            raise VarNotFound(multiname)
 
         vars = self.search(pattern = pattern)
         if not vars:
@@ -232,6 +219,8 @@ class Var(VarFile):
             except json.decoder.JSONDecodeError as e:
                 critical(f"Meta.json from {self.var} is broken [{e}]")
                 raise VarMetaJson(self.var)
+            except FileNotFoundError as e:
+                raise NoMetaJson("")
         return self._meta
 
     @property
