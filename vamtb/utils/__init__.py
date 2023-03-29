@@ -3,21 +3,21 @@ import re
 import os
 import zipfile
 import binascii
+import sys
 from functools import wraps
 from pathlib import Path
 from datetime import datetime
 from vamtb.log import *
 from vamtb.vamex import *
 
-#  Exec dir
-is_nuitka = "__compiled__" in globals()
-exec_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), os.pardir) if not is_nuitka else os.getcwd()
+#  Binary dir
+exec_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 # Constants
-C_YAML = "vamtb.yml"
-C_DB = "vars.db"
-C_LOG = "log-vamtb.txt"
-C_DDIR = "graph"
+C_YAML = exec_dir + "/" + "vamtb.yml"
+C_DB = exec_dir + "/" + "vars.db"
+#C_LOG = exec_dir + "/" + "log-vamtb.txt"  # circular dep (util relies on log which can't rely on util)
+C_DDIR = exec_dir + "/" + "graph"
 C_BAD_DIR = "00Dep"
 C_REF_CREATORS = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",

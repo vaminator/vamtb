@@ -70,12 +70,9 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     conf = {}
 
     global C_YAML
-    global exec_dir
-    C_YAML = os.path.join(exec_dir, C_YAML)
 
     if not dir:
         try:
-            C_YAML = os.path.join(exec_dir, C_YAML)
             with open(C_YAML, 'r') as stream:
                 conf = yaml.load(stream, Loader=yaml.BaseLoader)
         except FileNotFoundError:

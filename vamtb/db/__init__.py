@@ -10,8 +10,6 @@ from vamtb.log import *
 global C_DB
 global exec_dir
 
-C_DB = os.path.join(exec_dir, C_DB)
-
 class Dbs:
     __instance = None
     __conn = None
