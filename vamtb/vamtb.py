@@ -241,7 +241,7 @@ def checkvar(ctx):
     for file in iterator:
         try:
             with Var(file, dir, checkVar=True) as var:
-                print(f">Checking {green(var.var):<50}")
+                info(f">Checking {green(var.var):<50}")
                 try:
                     _ = var.meta()
                 except FileNotFoundError:
@@ -366,7 +366,7 @@ def dbscan(ctx):
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
             except (VarMalformed, VarMetaJson) as e:
-                error(f"Var {var.var} malformed [{e}].")
+                error(f"Var {var.var} malformed.")
             except:
                 pass
     info(f"{stored} var files stored")
@@ -385,7 +385,12 @@ def dbclean(ctx):
 
     files = search_files_indir(ctx.obj['dir'], f".*\.var", ign=True)
     varnames = set([ e.with_suffix("").name for e in files ])
+    meh = [e for e in varnames if "NoOC" in e]
     dbvars = set(Dbs.get_vars())
+    meh2 = [e for e in dbvars if "NoOC" in e]
+    print("\n".join(sorted(meh)))
+    print("\n".join(sorted(meh2)))
+    exit(0)
     diff = sorted(list(varnames - dbvars) + list(dbvars - varnames))
     for var in diff:
         print(f"Var {red(var)} is in DB but not on disk  ")

@@ -109,7 +109,9 @@ class Var(VarFile):
                 pass
 
     def check(self):
-        self.zipcheck()
+        if not self.zipcheck():
+            raise VarMalformed(self.var)
+
         metaj = self.meta()
         if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
             try:
@@ -151,12 +153,18 @@ class Var(VarFile):
         return True
 
     def zipcheck(self):
-        with ZipFile(self.path) as zipf:
-            res = zipf.testzip()
-            if res != None:
-                critical(f"Zip {self.path} is corrupted, can't open file {res}.")
-            else:
-                info(f"Zip {self.path} is ok.")
+        is_ok = False
+        try:
+            with ZipFile(self.path) as zipf:
+                res = zipf.testzip()
+                if res != None:
+                    critical(f"Zip {self.path} is corrupted, can't open file {res}.")
+                else:
+                    info(f"Zip {self.path} is ok.")
+                    is_ok = True
+        except Exception as e:
+            pass
+        return is_ok
 
     def search(self, pattern)-> Path:
         return search_files_indir2(self.__AddonDir, pattern)
@@ -999,15 +1007,16 @@ class Var(VarFile):
 
     def rec_dep(self, stop = True, dir=None, func = None):
         def rec(var:Var, depth=0):
-            msg = " " * depth + f"Checking dep of {var.var}"
+            msg = ">" * (depth+1) + f" {var.var}"
             if not var.exists():
                 warn(f"{msg:<130}" + ": Not Found")
                 if stop:
                     raise VarNotFound(var.var)
+                return
             else:
                 info(f"{msg:<130}" + ":     Found")
             res = var.get_dep()
-            info(f"Found {len(res)} dependencies for {var.var}, searching their own dependencies")
+            info(f"Found {len(res) if len(res) else 'no'} dependencies for {var.var}{', searching their own dependencies' if len(res) else ''}")
             for varfile in res:
                 try:
                     if dir == None:
