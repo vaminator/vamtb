@@ -111,7 +111,6 @@ class Var(VarFile):
     def check(self):
         if not self.zipcheck():
             raise VarMalformed(self.var)
-
         metaj = self.meta()
         if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
             try:
@@ -208,7 +207,7 @@ class Var(VarFile):
         self.__tmpTempDir = tempfile.TemporaryDirectory(prefix="vamtb_temp_")
         tmpPathdir = Path(self.__tmpTempDir.name)
         try:
-            debug(f"Extracting zip {self.var}...")
+            debug(f"Extracting zip {self.var} to {tmpPathdir}")
             with ZipFile(self.path) as z:
                 z.extractall(tmpPathdir)
             debug(f"Extracting done...")
