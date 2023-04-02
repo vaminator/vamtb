@@ -67,6 +67,10 @@ class FileName:
 
     @property
     def jsonDeps(self, fuzzy=False):
+        """
+        Get  dependency from inspecting json
+        FIXME "MeshedVR.PresetsPack.latest:MeshedVR/PresetsPack/Ren_Tina" is also correct
+        """
         deps = { 'embed': [], 'var': [] , 'self': [] }
         def _decode_dict(a_dict):
             for id, ref in a_dict.items():  # pylint: disable=unused-variable
