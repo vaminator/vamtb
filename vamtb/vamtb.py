@@ -810,6 +810,77 @@ def renamevar(ctx):
             print(f"Renaming {var.path} to {rfile}")
             os.rename(var.path, rfile)
 
+
+@cli.command('rdep')
+@click.pass_context
+@catch_exception
+def rdep(ctx):
+    """
+    Reverse depends of vars.
+
+
+    vamtb [-vv] [-f file] rdep
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
+
+    for varfile in search_files_indir2(dir, pattern):
+        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
+            rvars = var.get_rdep()
+            print (green(f"Reverse depends {var.var}: ") + ','.join(rvars))
+
+@cli.command('nordep')
+@click.pass_context
+@catch_exception
+def nordep(ctx):
+    """
+    Prints all var which don't have a reverse dependent.
+
+
+    vamtb [-vv] [-f pattern] nordep
+
+    """
+
+    file, dir, pattern = get_filepattern(ctx)
+
+    for varfile in search_files_indir2(dir, pattern):
+        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
+            rvars = var.get_rdep()
+            if not rvars:
+                msg = f"No var depends on {var.var}"
+                if var.db_files(pattern='/scene/') or var.db_files(pattern='/Clothing/') or var.db_files('/Assets/'):
+                    msg = green(msg)
+                else:
+                    msg = red(msg)
+                print (msg)
+            else:
+                info(f"{var.var} : {len(rvars)} vars depending on it:{rvars}")
+
+@cli.command('dep')
+@click.pass_context
+@catch_exception
+def dep(ctx):
+    """
+    Depends of a var.
+
+
+    vamtb [-vv] -f file dep
+
+    """
+
+    if not ctx.obj['file']:
+        critical("Need a file name")
+
+    file, dir, pattern = get_filepattern(ctx)
+
+    for varfile in search_files_indir2(dir, pattern):
+        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
+            rvars = var.get_dep()
+            print (green(f"Depends of {var.var}: ") + ','.join(rvars))
+
+
+
 # @cli.command('gui')
 # @click.pass_context
 # @catch_exception
