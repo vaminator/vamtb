@@ -8,7 +8,6 @@ from vamtb.var import Var
 
 dirs = ("AddonPackages", "Assets", "Custom", "Saves", "Custom/SubScene")
 files = ("prefs.json",)
-reffiles=("D:/Games/VaM Multi/Base/prefs.json",)
 
 class ProfileMgr:
 

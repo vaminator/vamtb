@@ -14,6 +14,8 @@ tmp/
 vars.db*
 vamtb.yml
 vamtb.v*/**
+vamtb.onefile-build/
+vamtb.exe
 ws.code-workspace
 .vscode/
 # Byte-compiled / optimized / DLL files
@@ -154,3 +156,4 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
