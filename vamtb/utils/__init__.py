@@ -78,7 +78,7 @@ C_REF_VARS = [
     "JaxZoa.SimpleKeybindActions",
     "JayJayWon.ActionGrouper",
     "JayJayWon.ActRandomizer",
-    "JayJayWon.BrowserAssist",
+    "JayJayWon.BrowserAssist(Free)",
     "JayJayWon.UIAssist(Patron)",
     "JayJayWon.VUML",
     "ky1001.AppearanceLoader",
@@ -90,6 +90,7 @@ C_REF_VARS = [
     "MeshedVR.3PointLightSetup",
     "MacGruber.Life",
     "MacGruber.Essentials",
+    "MeshedVR.PresetsPack",
     "n00rp.Lighting_Rigs",
     "PluginIdea.ContexMenuSystem(Free)",
     "PluginIdea.GizmosSystem",
@@ -115,7 +116,7 @@ C_REF_VARS = [
     "via5.AlternateUI",
     "via5.Cue",
     "Vinput.AutoThruster",
-    "VRAdultFun.E-Motion",
+    "VRAdultFun.E-motion",
     ]
 
 C_NEXT_CREATOR = 127
