@@ -9,6 +9,14 @@ from vamtb.var import Var
 dirs = ("AddonPackages", "Assets", "Custom", "Saves", "Custom/SubScene")
 files = ("prefs.json",)
 
+ddir = None
+def linkfile2ddir(mvar):
+    global ddir
+
+    srcfile = mvar.path
+    xlink(ddir, srcfile)
+    print(f">> Linked dependency {srcfile}")
+
 class ProfileMgr:
 
     def __init__(self, multidir, exedir, cachedir, vardir, refvars):
@@ -54,6 +62,8 @@ class ProfileMgr:
         return f"{self.__bsrc}/{self.__np}"
 
     def new(self, profileName=None):
+        global ddir
+
         if not profileName:
             self.__np = input("Name of new profile: ")
         else:
@@ -139,15 +149,26 @@ class ProfileMgr:
                     ln = f"{creator}.{asset}.{version}"
                 debug(f"Searching for {ln}")
                 try:
-                    with Var(ln, self.__vardir, use_db=True) as latest:
+                    with Var(ln, self.__vardir, use_db=True) as mvar:
                         if version:
-                            refvarpath = latest.path
+                            refvarpath = mvar.path
                         else:
-                            refvarpath = os.path.join(self.__vardir, "AddonPackages", f"{latest.latest() + '.var'}")
+                            refvarpath = os.path.join(self.__vardir, "AddonPackages", f"{mvar.latest() + '.var'}")
                         debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
                         try:
-                            xlink( f"{self.__base}/AddonPackages", refvarpath )
-                            print(f"Linked  {refvarpath} to {self.__base}/AddonPackages")
+                            destination = f"{self.__base}/AddonPackages"
+                            try:
+                                xlink( destination, refvarpath )
+                                print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
+                            except OSError:
+                                pass
+                            ddir = destination
+                            try:
+                                with Var(mvar.latest(), self.__vardir, use_db=True) as mlatest:
+                                    debug(f"Searching dep of {mlatest.var}")
+                                    mlatest.rec_dep(stop=False, dir=self.__vardir, func=linkfile2ddir)
+                            except OSError:
+                                pass
                         except OSError:
                             pass
                 except VarNotFound:
