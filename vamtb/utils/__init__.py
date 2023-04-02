@@ -289,3 +289,27 @@ def get_license_url(s):
         }
 
     return license_url.get(s, "")
+
+def xlink(mpath, mdst):
+    """Link mdst into mpath"""
+    fbase = os.path.basename(mdst)
+    debug(f"os.symlink({mdst}, {mpath}/{fbase})")
+    os.symlink(f"{mdst}", f"{mpath}/{fbase}", target_is_directory=os.path.isdir(mdst))
+
+def linkdir(dirsrc, dst):
+    for f in glob.glob(f"{dirsrc}/*", recursive=True):
+        if os.path.islink(f"{dst}/{os.path.basename(f)}"):
+            print(f"Removing  : {f}")
+            os.unlink(f"{dst}/{os.path.basename(f)}")
+        print(f"Linking   : {f} --> {dst}")
+        try:
+            xlink(dst,f)
+        except OSError:
+            pass
+
+def replace_json(fname, key, newvalue):
+    with open(fname, 'r') as file:
+        json_data = json.load(file)
+    json_data[key] = newvalue
+    with open(fname, 'w') as file:
+        json.dump(json_data, file, indent=2)
