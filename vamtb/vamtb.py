@@ -811,13 +811,30 @@ def latest(ctx):
 @catch_exception
 def profile(ctx):
     """
-    Creates or selects a new VaM installation.
+    Creates or selects a new VaM installation instance.
 
     vamtb [-vv] profile
 
-    User is requested which directory is used as base root directory where all profiles are.
-    A profile named Full should always exist.
-    All profiles will point their Custom/PluginPresets and Saves/PluginData to this profile.
+    User is requested which directories should be used.
+
+    All profiles lie in a user defined directory, each in a subdirectory
+
+    A special profile called Full will be created if doesn't exists:
+
+      --> has empty Custom/ Saves/ etc.. directories
+
+      User needs to customize to share plugindata, etc..
+
+      --> has AddonPackages being a softlink to your vars directory
+
+    Other profiles have:
+
+
+      --> Custom/ Saves/ directories linked to Full directories
+
+      --> AddonPackages is a directory containing links to your vars directory
+
+      Use vamtb link command to add more
 
     """
     with open(C_YAML, 'r') as stream:
