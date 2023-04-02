@@ -286,6 +286,9 @@ class Var(VarFile):
 
     @unzip
     def depend(self, recurse = False, init = True, check = True, stop = True):
+        """
+        Print depends based on json
+        """
         global depend_node
 
         # For dependency loop tracking, init nodes
