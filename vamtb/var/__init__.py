@@ -179,7 +179,7 @@ class Var(VarFile):
         if self.iversion != -1:
             pattern = self.file
         elif self.version == "latest" or self.minversion:
-            pattern = self.creator + "." + self.resource + ".*.var"
+            pattern = re.escape(self.creator) + "\." + re.escape(self.resource) + "\..*\.var"
         else:
             raise VarNotFound(multiname)
 
