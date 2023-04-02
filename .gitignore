@@ -17,6 +17,7 @@ vamtb.v*/**
 vamtb.onefile-build/
 vamtb.exe
 .vscode/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 vamtb/db/__pycache__/
