@@ -17,6 +17,7 @@ from vamtb.log import *
 from vamtb.utils import *
 from vamtb.varfile import VarFile
 from vamtb.db import Dbs
+from vamtb.profile import ProfileMgr
 
 @click.group()
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
@@ -293,6 +294,7 @@ def checkdep(ctx):
 
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
+    # FIXME DOC even with database mode, the file system is still used (grepping in files..)
     move = ctx.obj['move']
     usedb = ctx.obj['usedb']
 
@@ -777,6 +779,95 @@ def link(ctx):
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
+
+
+@cli.command('latest')
+@click.pass_context
+@catch_exception
+def latest(ctx):
+    """
+    Show "latest" version of var as an absolute filename
+
+    vamtb [-vv] -f pattern latest
+
+    pattern is creator.asset[.version]
+    """
+    if not ctx.obj['file']:
+        critical("Need a file name")
+
+    file, dir, pattern = get_filepattern(ctx)
+
+    try:
+        creator, asset, _ = ctx.obj['file'].split('.', 3)
+    except ValueError:
+        creator, asset = ctx.obj['file'].split('.', 2)
+
+    ln = f"{creator}.{asset}.latest"
+    with Var(ln, dir, use_db=True) as latest:
+        print(f"{latest.path}")
+
+@cli.command('profile')
+@click.pass_context
+@catch_exception
+def profile(ctx):
+    """
+    Creates or selects a new VaM installation.
+
+    vamtb [-vv] profile
+
+    User is requested which directory is used as base root directory where all profiles are.
+    A profile named Full should always exist.
+    All profiles will point their Custom/PluginPresets and Saves/PluginData to this profile.
+
+    """
+    with open(C_YAML, 'r') as stream:
+        conf = yaml.load(stream, Loader=yaml.BaseLoader)
+    if 'multidir' not in conf:
+        conf['multidir'] = input("Directory where profiles are/will be located:")
+        if not Path(conf['multidir']).is_dir():
+            critical(f"{conf['multidir']} is not an existing directory. Please create manually.")
+        with open(C_YAML, 'w+') as stream:
+            yaml.dump(conf, stream, default_flow_style=False)
+            info(f"Configured {conf['multidir']} in {C_YAML}")
+    if 'exedir' not in conf:
+        conf['exedir'] = input("Directory where vam exe is:")
+        if not Path(conf['exedir'], "VaM.exe").is_file():
+            critical(f"Could not find {conf['exedir']}/VaM.exe")
+        with open(C_YAML, 'w+') as stream:
+            yaml.dump(conf, stream, default_flow_style=False)
+            info(f"Configured {conf['exedir']} in {C_YAML}")
+    if 'cachedir' not in conf:
+        conf['cachedir'] = input("Directory where caches will be (one cache directory per profile):")
+        if not Path(conf['cachedir']).is_dir():
+            critical(f"{conf['cachedir']} is not an existing directory.")
+        with open(C_YAML, 'w+') as stream:
+            yaml.dump(conf, stream, default_flow_style=False)
+            info(f"Configured {conf['cachedir']} in {C_YAML}")
+    if 'refvars' not in conf:
+        print("We did not find reference vars (vars you want to always have for new profiles)")
+        print("We will initialize a default list. Please edit vamtb.yml to suite your needs")
+        conf['refvars'] = C_REF_VARS
+        with open(C_YAML, 'w+') as stream:
+            yaml.dump(conf, stream, default_flow_style=False)
+            info(f"Configured refvars in {C_YAML}")
+
+    profmgr = ProfileMgr(conf['multidir'], conf['exedir'], conf['cachedir'], conf['dir'], conf['refvars'])
+    adirs = next(os.walk(conf['multidir']))[1]
+    for i, d in enumerate(adirs):
+        print(f"{i} : {d}")
+
+    if "Full" not in adirs:
+        print("First we need to create the Full profile: AddonPackages links to your vam installation") 
+        profmgr.new("Full")
+        print("Profile Full initialized, you can now run the tool again to create a personal profile")
+        exit(0)
+    answer = input("Choose Profile [N for new profile]: ")
+
+    if answer.upper() == "N":
+        profmgr.new()
+    else:
+        adir = adirs[int(answer)]
+        profmgr.select(adir)
 
 @cli.command('renamevar')
 @click.pass_context
