@@ -246,10 +246,12 @@ class VarFile:
         res = sorted([ e[0] for e in res ], key = str.casefold)
         return res if res else []
 
-    def db_files(self, with_meta = True):
+    def db_files(self, with_meta = True, pattern = None):
         sql = f"SELECT FILENAME FROM FILES WHERE VARNAME=?"
         if not with_meta:
             sql = sql + " AND FILENAME NOT LIKE '%meta.json'"
+        if pattern:
+            sql = sql + f" AND FILENAME LIKE '%{pattern}%'"
         row = (self.var,)
         res = self.db_fetch(sql, row)
         if res:
