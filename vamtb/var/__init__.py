@@ -48,6 +48,9 @@ class Var(VarFile):
         # Associated Path .jpg
         self.__thumb = None
 
+        # Password for extracting zip (only for renamevar)
+        self.__password = None
+
         # Verify and resolve var on disk
         if check_file_exists:
             self._path = Path(self.__resolvevar(multiFileName))
@@ -206,6 +209,8 @@ class Var(VarFile):
         try:
             debug(f"Extracting zip {self.var} to {tmpPathdir}")
             with ZipFile(self.path) as z:
+                if self.__password:
+                    z.setpassword(self.__password.encode('utf-8'))
                 z.extractall(tmpPathdir)
             debug(f"Extracting done...")
         except Exception as e:
@@ -230,6 +235,9 @@ class Var(VarFile):
     @property
     def tmpDir(self):
         return self.__tmpDir
+
+    def set_password(self, password):
+        self.__password = password
 
     def unzip(func):
         """Decorator to extract zip"""

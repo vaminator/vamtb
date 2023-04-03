@@ -893,7 +893,9 @@ def renamevar(ctx):
     Rename file to var getting props from meta.json.
 
 
-    vamtb [-vv] -f file renamevar
+    vamtb [-vv] [-p] -f file renamevar
+
+    -p : request password
 
     Var version will be set to 1
 
@@ -902,20 +904,23 @@ def renamevar(ctx):
     if not ctx.obj['file']:
         critical("Need a file name")
 
-    with Var(ctx.obj['file'], check_exists=False, check_naming=False) as var:
-        js = var.meta()
+    with Var(ctx.obj['file'], check_exists=False, check_naming=False) as mvar:
+        if ctx.obj['progress']:
+            password = input("Password:")
+            mvar.set_password(password)
+        js = mvar.meta()
         rcreator, rasset = js['creatorName'],js['packageName']
 
     try:
-        creator, asset, version, _ = var.path.name.split('.', 4)
+        creator, asset, version, _ = mvar.path.name.split('.', 4)
     except ValueError:
         creator = ""
         asset = ""
         version = 1
     if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
-            rfile = var.path.parents[0] / f"{rcreator}.{rasset}.{version}.var".replace(" ", "_")
-            print(f"Renaming {var.path} to {rfile}")
-            os.rename(var.path, rfile)
+            rfile = mvar.path.parents[0] / f"{rcreator}.{rasset}.{version}.var".replace(" ", "_")
+            print(f"Renaming {mvar.path} to {rfile}")
+            os.rename(mvar.path, rfile)
 
 
 @cli.command('rdep')
