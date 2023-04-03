@@ -150,30 +150,27 @@ class ProfileMgr:
                 debug(f"Searching for {ln}")
                 try:
                     with Var(ln, self.__vardir, use_db=True) as mvar:
-                        if version:
-                            refvarpath = mvar.path
-                        else:
-                            refvarpath = os.path.join(self.__vardir, "AddonPackages", f"{mvar.latest() + '.var'}")
+                        refvarpath = mvar.path
                         debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
                         try:
-                            destination = f"{self.__base}/AddonPackages"
+                            ddir = f"{self.__base}/AddonPackages"
                             try:
-                                xlink( destination, refvarpath )
+                                xlink( ddir, refvarpath )
                                 print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
                             except OSError:
                                 pass
-                            ddir = destination
-                            try:
-                                with Var(mvar.latest(), self.__vardir, use_db=True) as mlatest:
-                                    debug(f"Searching dep of {mlatest.var}")
-                                    mlatest.rec_dep(stop=False, dir=self.__vardir, func=linkfile2ddir)
-                            except OSError:
-                                pass
                         except OSError:
+                            # Already linked but keep on going for dependencies
                             pass
                 except VarNotFound:
-                    warn(f"We did not find {refvar} so can't link latest")
-
+                    warn(f"We did not find {refvar} to link")
+                    continue
+                try:
+                    with Var(refvarpath, self.__vardir, use_db=True) as mlatest:
+                        debug(f"Searching dep of {mlatest.var}")
+                        mlatest.rec_dep(stop=False, dir=self.__vardir, func=linkfile2ddir)
+                except OSError:
+                    pass
 
     def select(self, profilename):
         self.__np = profilename
