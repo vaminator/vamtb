@@ -773,7 +773,6 @@ def link(ctx):
         etarget = Path(ddir, os.path.basename(varfile))
         if etarget.exists() and etarget.is_file():
             info(f"{etarget} already exists")
-            continue
         with Var(varfile, dir, use_db=True) as var:
             warn(f"Linking {var} {'' if ctx.obj['move'] else 'and dependencies'}")
             linkfile(var)
