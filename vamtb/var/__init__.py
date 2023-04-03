@@ -133,9 +133,6 @@ class Var(VarFile):
             if FileName(self.path).mtime == self.get_modtime:
                 info("Same modtime")
                 return False
-#            if FileName(self.path).crc == self.get_cksum:
-#                info("Same checksum")
-#                return False
             info(f"Database is not inline.")
             if confirm == False:
                 res = "Y"
@@ -176,10 +173,10 @@ class Var(VarFile):
                 return Path(p)
 
         # Not a full path var, search var on disk
-        if self.iversion != -1:
-            pattern = self.file
-        elif self.version == "latest" or self.minversion:
+        if self.version == "latest" or self.minversion:
             pattern = re.escape(self.creator) + "\." + re.escape(self.resource) + "\..*\.var"
+        elif self.iversion != -1:  #TODO was that supposed to arrive?
+            pattern = self.file
         else:
             raise VarNotFound(multiname)
 

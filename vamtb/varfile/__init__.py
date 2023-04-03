@@ -37,7 +37,7 @@ class VarFile:
                 self.__iVersion = int(self.__sVersion)
             except ValueError:
                 if self.__sVersion == "latest":
-                    pass
+                    self.__iVersion = self.latest().split('.',3)[2]
                 elif self.__sVersion.startswith('min'):
                     try:
                         self.__iMinVer = int(self.__sVersion[3:])
@@ -59,6 +59,11 @@ class VarFile:
     @property
     def var(self) -> str:
         return f"{self.__Creator}.{self.__Resource}.{self.__sVersion}"
+
+    # This differs for latest var as it will return the exact version
+    @property
+    def ivar(self) -> str:
+        return f"{self.__Creator}.{self.__Resource}.{self.__iVersion}"
 
     @property
     def varq(self) -> str:
