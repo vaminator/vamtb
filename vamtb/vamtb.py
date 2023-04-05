@@ -723,15 +723,15 @@ def multiup(ctx):
     for func in (ia, anon):
         ctx.invoke(func)
 
-@cli.command('link')
+@cli.command('varlink')
 @click.pass_context
 @catch_exception
-def link(ctx):
+def varlink(ctx):
     """
     Link var and dependent to configured directory.
 
 
-    vamtb [-vv] [-f <file pattern> ] [-m] link
+    vamtb [-vv] [-f <file pattern> ] [-m] varlink
 
     -m : Don't recurse dependencies.
 
@@ -783,6 +783,30 @@ def link(ctx):
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
+
+@cli.command('link')
+@click.pass_context
+@catch_exception
+def link(ctx):
+    """
+    Link var in current directory to vam directory.
+
+    vamtb [-vv] [-f <file pattern> ] link
+
+    This is just a helper command to manage your vars in a central directory out of VaM installation directory.
+
+    """
+    file, dir, pattern = get_filepattern(ctx)
+    repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
+    for file in os.scandir(os.getcwd()):
+        if file.is_file() and repat.match(file.name):
+            dfile = os.path.join(dir, file.name)
+            try:
+                os.symlink(file.path, dfile)
+            except FileExistsError:
+                debug(f"{dfile} already exists")
+            else:
+                print(green(f"Linked {dfile}"))
 
 
 @cli.command('latest')
