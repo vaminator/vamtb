@@ -981,6 +981,8 @@ def nordep(ctx):
 
     vamtb [-vv] [-f pattern] nordep
 
+    Vars with a scene, clothing or assets are displayed in green while others are displayed in red.
+
     """
 
     file, dir, pattern = get_filepattern(ctx)
