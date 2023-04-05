@@ -226,7 +226,7 @@ class Var(VarFile):
             try:
                 self._meta = self.load_json_file("meta.json")
             except json.decoder.JSONDecodeError as e:
-                critical(f"Meta.json from {self.var} is broken [{e}]")
+                # critical(f"Meta.json from {self.var} is broken [{e}]")
                 raise VarMetaJson(self.var)
             except FileNotFoundError as e:
                 raise NoMetaJson("")
