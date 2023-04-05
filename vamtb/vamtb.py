@@ -368,11 +368,11 @@ def dbscan(ctx):
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
             except VarMalformed as e:
-                error(f"Var {var.var} malformed")
+                error(f"Var {var.var} malformed: {e.args[0]}")
             except NoMetaJson:
                 error(f"Var {var.var} malformed (no meta found)")
             except VarMetaJson as e:
-                error(f"Var {var.var} has something wrong in meta: {e}")
+                error(f"Var {var.var} has something wrong in meta: {e.args[0]}")
 
     info(f"{stored} var files stored")
 

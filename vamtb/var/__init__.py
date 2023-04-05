@@ -113,7 +113,7 @@ class Var(VarFile):
 
     def check(self):
         if not self.zipcheck():
-            raise VarMalformed(self.var)
+            raise VarMalformed("Zip is corrupted")
         metaj = self.meta()
         if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
             try:
@@ -124,7 +124,7 @@ class Var(VarFile):
         if self.tmpDir.exists() and not (
             Path(self.tmpDir / "Custom").exists() or 
             Path(self.tmpDir / "Saves").exists()):
-            raise VarMalformed(self.var)
+            raise VarMalformed("Contains neither Custom nor Saves dir")
 
     def store_var(self)->None:
         self.check()
@@ -226,10 +226,9 @@ class Var(VarFile):
             try:
                 self._meta = self.load_json_file("meta.json")
             except json.decoder.JSONDecodeError as e:
-                # critical(f"Meta.json from {self.var} is broken [{e}]")
-                raise VarMetaJson(self.var)
+                raise VarMetaJson(e)
             except FileNotFoundError as e:
-                raise NoMetaJson("")
+                raise NoMetaJson(self.var)
         return self._meta
 
     @property

@@ -31,8 +31,7 @@ class VarFile:
             try:
                 self.__Creator, self.__Resource, self.__sVersion = f_basename.split('.',3)[0:3]
             except ValueError:
-                error(f"Var has incorrect format: {inputName}")
-                raise VarNameNotCorrect(inputName)
+                raise VarNameNotCorrect("Var filename is incorrect")
             try:
                 self.__iVersion = int(self.__sVersion)
             except ValueError:
@@ -42,18 +41,16 @@ class VarFile:
                     try:
                         self.__iMinVer = int(self.__sVersion[3:])
                     except ValueError:
-                        raise VarExtNotCorrect(inputName)
+                        raise VarExtNotCorrect(f"var version is incorrect({self.__sVersion})")
                 else:
-                    error(f"Var has incorrect version: {inputName} version: {self.__sVersion}" )
-                    raise VarExtNotCorrect(inputName)
+                    raise VarExtNotCorrect(f"var version is incorrect({self.__sVersion})")
             try:
                 _, _, _, ext = f_basename.split('.',4)
             except ValueError:
                 pass
             else:
                 if ext != "var":
-                    error(f"Var has incorrect extension: {inputName}" )
-                    raise VarExtNotCorrect(inputName)
+                    raise VarExtNotCorrect(f"var extension is not correct({f_basename})")
         # debug(f"Var {inputName} is compliant")
 
     @property
