@@ -361,8 +361,8 @@ def dbscan(ctx):
         iterator = vars_list
     else:
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var', 
-                        bar_format="{percentage:3.0f}%| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]| {postfix[0][fn]}", 
-                        postfix=[{"fn": "str"}])
+                        bar_format="{percentage:3.0f}%| {n_fmt}/{total_fmt} | {postfix[0][fn]:<80.80} [{postfix[0][fn2]:>20.20}] | [{elapsed}<{remaining}, {rate_fmt}]", 
+                        postfix=[{"fn": "str", "fn2": "str"}])
         
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
@@ -371,15 +371,25 @@ def dbscan(ctx):
                 if ctx.obj['progress']:
                     size_msg = f"{int(var.fsize/1024/1024*10)/10}MB"
                     nfiles = len([f for f in var.files()])
-                    iterator.postfix[0]["fn"] = f"{var.var} {size_msg} {nfiles} files"
+                    iterator.postfix[0]["fn"] = f"{var.var}"
+                    iterator.postfix[0]["fn2"] = f"{size_msg}, {nfiles} files"
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
             except VarMalformed as e:
-                error(f"Var {var.var} malformed: {e.args[0]}")
+                if ctx.obj['progress']:
+                    tqdm.write(red(f"Var {var.var} malformed: {e.args[0]}"))
+                else:
+                    error(f"Var {var.var} malformed: {e.args[0]}")
             except NoMetaJson:
-                error(f"Var {var.var} malformed (no meta found)")
+                if ctx.obj['progress']:
+                    tqdm.write(red(f"Var {var.var} malformed (no meta found)"))
+                else:
+                    error(f"Var {var.var} malformed (no meta found)")
             except VarMetaJson as e:
-                error(f"Var {var.var} has something wrong in meta: {e.args[0]}")
+                if ctx.obj['progress']:
+                    tqdm.write(red(f"Var {var.var} has something wrong in meta: {e.args[0]}"))
+                else:
+                    error(f"Var {var.var} has something wrong in meta: {e.args[0]}")
 
     info(f"{stored} var files stored")
 
