@@ -360,11 +360,18 @@ def dbscan(ctx):
     if not quiet or ctx.obj['progress'] == False:
         iterator = vars_list
     else:
-        iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var')
+        iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var', 
+                        bar_format="{percentage:3.0f}%| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]| {postfix[0][fn]}", 
+                        postfix=[{"fn": "str"}])
+        
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
             info(f"Scanning {var}")
             try:
+                if ctx.obj['progress']:
+                    size_msg = f"{int(var.fsize/1024/1024*10)/10}MB"
+                    nfiles = len([f for f in var.files()])
+                    iterator.postfix[0]["fn"] = f"{var.var} {size_msg} {nfiles} files"
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
             except VarMalformed as e:
