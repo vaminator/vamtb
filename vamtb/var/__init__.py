@@ -220,8 +220,7 @@ class Var(VarFile):
             debug(f"Extracting done...")
         except Exception as e:
             #self.__del__()
-            critical(f"Var {self.var} has problems unpacking {e}.")
-            raise
+            raise VarMalformed(f"Problems unpacking {e}")
         else:
             self.__tmpDir = tmpPathdir
             debug(f"Extracted {self.var} to {self.__tmpDir}")
