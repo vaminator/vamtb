@@ -93,6 +93,11 @@ class Var(VarFile):
         return FileName(self.path).mtime
 
     @property
+    def fsize(self):
+        ssz = os.stat(self.path).st_size
+        return ssz
+    
+    @property
     def addondir(self):
         return self.__AddonDir
 
