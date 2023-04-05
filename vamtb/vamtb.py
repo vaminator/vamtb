@@ -383,26 +383,31 @@ def dbclean(ctx):
     """
     Remove vars from DB which are not found on disk.
 
-    vamtb [-vv] [-a] dbclean
+    vamtb [-vv] [-a] [-c] dbclean
 
     -a: Delete without prompting
-    """
 
+    -c: Only list missing files, don't do anything.
+    """
+    nmiss = 0
     files = search_files_indir(ctx.obj['dir'], f".*\.var", ign=True)
     varnames = set([ e.with_suffix("").name for e in files ])
     dbvars = set(Dbs.get_vars())
-    diff = sorted(list(varnames - dbvars) + list(dbvars - varnames))
+    diff = sorted(list(varnames - dbvars) + list(dbvars - varnames), key=str.casefold)
     for var in diff:
         if var not in dbvars:
             continue
         print(f"Var {red(var)} is in DB but not on disk  ")
+        nmiss = nmiss + 1
+        if ctx.obj['cc']:
+            continue
         if ctx.obj['force'] or input("Delete from DB: Y [N] ?").upper() == "Y":
             varfile = VarFile(var, use_db=True)
             print(f"Deleting {varfile.file}")
             varfile.db_delete()
             varfile.db_commit()
             info(f"Removed {var} from DB")
-
+    print(f"{nmiss} files missing")
 
 @cli.command('graph')
 @click.pass_context
