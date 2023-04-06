@@ -24,46 +24,10 @@ At any time, to interrupt, hit twice ctrl-c.
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
 
-  VAM Toolbox For full help and all commands use vamtb --help
+  For specific command help use vamtb <command> --help
 
-  Dependency handling (from disk or database):
-  vamtb checkdeps
-  vamtb -f sapuzex.Cooking_Lesson.1 checkdeps
-  vamtb -f -b sapuzex.Cooking_Lesson.1 checkdep
-  vamtb -f ClubJulze.Bangkok.1 printdep
-  vamtb -f ClubJulze.Bangkok.1 printrealdep
-
-  Meta json handling (from disk):
-  vamtb -f sapuzex.Cooking_Lesson.1 dump
-
-  Organizing (from disk):
-  vamtb sortvar  Reorganize your var directories with <creator>/*
-              If a file already exists in that directory, CRC is checked before overwritting.
-  vamtb statsvar will dump some statistics
-
-  Database:
-  vamtb dbsscan will scan your vars and create or if modification time is higher, update database
-  vamtb -f sapuzex.Cooking_Lesson.1 dbdel will remove any reference to var and files in the DB
-
-  Dependency graph (uses database):
-  vamtb graph will graph your collection one graph per var
-  vamtb -f sapuzex.Cooking_Lesson.1 graph will graph this var
-  vamtb -f sapuzex.* graph will graph vars matching
-
-  Deduplication (uses database):
-  vamtb -f sapuzex.Cooking_Lesson.1 dupinfo will print duplication info
-  vamtb -f Wolverine333.% reref will dedup files from creator
-  vamtb -x colorcorrect.assetbundle reref will remove all embedded colorcorrect.assetbundle from every var BUT the reference var
-
-  Upload (uses database):
-  vamtb -f sapuzex.Cooking_Lesson.1 ia will upload each var to an Internet Archive item
-  vamtb -f sapuzex.Cooking_Lesson.1 anon will upload each var to anonfiles (need an account for the API key)
-
-  File filters:
-  You can use wildcards with % caracter: vamtb -f Community.% dupinfo
-
-  You can get help for a command with
-  vamtb <command> --help
+  For file pattern OPTION, you need to pass a regular expression like .*\.var
+  (* can be replaced by %)
 
 Options:
   -a, --force / --no-force        Do not ask for confirmation.
@@ -98,22 +62,28 @@ Commands:
   dbclean       Remove vars from DB which are not found on disk.
   dbdel         Remove one var from DB.
   dbscan        Scan vars and store props in db.
+  dep           Depends of a var.
   dumpvar       Dump meta.json from var.
   dupinfo       Return duplication information.
   graph         Generate graph of deps, one per var.
-  gui           There's no graphical user interface
   ia            Upload var to Internet Archive item.
   imageopt      Optimize images in vars.
-  link          Link var and dependent to configured directory.
+  latest        Show "latest" version of var as an absolute filename
+  link          Link var in current directory to vam directory and in vam...
   multiup       Upload var to multiple place.
+  nordep        Prints all var which don't have a reverse dependent.
   noroot        Remove root node stored in pose presets.
   orig          Revert to orig files.
   printdep      Print dependencies of a var from reading meta.
   printrealdep  Print dependencies of a var from inspecting all json files.
+  profile       Creates or selects a new VaM installation instance.
+  rdep          Reverse depends of vars.
+  renamevar     Rename file to var getting props from meta.json.
   reref         Remove embedded content and point to reference var.
   setref        Set var and files as reference.
   sortvar       Moves vars to subdirectory named by its creator.
   statsvar      Get stats on all vars.
+  varlink       Link var and dependent to configured directory.
   zinfo         Return zip meta info of files in var.
 ```
 ## Database
