@@ -811,7 +811,7 @@ def varlink(ctx):
 @catch_exception
 def link(ctx):
     """
-    Link var in current directory to vam directory.
+    Link var in current directory to vam directory and in vam directory remove dangling links pointing to nowhere.
 
     vamtb [-vv] [-f <file pattern> ] link
 
@@ -829,6 +829,11 @@ def link(ctx):
                 debug(f"{dfile} already exists")
             else:
                 print(green(f"Linked {dfile}"))
+
+    for file in os.scandir(dir):
+        if file.is_symlink() and not file.is_file():
+            os.unlink(file.path)
+            print(green(f"Removed dangling link {file.path}"))
 
 
 @cli.command('latest')
