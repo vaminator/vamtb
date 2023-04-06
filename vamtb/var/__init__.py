@@ -117,8 +117,7 @@ class Var(VarFile):
                 pass
 
     def check(self):
-        if not self.zipcheck():
-            raise VarMalformed("Zip is corrupted")
+        self.zipcheck()
         metaj = self.meta()
         if "hadReferenceIssues" in metaj and metaj['hadReferenceIssues'] == "true":
             try:
@@ -157,18 +156,15 @@ class Var(VarFile):
         return True
 
     def zipcheck(self):
-        is_ok = False
         try:
             with ZipFile(self.path) as zipf:
                 res = zipf.testzip()
                 if res != None:
-                    critical(f"Zip {self.path} is corrupted, can't open file {res}.")
+                    raise VarMalformed(f"File {res} inside zip is corrupted")
                 else:
                     info(f"Zip {self.path} is ok.")
-                    is_ok = True
         except Exception as e:
-            pass
-        return is_ok
+            raise VarMalformed(f"Zip is corrupted {e}")
 
     def search(self, pattern)-> Path:
         return search_files_indir2(self.__AddonDir, pattern)
