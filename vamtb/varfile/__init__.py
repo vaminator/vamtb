@@ -17,7 +17,7 @@ class VarFile:
         # Version as string 1, latest, min
         self.__sVersion = ""
         # integer version or -1. Because Logan.Bounce_Bunny.0..
-        self.__iVersion = -1
+        self.__iVersion = -1 # -1 means we did not find a version (var is referenced as latest but doesnt exist )
         # Min version or 0
         self.__iMinVer = 0
         # Db if a reference was provided
@@ -36,7 +36,9 @@ class VarFile:
                 self.__iVersion = int(self.__sVersion)
             except ValueError:
                 if self.__sVersion == "latest":
-                    self.__iVersion = self.latest().split('.',3)[2]
+                    mlatest = self.latest()
+                    if mlatest:
+                        self.__iVersion = self.latest().split('.',3)[2]
                 elif self.__sVersion.startswith('min'):
                     try:
                         self.__iMinVer = int(self.__sVersion[3:])

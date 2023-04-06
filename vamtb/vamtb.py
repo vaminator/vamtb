@@ -773,7 +773,7 @@ def varlink(ctx):
                 info(f"{linkdir}/{basefile}  ->  {srcfile}")
                 os.symlink(f"{srcfile}", f"{linkdir}/{basefile}")
             except FileExistsError:
-                warn(f"ERROR exists {linkdir}/{basefile}")
+                warn(f"{linkdir}/{basefile} already linked")
 
     conf = {}
     writeconf = False
@@ -801,7 +801,7 @@ def varlink(ctx):
         if etarget.exists() and etarget.is_file():
             info(f"{etarget} already exists")
         with Var(varfile, dir, use_db=True) as var:
-            warn(f"Linking {var} {'' if ctx.obj['move'] else 'and dependencies'}")
+            print(f"Linking {green(var.var)} {'' if ctx.obj['move'] else 'and dependencies'}")
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)

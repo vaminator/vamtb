@@ -144,8 +144,12 @@ class Var(VarFile):
             if confirm == False:
                 res = "Y"
             else:
-                #TODO don't allow anything else than Enter, Y, N
-                res = input(blue(f"Remove older DB for {self.path} [Y]N  ?"))
+                if FileName(self.path).crc == self.get_cksum:
+                    # Checksums are same, only modtime differ, update db without asking
+                    info("Same checksum")
+                    res = "Y"
+                else:
+                    res = input(blue(f"Remove older DB for {self.path} [Y]N  ?"))
             if not res or res == "Y":
                 self.db_delete() 
                 self.db_commit()
@@ -179,10 +183,10 @@ class Var(VarFile):
         # Not a full path var, search var on disk
         if self.version == "latest" or self.minversion:
             pattern = re.escape(self.creator) + "\." + re.escape(self.resource) + "\..*\.var"
-        elif self.iversion != -1:  #TODO was that supposed to arrive?
-            pattern = self.file
-        else:
+        elif self.iversion == -1:
             raise VarNotFound(multiname)
+        else:
+            pattern = self.file
 
         vars = self.search(pattern = pattern)
         if not vars:
