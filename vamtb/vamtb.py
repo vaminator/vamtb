@@ -361,18 +361,23 @@ def dbscan(ctx):
         iterator = vars_list
     else:
         iterator = tqdm(vars_list, desc="Writing database…", ascii=True, maxinterval=3, ncols=75, unit='var', 
-                        bar_format="{percentage:3.0f}%| {n_fmt}/{total_fmt} | {postfix[0][fn]:<80.80} [{postfix[0][fn2]:>20.20}] | [{elapsed}<{remaining}, {rate_fmt}]", 
+                        bar_format="{percentage:3.0f}%| {n_fmt}/{total_fmt} | {postfix[0][fn]:<90.90} [{postfix[0][fn2]:>10.10} ] | [{elapsed}<{remaining}, {rate_fmt}]", 
                         postfix=[{"fn": "str", "fn2": "str"}])
         
     for varfile in iterator:
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
             info(f"Scanning {var}")
             try:
-                if ctx.obj['progress']:
+                if quiet and ctx.obj['progress']:
                     size_msg = f"{int(var.fsize/1024/1024*10)/10}MB"
-                    nfiles = len([f for f in var.files()])
+                    #Too slow
+#                    if var.exists():
+#                        nfiles = var.get_numfiles()
+#                    else:
+#                        nfiles = len([f for f in var.files()])
                     iterator.postfix[0]["fn"] = f"{var.var}"
-                    iterator.postfix[0]["fn2"] = f"{size_msg}, {nfiles} files"
+#                    iterator.postfix[0]["fn2"] = f"{size_msg}, {nfiles} files"
+                    iterator.postfix[0]["fn2"] = f"{size_msg}"
                 if var.store_update(confirm=False if ctx.obj['force'] else True):
                     stored += 1
             except VarMalformed as e:
@@ -382,9 +387,9 @@ def dbscan(ctx):
                     error(f"Var {var.var} malformed: {e.args[0]}")
             except NoMetaJson:
                 if ctx.obj['progress']:
-                    tqdm.write(red(f"Var {var.var} malformed (no meta found)"))
+                    tqdm.write(red(f"Var {var.var} malformed: no meta found"))
                 else:
-                    error(f"Var {var.var} malformed (no meta found)")
+                    error(f"Var {var.var} malformed: no meta found")
             except VarMetaJson as e:
                 if ctx.obj['progress']:
                     tqdm.write(red(f"Var {var.var} has something wrong in meta: {e.args[0]}"))
