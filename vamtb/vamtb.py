@@ -841,7 +841,7 @@ def link(ctx):
 @catch_exception
 def latest(ctx):
     """
-    Show "latest" version of var as an absolute filename
+    Show "latest" version of var as an absolute filename.
 
     vamtb [-vv] -f pattern latest
 

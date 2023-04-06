@@ -29,16 +29,15 @@ class ProfileMgr:
     
         if Path(multidir).is_dir():
             self.__bsrc = multidir
-            # FIXME
-            # Why link to Full being a link to vars
-            # Now used for Custom/ and Saves/
-            # But not used for ref vars
+            # For Full profile, Addonpackages directory is a link to var pool Addonpackages *directory*
+            # For other profiles, vars inside Addonpackages are links to var *files* inside pool AddonPackages directory.
+            # Custom/ and Saves/ will link to Full profile directories (shared preferences for Session Plugins, Assets, SubScenes, ..)
             self.__basedir = multidir + "/" + "Full"
         else:
             critical(f"{multidir} is not a directory, please create it manually!")
     
-        # Path where vars are
-        # We can't use exedir/AddonPackages as its a link to current profile
+        # Var pool
+        # Trap: We can't use exedir/AddonPackages as its a link to current profile
         if Path(vardir).is_dir():
             self.__vardir = vardir
         else:
@@ -105,7 +104,7 @@ class ProfileMgr:
                 if files[i] == "prefs.json":
                     replace_json(f"{self.__base}/{f}", "cacheFolder", self.__cachedir + "\\" + f"vam_cache_{self.__np}")
 
-        # If we are in Full profile, these should be existing directories
+        # If we intiate the Full profile, these should be existing directories
         for mdir in ("PluginPresets", ):
             if self.__np == "Full":
                 os.mkdir(f"{self.__base}/Custom/{mdir}")
@@ -115,7 +114,7 @@ class ProfileMgr:
                 except OSError:
                     pass
 
-        #TODO clarify
+        # SubScenes/Anonymous is a link to allow sharing subscenes
         for mdir in ("Anonymous", ):
             if self.__np == "Full":
                 os.mkdir(f"{self.__base}/Custom/SubScene/{mdir}")
@@ -125,6 +124,7 @@ class ProfileMgr:
                 except OSError:
                     pass
 
+        # Share pluginData.
         for mdir in ("PluginData", ):
             if self.__np == "Full":
                 os.mkdir(f"{self.__base}/Saves/{mdir}")
