@@ -18,6 +18,7 @@ from vamtb.utils import *
 from vamtb.varfile import VarFile
 from vamtb.db import Dbs
 from vamtb.profile import ProfileMgr
+from vamtb.config import ConfigMgr
 
 @click.group()
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
@@ -70,23 +71,10 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     ctx.obj['inp']         = inp
     conf = {}
 
-    global C_YAML
-
     if not dir:
-        try:
-            with open(C_YAML, 'r') as stream:
-                conf = yaml.load(stream, Loader=yaml.BaseLoader)
-        except FileNotFoundError:
-            conf['dir'] = input(blue("Directory of Vam ?:"))
-            with open(C_YAML, 'w') as outfile:
-                yaml.dump(conf, outfile, default_flow_style=False)
-            info(f"Created {C_YAML}")
-        except yaml.YAMLError as exc:
-            error(f"YAML error in {C_YAML}: {exc}")
-
-        dir = Path(conf['dir'])
-    else:
-        dir = Path(dir)
+        confmgr = ConfigMgr()
+        dir = confmgr.get("dir", "Directory of Vam")
+    dir = Path(dir)
 
     if dir.stem != "AddonPackages":
         dir = dir / "AddonPackages"
@@ -706,20 +694,15 @@ def anon(ctx):
 
     """
 
-    with open(C_YAML, 'r') as stream:
-        conf = yaml.load(stream, Loader=yaml.BaseLoader)
-    if not conf.get('anon_apikey', False):
-        conf['anon_apikey'] = input(blue("Enter Anonfiles apikey ?:"))
-        with open(C_YAML, 'w') as outfile:
-            yaml.dump(conf, outfile, default_flow_style=False)
-        info(f"Stored apikey for future use.")
+    confmgr = ConfigMgr()
+    anon_apikey = confmgr.get("anon_apikey", "Enter Anonfiles apikey")
 
     file, dir, pattern = get_filepattern(ctx)
     n_up = 0
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
             try:
-                res = var.anon_upload(apikey = conf['anon_apikey'], dry_run=ctx.obj['dryrun'])
+                res = var.anon_upload(apikey = anon_apikey, dry_run=ctx.obj['dryrun'])
                 if res :
                     info(f"Var {var.var} uploaded successfully to anonfiles.")
                     n_up += 1
@@ -750,16 +733,12 @@ def multiup(ctx):
 @catch_exception
 def varlink(ctx):
     """
-    Link var and dependent to configured directory.
+    Link var and dependent to current directory.
 
 
     vamtb [-vv] [-f <file pattern> ] [-m] varlink
 
     -m : Don't recurse dependencies.
-
-    -z : Use configured linked dir in config file for destination directory (otherwise uses current dir)
-
-    -f : When using configured linked dir, don't confirm destination directory.
 
     """
     ddir = ""
@@ -775,26 +754,9 @@ def varlink(ctx):
             except FileExistsError:
                 warn(f"{linkdir}/{basefile} already linked")
 
-    conf = {}
-    writeconf = False
     file, dir, pattern = get_filepattern(ctx)
 
-    if conf.get('setref', False):
-        with open(C_YAML, 'r') as stream:
-            conf = yaml.load(stream, Loader=yaml.BaseLoader)
-            if 'linkdir' not in conf or \
-                (not ctx.obj['force'] and input(red(f"Link to {conf['linkdir']} ? [Y]N")).upper() == "N") :
-                writeconf = True
-        dir = Path(conf['dir'])
-
-        if writeconf:
-            conf['linkdir'] = input(blue("Where to link to ?:"))
-            with open(C_YAML, 'w+') as stream:
-                yaml.dump(conf, stream, default_flow_style=False)
-                info(f"Configured {conf['linkdir']} in {C_YAML}")
-            ddir = conf['linkdir']
-    else:
-        ddir = os.getcwd()
+    ddir = os.getcwd()
 
     for varfile in search_files_indir2(dir, pattern):
         etarget = Path(ddir, os.path.basename(varfile))
@@ -892,39 +854,30 @@ def profile(ctx):
       Use vamtb link command to add more
 
     """
-    with open(C_YAML, 'r') as stream:
-        conf = yaml.load(stream, Loader=yaml.BaseLoader)
-    if 'multidir' not in conf:
-        conf['multidir'] = input("Directory where profiles are/will be located:")
-        if not Path(conf['multidir']).is_dir():
-            critical(f"{conf['multidir']} is not an existing directory. Please create manually.")
-        with open(C_YAML, 'w+') as stream:
-            yaml.dump(conf, stream, default_flow_style=False)
-            info(f"Configured {conf['multidir']} in {C_YAML}")
-    if 'exedir' not in conf:
-        conf['exedir'] = input("Directory where vam exe is:")
-        if not Path(conf['exedir'], "VaM.exe").is_file():
-            critical(f"Could not find {conf['exedir']}/VaM.exe")
-        with open(C_YAML, 'w+') as stream:
-            yaml.dump(conf, stream, default_flow_style=False)
-            info(f"Configured {conf['exedir']} in {C_YAML}")
-    if 'cachedir' not in conf:
-        conf['cachedir'] = input("Directory where caches will be (one cache directory per profile):")
-        if not Path(conf['cachedir']).is_dir():
-            critical(f"{conf['cachedir']} is not an existing directory.")
-        with open(C_YAML, 'w+') as stream:
-            yaml.dump(conf, stream, default_flow_style=False)
-            info(f"Configured {conf['cachedir']} in {C_YAML}")
-    if 'refvars' not in conf:
+
+    confmgr = ConfigMgr()
+
+    multidir = confmgr.get("multidir", "Directory where profiles are/will be located")
+    if not Path(multidir).is_dir():
+        critical(f"{multidir} is not an existing directory. Please create manually.")
+
+    exedir = confmgr.get("exedir", "Directory where vam exe is")
+    if not Path(exedir, "VaM.exe").is_file():
+        critical(f"Could not find {exedir}/VaM.exe")
+
+    cachedir = confmgr.get("cachedir", "Directory where caches will be (one cache directory per profile)")
+    if not Path(cachedir).is_dir():
+        critical(f"{cachedir} is not an existing directory.")
+
+    refvars = confmgr.get("refvars")
+    if not refvars:
         print("We did not find reference vars (vars you want to always have for new profiles)")
         print("We will initialize a default list. Please edit vamtb.yml to suite your needs")
-        conf['refvars'] = C_REF_VARS
-        with open(C_YAML, 'w+') as stream:
-            yaml.dump(conf, stream, default_flow_style=False)
-            info(f"Configured refvars in {C_YAML}")
+        confmgr.set("refvars", C_REF_VARS)
 
-    profmgr = ProfileMgr(conf['multidir'], conf['exedir'], conf['cachedir'], conf['dir'], conf['refvars'])
-    adirs = next(os.walk(conf['multidir']))[1]
+    profmgr = ProfileMgr(multidir, exedir, cachedir, confmgr.get("dir"), refvars)
+    adirs = profmgr.list()
+
     for i, d in enumerate(adirs):
         print(f"{i} : {d}")
 
