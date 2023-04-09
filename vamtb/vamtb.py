@@ -914,8 +914,11 @@ def pluginpreset(ctx):
     rpath = Path("Custom/PluginPresets/Plugins_UserDefaults.vap")
     confmgr = ConfigMgr()
     dir = confmgr.get('dir')
-
     multidir = confmgr.get("multidir")
+    exedir = None
+
+    # See if AddonPackages/../{rpath} exists
+    dirs.append(Path(dir).parents[0])
 
     if multidir:
         exedir = confmgr.get('exedir')
