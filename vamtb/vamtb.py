@@ -894,6 +894,86 @@ def profile(ctx):
         adir = adirs[int(answer)]
         profmgr.select(adir)
 
+@cli.command('pluginpreset')
+@click.pass_context
+@catch_exception
+def pluginpreset(ctx):
+    """
+    Update Plugin presets to latest plugins found.
+
+
+    vamtb [-vv] [-p] pluginpreset
+
+    -p: Only list plugins that can be updated, don't modify presets.
+
+    Note that newer plugins might get things wrong with older plugin settings
+
+    """
+    dirs = []
+    modify = False if ctx.obj['progress'] else True
+    rpath = Path("Custom/PluginPresets/Plugins_UserDefaults.vap")
+    confmgr = ConfigMgr()
+    dir = confmgr.get('dir')
+
+    multidir = confmgr.get("multidir")
+
+    if multidir:
+        exedir = confmgr.get('exedir')
+        cachedir = confmgr.get('cachedir')
+        profile = ProfileMgr(multidir, exedir, cachedir, dir)
+        for mp in profile.list():
+            dirs.append(Path(multidir, mp))
+    if exedir:
+        dirs.append(Path(exedir))
+
+    files = [ Path(f, rpath) for f in dirs ]
+    files = [ f for f in files if f.is_file() ]
+
+    for i, d in enumerate(files):
+        print(f"{i} : {d}")
+
+    answer = input("Choose Directory: ")
+    try:
+        xpath = files[int(answer)]
+    except ( ValueError, IndexError ) as e:
+        critical("Try again..")
+
+    js = FileName(xpath).json
+    storables = js["storables"]
+    nstorables = []
+    for s in storables:
+        if s["id"] == "PluginManager":
+            nplugins = {}
+            for plugnum, plugfullpath  in s["plugins"].items():
+                plugvar, plugpath = plugfullpath.split(":", 2)
+                with Var(plugvar, dir, use_db=True, check_exists=False, check_file_exists=False) as var:
+                    varlatest = var.latest()
+                    if varlatest == None:
+                        nplugins[plugnum] = plugfullpath
+                        error(f"{var.var} not found")
+                    elif varlatest == var.var:
+                        nplugins[plugnum] = plugfullpath
+                        print(green(f" OK      : {var.var} is latest"))
+                    else:
+                        nplugins[plugnum] = f"{varlatest}:{plugpath}"
+                        warn(f"{var.var} is not latest, use latest: {varlatest}")
+
+            debug(prettyjson(nplugins))
+            if not modify:
+                print(prettyjson(nplugins))
+                return
+            s["plugins"] = nplugins
+        nstorables.append(s)
+    js["storables"] = nstorables
+    debug(prettyjson(js))
+    if xpath.with_suffix(".vap.orig").exists():
+        critical(f"Backup {xpath.with_suffix('.vap.orig')} exists, please remove manually.")
+    else:
+        os.rename(xpath.absolute(), xpath.with_suffix(".vap.orig"))
+        with open(xpath.absolute(), 'w') as vap:
+            json.dump(js, vap,  indent = 4)
+        print(f"Wrote {xpath}")
+
 @cli.command('renamevar')
 @click.pass_context
 @catch_exception
