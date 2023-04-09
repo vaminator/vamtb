@@ -19,7 +19,7 @@ def linkfile2ddir(mvar):
 
 class ProfileMgr:
 
-    def __init__(self, multidir, exedir, cachedir, vardir, refvars):
+    def __init__(self, multidir, exedir, cachedir, vardir, refvars=None):
         """
         """
         # Profile name
@@ -176,3 +176,7 @@ class ProfileMgr:
         self.__np = profilename
         print(f"Selecting {self.__np}")
         linkdir(self.__base, self.__dst)
+
+    def list(self):
+        adirs = next(os.walk(self.__bsrc))[1]
+        return adirs
