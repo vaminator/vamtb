@@ -774,7 +774,9 @@ def varlink(ctx):
 @catch_exception
 def link(ctx):
     """
-    Link var in current directory to vam directory and in vam directory remove dangling links pointing to nowhere.
+    Link var in current directory to vam directory.
+    
+    Will also remove dangling links pointing to nowhere.
 
     vamtb [-vv] [-f <file pattern> ] link
 
