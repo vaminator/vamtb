@@ -13,6 +13,7 @@ from vamtb.graph import Graph
 from vamtb.var import Var
 from vamtb.file import FileName
 from vamtb.vamex import *
+from vamtb.meta import *
 from vamtb.log import *
 from vamtb.utils import *
 from vamtb.varfile import VarFile
@@ -78,12 +79,6 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
             confmgr.delete("dir")
             critical(f"No AddonPackages directory was found under {dir}")
     dir = Path(dir)
-
-    if dir.stem != "AddonPackages":
-        dir = dir / "AddonPackages"
-
-    if not ( dir.is_dir() and dir.exists() ):
-        critical(f"AddonPackages '{dir}' is not existing directory")
 
     ctx.obj['dir'] = str(dir)
 
@@ -988,6 +983,63 @@ def pluginpreset(ctx):
         with open(xpath.absolute(), 'w') as vap:
             json.dump(js, vap,  indent = 4)
         print(f"Wrote {xpath}")
+
+@cli.command('repack')
+@click.pass_context
+@catch_exception
+def repack(ctx):
+    """
+    Convert single file to var.
+
+    The creator name is asked and then you can drag and drop file names or directory names to the prompt.
+    In case a directory is dragged and dropped you are prompted to give the root directory from which all files within this directory will be named in the meta.json file.
+    Temporary content is tmp/. If you drag files, it is a good idea to begin with detectable types: scenes, person, .. as vamtby will create directory structure automatically.
+
+    You can then drag and drop undetectable types (like jpg for textures) and vamtb will ask you where to place the files. Another method is to copy/move other content with explorer.
+
+    Once you're ready, hit enter and the corresponding meta will be created.
+
+    -m : Move input files rather than copy them. Warning, the input files are moved even if the process fails.
+
+    -f <creatorname>: Set creatorname
+    """
+    global C_TMPDIR
+    custom = C_TMPDIR
+    move = ctx.obj['move']
+    creator = ctx.obj['file']
+
+    #FIXME
+    assert move, "Sorry but copy is broken on windows shit. Files/Dirs can only be moved from the source dir. Add -x"
+    try:
+        shutil.rmtree(custom)
+    except:
+        pass
+    Path(custom).mkdir(parents=True, exist_ok=True)
+    if creator:
+        creatorName = creator
+        print(f"Creator is {creatorName}")
+    else:
+        creatorName = input("Give creator name [Unknown]:")
+        if not creatorName:
+            creatorName = "Unknown"
+
+    while "user didnt hit enter":
+        file = input("Add file or directory (or hit enter to move to next step):")
+        if file:
+            if file.startswith('"') and file.endswith('"'):
+                file=file[1:-1]
+            logging.debug(f'Converting {file} to var')
+            prep_tree(file, custom, creatorName, do_move=move)
+        else:
+            break
+
+    logging.debug(f"Generating var from directory {custom}")
+
+    try:
+        make_var(custom, file, creatorName=creatorName, outdir="newvar")
+    except Exception as e:
+        logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
+        raise
 
 @cli.command('renamevar')
 @click.pass_context

@@ -14,12 +14,19 @@ from vamtb.vamex import *
 #  Binary dir
 exec_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
+# Vamtb binary location (when running in nuitka, this will be inside the archive to get data dir)
+file_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 # Constants
-C_YAML = exec_dir + "/" + "vamtb.yml"
-C_DB = exec_dir + "/" + "vars.db"
+C_YAML = os.path.join(exec_dir, "vamtb.yml")
+C_DB = os.path.join(exec_dir, "vars.db")
+C_DDIR = os.path.join(exec_dir, "graph")
+C_TMPDIR = os.path.join(exec_dir, "tmp")
 #C_LOG = exec_dir + "/" + "log-vamtb.txt"  # circular dep (util relies on log which can't rely on util)
-C_DDIR = exec_dir + "/" + "graph"
+
+TPL_BASE = os.path.join(file_path, "tpl")
 C_BAD_DIR = "00Dep"
+
 C_REF_CREATORS = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
 "bvctr", "CosmicFTW","Errarr","GabiRX","geesp0t","hazmhox","Hunting-Succubus",

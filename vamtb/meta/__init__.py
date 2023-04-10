@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from vamtb.log import *
 from vamtb.utils import *
-from time import timezone
+from datetime import datetime, timezone
 
 """
 Old code
@@ -114,15 +114,17 @@ def prep_tree(file, dir, creator, do_move = False):
         else:
             shutil.copy(f, d)
 
-def gen_meta(self, **kwargs):
-    file_loader = FileSystemLoader('vamtb/tpl')
+def gen_meta(**kwargs):
+    global TPL_BASE
+
+    file_loader = FileSystemLoader(TPL_BASE)
     env = Environment(loader=file_loader)
     template = env.get_template('meta.json.j2')
 
     output = template.render(**kwargs)
     return output
 
-def make_var(self, in_dir, in_zipfile, creatorName=None, packageName=None, packageVersion=None, outdir="newvar"):
+def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVersion=None, outdir="newvar"):
     """
     Pass a directory or a zipfile and generate var in outdir
 
@@ -192,7 +194,7 @@ def make_var(self, in_dir, in_zipfile, creatorName=None, packageName=None, packa
     if is_scene:
         for scene in [ p for p in Path(input_dir, "Saves/scene").glob('**/*') if p.is_file() and p.suffix == ".json" and p.name != "meta.json" ]:
             debug(f"Detected scene {scene}, searching referenced dependencies")
-            deps = self.dep_fromjson(json_file=scene)
+            deps = dep_fromjson(json_file=scene)
             varnames = list(set([ v.split(':')[0] for v in deps['var'] ]))
             all_deps.extend(varnames)
 
@@ -241,12 +243,12 @@ def repack_reref(self, mfile):
     orig.unlink()
 
 
-def repack_reref_dir(self, input_dir):
+def repack_reref_dir(input_dir):
     for f in Path(input_dir).glob('**/*'):
         if f.suffix in ['.vap', '.vaj', '.json']:
             repack_reref(f)
 
-def get_creators_dir(self, input_dir):
+def get_creators_dir(input_dir):
     lc = set()
     for fn in Path(input_dir).glob('**/*'):
         if fn.suffix in ['.vam']:
@@ -256,7 +258,7 @@ def get_creators_dir(self, input_dir):
                     lc.add(content['creatorName'])
     return list(lc)
 
-def get_type(self, infile):
+def get_type(infile):
     """
     From a file, detect resource type
     """
@@ -305,7 +307,7 @@ def remove_empty_folders(path_abs):
         if len(os.listdir(path)) == 0:
             os.remove(path)
 
-def get_reqfile(self, infile, mtype):
+def get_reqfile(infile, mtype):
     infile=Path(infile)
     basedir=infile.parent
     req = set()
