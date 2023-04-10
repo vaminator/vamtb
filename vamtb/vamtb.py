@@ -944,6 +944,7 @@ def pluginpreset(ctx):
     js = FileName(xpath).json
     storables = js["storables"]
     nstorables = []
+    changed = False
     for s in storables:
         if s["id"] == "PluginManager":
             nplugins = {}
@@ -960,10 +961,14 @@ def pluginpreset(ctx):
                     else:
                         nplugins[plugnum] = f"{varlatest}:{plugpath}"
                         warn(f"{var.var} is not latest, use latest: {varlatest}")
+                        changed = True
 
             debug(prettyjson(nplugins))
             if not modify:
                 print(prettyjson(nplugins))
+                return
+            if not changed:
+                print(green(f"Plugin presets are OK."))
                 return
             s["plugins"] = nplugins
         nstorables.append(s)
