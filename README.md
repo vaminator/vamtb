@@ -69,7 +69,7 @@ Commands:
   ia            Upload var to Internet Archive item.
   imageopt      Optimize images in vars.
   latest        Show "latest" version of var as an absolute filename.
-  link          Link var in current directory to vam directory and in vam...
+  link          Link var in current directory to vam directory.
   multiup       Upload var to multiple place.
   nordep        Prints all var which don't have a reverse dependent.
   noroot        Remove root node stored in pose presets.
