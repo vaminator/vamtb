@@ -73,7 +73,10 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
 
     if not dir:
         confmgr = ConfigMgr()
-        dir = confmgr.get("dir", "Directory of Vam")
+        dir = confmgr.get("dir", "Directory where vars are centralized (should be parent of AddonPackages)")
+        if not Path(dir, "AddonPackages").exists():
+            confmgr.delete("dir")
+            critical(f"No AddonPackages directory was found under {dir}")
     dir = Path(dir)
 
     if dir.stem != "AddonPackages":
@@ -859,21 +862,25 @@ def profile(ctx):
 
     multidir = confmgr.get("multidir", "Directory where profiles are/will be located")
     if not Path(multidir).is_dir():
+        confmgr.delete("multidir")
         critical(f"{multidir} is not an existing directory. Please create manually.")
 
     exedir = confmgr.get("exedir", "Directory where vam exe is")
     if not Path(exedir, "VaM.exe").is_file():
+        confmgr.delete("exedir")
         critical(f"Could not find {exedir}/VaM.exe")
 
     cachedir = confmgr.get("cachedir", "Directory where caches will be (one cache directory per profile)")
     if not Path(cachedir).is_dir():
+        confmgr.delete("cachedir")
         critical(f"{cachedir} is not an existing directory.")
 
     refvars = confmgr.get("refvars")
     if not refvars:
         print("We did not find reference vars (vars you want to always have for new profiles)")
         print("We will initialize a default list. Please edit vamtb.yml to suite your needs")
-        confmgr.set("refvars", C_REF_VARS)
+        refvars = C_REF_VARS
+        confmgr.set("refvars", refvars)
 
     profmgr = ProfileMgr(multidir, exedir, cachedir, confmgr.get("dir"), refvars)
     adirs = profmgr.list()
