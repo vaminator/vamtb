@@ -159,7 +159,7 @@ def prettyjson(obj):
 def search_files_indir(fpath, pattern, ign = False):
     return search_files_indir2(fpath, pattern, ign)
 
-def search_files_indir2(fpath, pattern, ign = False):
+def search_files_indir2(fpath, pattern, ign = False, recurse = False):
     pattern = pattern.replace("%", ".*")
     repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
     res = []
@@ -167,6 +167,8 @@ def search_files_indir2(fpath, pattern, ign = False):
     for thing in os.scandir(fpath):
         if thing.is_file() and repat.match(thing.name):
             res.append(Path(thing))
+        if recurse and thing.is_dir():
+            res.extend(search_files_indir2(thing.path, pattern, ign, recurse))
     if not ign and not res:
         warn("No files found matching pattern")
     return res

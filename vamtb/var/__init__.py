@@ -617,7 +617,7 @@ class Var(VarFile):
 
     def reref_files(self, newref):
         tdir = self.tmpDir
-        for globf in search_files_indir(tdir, ".*"):
+        for globf in search_files_indir2(tdir, ".*", recurse=True):
             if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
                 continue
             try:
@@ -791,13 +791,13 @@ class Var(VarFile):
         # TODO remove any leaf element not having anything referencing them
 
         try:
-            if self.path.is_link():
+            if self.path.is_symlink():
                 # if source is a link, don't rename but copy..
                 shutil.copy2(self.path, f"{self.path.with_suffix('.orig')}")
             else:
                 os.rename(self.path, f"{self.path.with_suffix('.orig')}")
-        except:
-            critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety.")
+        except Exception as e:
+            critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety {e}")
 
         zipdir(self.tmpDir, self.path)
         res = ZipFile(self.path).testzip()
