@@ -80,6 +80,7 @@ Commands:
   profile       Creates or selects a new VaM installation instance.
   rdep          Reverse depends of vars.
   renamevar     Rename file to var getting props from meta.json.
+  repack        Packs anything to var.
   reref         Remove embedded content and point to reference var.
   setref        Set var and files as reference.
   sortvar       Moves vars to subdirectory named by its creator.
