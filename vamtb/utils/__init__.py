@@ -322,3 +322,28 @@ def replace_json(fname, key, newvalue):
     json_data[key] = newvalue
     with open(fname, 'w') as file:
         json.dump(json_data, file, indent=2)
+
+def dep_fromjson(json_file, json_content = None, Full=False):
+
+    def _decode_dict(a_dict):
+        for id, ref in a_dict.items():  # pylint: disable=unused-variable
+#            if id in ['id', 'uid', "url"]:
+            if type(ref) == str:
+                if ref.startswith("SELF:"):
+                    deps['self'].append(ref)
+                elif ":" in ref[1:]:
+                    name = ref.split(':')[0]
+                    ndot = len(name.split('.'))
+                    if ndot == 3:
+                        deps['var'].append(ref)
+                elif any(ref.endswith(s) for s in ['.vmi', ".vam", ".vap", ".json"]):
+                    deps['embed'].append(ref)
+
+    deps = { 'embed': [], 'var': [] , 'self': [] }
+    if json_file:
+        with open(json_file, "r", encoding='utf-8') as fn:
+            json.load(fn, object_hook=_decode_dict)
+    elif json_content:
+        json.loads(json_content, object_hook=_decode_dict)
+
+    return deps

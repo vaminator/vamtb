@@ -997,7 +997,7 @@ def repack(ctx):
 
     You can then drag and drop undetectable types (like jpg for textures) and vamtb will ask you where to place the files. Another method is to copy/move other content with explorer.
 
-    Once you're ready, hit enter and the corresponding meta will be created.
+    Once you're ready, hit enter and the corresponding meta will be created. The resulting var will be located in current directory.
 
     -m : Move input files rather than copy them. Warning, the input files are moved even if the process fails.
 
