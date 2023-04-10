@@ -19,32 +19,39 @@ def linkfile2ddir(mvar):
 
 class ProfileMgr:
 
+    # Profile name
+    __np = None
+    # Base multidir (under which profiles are)
+    __bsrc = None
+    # Directory where Full profile is (__bsrc/Full)
+    __basedir = None
+    # Directory where vars are
+    __vardir = None
+    # Directory where vam.exe is
+    __dst = None
+
     def __init__(self, multidir, exedir, cachedir, vardir, refvars=None):
-        """
-        """
-        # Profile name
-        self.__np = None
 
         multidir or critical("Need a profile base directory")
     
         if Path(multidir).is_dir():
-            self.__bsrc = multidir
+            ProfileMgr.__bsrc = multidir
             # For Full profile, Addonpackages directory is a link to var pool Addonpackages *directory*
             # For other profiles, vars inside Addonpackages are links to var *files* inside pool AddonPackages directory.
             # Custom/ and Saves/ will link to Full profile directories (shared preferences for Session Plugins, Assets, SubScenes, ..)
-            self.__basedir = multidir + "/" + "Full"
+            ProfileMgr.__basedir = multidir + "/" + "Full"
         else:
             critical(f"{multidir} is not a directory, please create it manually!")
     
         # Var pool
         # Trap: We can't use exedir/AddonPackages as its a link to current profile
         if Path(vardir).is_dir():
-            self.__vardir = vardir
+            ProfileMgr.__vardir = vardir
         else:
             critical(f"{vardir} should hold your vars, but doesn't exists!")
 
         if Path(exedir, "VaM.exe").is_file():
-            self.__dst = exedir
+            ProfileMgr.__dst = exedir
         else:
             critical(f"{exedir}/VaM.exe not found!")
 
@@ -58,15 +65,15 @@ class ProfileMgr:
     # Profile root directory (multidir/<profilename>)
     @property
     def __base(self):
-        return f"{self.__bsrc}/{self.__np}"
+        return f"{ProfileMgr.__bsrc}/{ProfileMgr.__np}"
 
     def new(self, profileName=None):
         global ddir
 
         if not profileName:
-            self.__np = input("Name of new profile: ")
+            ProfileMgr.__np = input("Name of new profile: ")
         else:
-            self.__np = profileName
+            ProfileMgr.__np = profileName
         try:
             os.mkdir(self.__base)
         except FileExistsError:
@@ -84,13 +91,13 @@ class ProfileMgr:
         # If Profile is "Full", we want AddonPackages being a link to exedir/AddonPackages        
         for d in dirs:
             try:
-                if self.__np == "Full" and d == "AddonPackages":
+                if ProfileMgr.__np == "Full" and d == "AddonPackages":
                     if Path(self.__base, d).exists():
                         if not Path(self.__base, d).is_symlink():
                             critical(f"{self.__base}/{d} should be a link to {self.__exedir}/{d}, Please remove that dir.")
                     else:
-                        xlink( f"{self.__base}/AddonPackages/", f"{self.__dst}/AddonPackages/" )
-                        print(f"Linked {self.__base}/AddonPackages/ to {self.__dst}/AddonPackages/")
+                        xlink( f"{self.__base}/AddonPackages/", f"{ProfileMgr.__dst}/AddonPackages/" )
+                        print(f"Linked {self.__base}/AddonPackages/ to {ProfileMgr.__dst}/AddonPackages/")
                 else:
                     os.mkdir(f"{self.__base}/{d}")
                     print(f"Created dir {self.__base}/{d}")
@@ -100,42 +107,42 @@ class ProfileMgr:
         # Copy some ref files from 
         for i, f in enumerate(files):
             if not os.path.isfile(f"{self.__base}/{f}"):
-                shutil.copy2( os.path.join(self.__dst, files[i]), f"{self.__base}/{f}")
+                shutil.copy2( os.path.join(ProfileMgr.__dst, files[i]), f"{self.__base}/{f}")
                 if files[i] == "prefs.json":
-                    replace_json(f"{self.__base}/{f}", "cacheFolder", self.__cachedir + "\\" + f"vam_cache_{self.__np}")
+                    replace_json(f"{self.__base}/{f}", "cacheFolder", self.__cachedir + "\\" + f"vam_cache_{ProfileMgr.__np}")
 
         # If we intiate the Full profile, these should be existing directories
         for mdir in ("PluginPresets", ):
-            if self.__np == "Full":
+            if ProfileMgr.__np == "Full":
                 os.mkdir(f"{self.__base}/Custom/{mdir}")
             else:
                 try:
-                    xlink( f"{self.__base}/Custom/", f"{self.__basedir}/Custom/{mdir}" )
+                    xlink( f"{self.__base}/Custom/", f"{ProfileMgr.__basedir}/Custom/{mdir}" )
                 except OSError:
                     pass
 
         # SubScenes/Anonymous is a link to allow sharing subscenes
         for mdir in ("Anonymous", ):
-            if self.__np == "Full":
+            if ProfileMgr.__np == "Full":
                 os.mkdir(f"{self.__base}/Custom/SubScene/{mdir}")
             else:
                 try:
-                    xlink( f"{self.__base}/Custom/SubScene", f"{self.__basedir}/Custom/SubScene/{mdir}" )
+                    xlink( f"{self.__base}/Custom/SubScene", f"{ProfileMgr.__basedir}/Custom/SubScene/{mdir}" )
                 except OSError:
                     pass
 
         # Share pluginData.
         for mdir in ("PluginData", ):
-            if self.__np == "Full":
+            if ProfileMgr.__np == "Full":
                 os.mkdir(f"{self.__base}/Saves/{mdir}")
             else:
                 try:
-                    xlink( f"{self.__base}/Saves/", f"{self.__basedir}/Saves/{mdir}" )
+                    xlink( f"{self.__base}/Saves/", f"{ProfileMgr.__basedir}/Saves/{mdir}" )
                 except OSError:
                     pass
     
         # Now link ref vars unlesss we are in Profile Full
-        if self.__np != "Full":
+        if ProfileMgr.__np != "Full":
             for refvar in self.__refvars:
                 debug(f"Refvar {refvar}")
                 version = None
@@ -149,7 +156,7 @@ class ProfileMgr:
                     ln = f"{creator}.{asset}.{version}"
                 debug(f"Searching for {ln}")
                 try:
-                    with Var(ln, self.__vardir, use_db=True) as mvar:
+                    with Var(ln, ProfileMgr.__vardir, use_db=True) as mvar:
                         refvarpath = mvar.path
                         debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
                         try:
@@ -166,17 +173,17 @@ class ProfileMgr:
                     warn(f"We did not find {refvar} to link")
                     continue
                 try:
-                    with Var(refvarpath, self.__vardir, use_db=True) as mlatest:
+                    with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
                         debug(f"Searching dep of {mlatest.var}")
-                        mlatest.rec_dep(stop=False, dir=self.__vardir, func=linkfile2ddir)
+                        mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
                 except OSError:
                     pass
 
     def select(self, profilename):
-        self.__np = profilename
-        print(f"Selecting {self.__np}")
-        linkdir(self.__base, self.__dst)
+        ProfileMgr.__np = profilename
+        print(f"Selecting {ProfileMgr.__np}")
+        linkdir(self.__base, ProfileMgr.__dst)
 
     def list(self):
-        adirs = next(os.walk(self.__bsrc))[1]
+        adirs = next(os.walk(ProfileMgr.__bsrc))[1]
         return adirs
