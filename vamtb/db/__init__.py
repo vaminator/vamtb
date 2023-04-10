@@ -106,4 +106,5 @@ class Dbs:
         Dbs.execute(sql, ())
 
 # Singleton as Global variable 
+# FIXME make it testable
 __dbs = Dbs()

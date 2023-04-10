@@ -617,7 +617,7 @@ class Var(VarFile):
 
     def reref_files(self, newref):
         tdir = self.tmpDir
-        for globf in search_files_indir(tdir, "*"):
+        for globf in search_files_indir(tdir, ".*"):
             if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
                 continue
             try:
@@ -791,10 +791,13 @@ class Var(VarFile):
         # TODO remove any leaf element not having anything referencing them
 
         try:
-            os.rename(self.path, f"{self.path.with_suffix('.orig')}")
+            if self.path.is_link():
+                # if source is a link, don't rename but copy..
+                shutil.copy2(self.path, f"{self.path.with_suffix('.orig')}")
+            else:
+                os.rename(self.path, f"{self.path.with_suffix('.orig')}")
         except:
             critical(f"We could not backup {self.path} to .orig, refusing to proceed for safety.")
-            return
 
         zipdir(self.tmpDir, self.path)
         res = ZipFile(self.path).testzip()
@@ -808,10 +811,10 @@ class Var(VarFile):
     @unzip
     def get_thumbs(self)->str:
         thumbs = []
-        custom_bin = search_files_indir(self.tmpDir / "Custom", "*.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", "*.vaj", ign=True)
-        custom_asset = search_files_indir(self.tmpDir / "Custom", "*.assetbundle", ign=True)
-        custom_asset_2 = search_files_indir(self.tmpDir / "Custom", "*.scene", ign=True)
-        old_json = search_files_indir(self.tmpDir, "*.json", ign=True)
+        custom_bin = search_files_indir(self.tmpDir / "Custom", ".*\.vap", ign=True) + search_files_indir(self.tmpDir / "Custom", ".*\.vaj", ign=True)
+        custom_asset = search_files_indir(self.tmpDir / "Custom", ".*\.assetbundle", ign=True)
+        custom_asset_2 = search_files_indir(self.tmpDir / "Custom", ".*\.scene", ign=True)
+        old_json = search_files_indir(self.tmpDir, ".*\.json", ign=True)
         for v in custom_bin + custom_asset + custom_asset_2 + old_json:
             if v.with_suffix(".jpg").exists():
                 thumbs.append(v.with_suffix(".jpg"))
@@ -820,15 +823,15 @@ class Var(VarFile):
     @unzip
     def get_resources_type(self):
         types = []
-        if search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True):
+        if search_files_indir(self.tmpDir / "Saves" / "scene", ".*\.jpg", ign=True):
             types.append("scene")
-        if search_files_indir(self.tmpDir / "Custom" / "Clothing", "*.vaj", ign=True):
+        if search_files_indir(self.tmpDir / "Custom" / "Clothing", ".*\.vaj", ign=True):
             types.append("clothes")
-        if search_files_indir(self.tmpDir / "Custom" / "Hair", "*.vaj", ign=True):
+        if search_files_indir(self.tmpDir / "Custom" / "Hair", ".*\.vaj", ign=True):
             types.append("hairs")
-        if search_files_indir(self.tmpDir / "Custom" / "Assets", "*.assetbundle", ign=True):
+        if search_files_indir(self.tmpDir / "Custom" / "Assets", ".*\.assetbundle", ign=True):
             types.append("asset")
-        if search_files_indir(self.tmpDir / "Custom" / "Assets", "*.scene", ign=True):
+        if search_files_indir(self.tmpDir / "Custom" / "Assets", ".*\.scene", ign=True):
             types.append("asset")
         return types
 
@@ -929,7 +932,7 @@ class Var(VarFile):
                 warn("Item does not exists on IA, can't update metadata")
                 return False
         else:
-            scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", "*.jpg", ign=True)
+            scene_thumbs = search_files_indir(self.tmpDir / "Saves" / "scene", ".*\.jpg", ign=True)
 
             if full_thumbs or not scene_thumbs:
                 files = thumbs

@@ -8,7 +8,9 @@
             "program": "${workspaceFolder}/vamtb.py",
             "cwd": "${fileDirname}",
             "args": [
-                "profile"
+                "-f",
+                "BooGoo.B_Lorson.1",
+                "reref"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
