@@ -22,7 +22,7 @@ class VarFile:
         self.__iMinVer = 0
         # Db if a reference was provided
         # If we search latest, we need db
-        self.__Dbs = Dbs if use_db or inputName.endswith(".latest") else None
+        self.__Dbs = Dbs if use_db or Path(inputName).name.endswith(".latest") else None
 
         if not isinstance(inputName, Path):
             inputName = Path(inputName)
