@@ -596,16 +596,17 @@ def setref(ctx):
     Set var and files as reference.
 
 
-    vamtb [-vv] -f file setref
+    vamtb [-vv] [-r] -f file setref
 
+    -r: Set as noref.
     """
-#TODO set noref..
+    isref = False if ctx.obj['ref'] else True
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
-            info(f"Setting var {var} as reference")
-            var.db_var_setref(isref=True, files=True)
+            print(green(f"Setting var {var} as {'' if isref else 'not '}reference"))
+            var.db_var_setref(isref=isref, files=True)
 
 @cli.command('orig')
 @click.pass_context
