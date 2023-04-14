@@ -35,6 +35,9 @@ setup(
         "tqdm",
         "pyyaml",
         "colorama",
+        "requests",
+        "pyrfc6266",
+        "beautifulsoup4",
         "internetarchive"
       ],
       extras_require={

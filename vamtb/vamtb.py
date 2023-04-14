@@ -20,6 +20,7 @@ from vamtb.varfile import VarFile
 from vamtb.db import Dbs
 from vamtb.profile import ProfileMgr
 from vamtb.config import ConfigMgr
+from vamtb.hub import HubMgr
 
 @click.group()
 @click.option('-a', '--force/--no-force', default=False,        help="Do not ask for confirmation.")
@@ -607,6 +608,27 @@ def setref(ctx):
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
             print(green(f"Setting var {var} as {'' if isref else 'not '}reference"))
             var.db_var_setref(isref=isref, files=True)
+
+@cli.command('hub_resources')
+@click.pass_context
+@catch_exception
+def hub_resources(ctx):
+    """
+    Get resources for creator.
+
+
+    vamtb [-vv] -f <creator> hub_resources
+
+    -f <creator> where creator is the creator identifier, example virtaartiemitchel.40335
+
+    """
+    creator = ctx.obj['file']
+    if not creator:
+        critical("You need to pass a creator id")
+
+    hub = HubMgr()
+    hub.get_resources_from_author(creator)
+
 
 @cli.command('orig')
 @click.pass_context
