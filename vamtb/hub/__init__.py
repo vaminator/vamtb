@@ -1,5 +1,6 @@
 import re
 import os
+import time
 import requests
 from bs4 import BeautifulSoup
 import pyrfc6266
@@ -18,19 +19,24 @@ class HubMgr:
         HubMgr.__session = requests.Session()
         #TODO ask user once, set in conf
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
+        HubMgr.__session.update({'User-Agent': 'Vamtb see https://github.com/vaminator/vamtb'})
 
     def get(self, url, **kwargs):
+        #FIXME this shouldn't be needed
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
         return HubMgr.__session.get(url, **kwargs)
 
     def dl_file(self, url):
-        print(green(f" > Downloading from {url}..."))
+        #TODO use history to detect offsite links like patreon and avoid them
+        #https://requests.readthedocs.io/en/latest/user/quickstart/#redirection-and-history
+        print(f" > Downloading from {url}...")
 
         response = self.get(url)
         if 200 <= response.status_code <= 299:
            pass 
         else:
             error(f"Getting url {url} returned status code {response.status_code}")
+            debug(response.text)
             return
         try:
             #FIXME
@@ -42,7 +48,7 @@ class HubMgr:
             return
 
         if os.path.exists(file_name):
-            error(f"{file_name} already exists, not overwritting")
+            warn(f"{file_name} already exists, not overwritting")
             return
 
         with open(file_name, 'wb') as fd:
@@ -71,13 +77,13 @@ class HubMgr:
 
         self.dl_file(f"{base_url}/{dl_links[0]}")
 
-    def get_resources_from_author(self, creator):
+    def get_resources_from_author(self, creator, cooldown_seconds=60):
         """
         Get resources links from creator
         """
         for page in range(1,101):
             url = f"{base_resource_per_author_url}/{creator}/?page={page}"
-            print(green(f"Fetching resources from {url}"))
+            print(f"Fetching resources from {url}")
 
             check_end = self.get(url, allow_redirects=False)
             if check_end.status_code == 303:
@@ -92,5 +98,14 @@ class HubMgr:
             regexp = re.compile(r"/resources/[^/]*/$")
             links = [ f.get('href') for f in bs.find_all('a', href=True) ]
             links = list(set([ f[1:] for  f in links if re.match(regexp, f)]))
-            for l in links:
-                self.dl_resource(f"{base_url}/{l}")
+            idx = 0
+            ntry = 3
+            while idx < len(links) and ntry:
+                try:
+                    self.dl_resource(f"{base_url}/{links[idx]}")
+                    idx = idx + 1
+                    ntry = 3
+                except requests.exceptions.ConnectTimeout:
+                    ntry = ntry - 1
+                    warn(f"Got timeout, waiting {cooldown_seconds}s, remaining attempts:{ntry}")
+                    time.sleep(cooldown_seconds)
