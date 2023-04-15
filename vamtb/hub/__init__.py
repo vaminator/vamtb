@@ -19,7 +19,7 @@ class HubMgr:
         HubMgr.__session = requests.Session()
         #TODO ask user once, set in conf
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
-        HubMgr.__session.update({'User-Agent': 'Vamtb see https://github.com/vaminator/vamtb'})
+        HubMgr.__session.headers.update({'User-Agent': 'Vamtb see https://github.com/vaminator/vamtb'})
 
     def get(self, url, **kwargs):
         #FIXME this shouldn't be needed
@@ -27,8 +27,6 @@ class HubMgr:
         return HubMgr.__session.get(url, **kwargs)
 
     def dl_file(self, url):
-        #TODO use history to detect offsite links like patreon and avoid them
-        #https://requests.readthedocs.io/en/latest/user/quickstart/#redirection-and-history
         print(f" > Downloading from {url}...")
 
         response = self.get(url)
@@ -68,14 +66,16 @@ class HubMgr:
         
         regexp = re.compile(r"/download" + "$")
         bs = BeautifulSoup(resource_page, "html.parser")
-        dl_links = [ f.get('href') for f in bs.find_all('a', href=True) ]
-        dl_links = sorted(list(set([ f for  f in dl_links if f.endswith('/download')])))
+        dl_a = [ a for a in bs.find_all('a', href=True) if a.text !="Go to pay site" ]
+        dl_links = sorted(list(set([ a.get('href') for  a in dl_a if a.get('href').endswith('/download')])))
         if len(dl_links) > 1:
             critical(f"We got more than one download link for {resource_url}, please check")
         elif not dl_links:
-            error(f"No download link found for {resource_url}")
-
-        self.dl_file(f"{base_url}/{dl_links[0]}")
+            # Paid link
+            print(f"{resource_url} is a paid link")
+            return
+        else:
+            self.dl_file(f"{base_url}/{dl_links[0]}")
 
     def get_resources_from_author(self, creator, cooldown_seconds=60):
         """
