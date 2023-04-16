@@ -6,6 +6,13 @@ from bs4 import BeautifulSoup
 import pyrfc6266
 
 from vamtb.log import *
+from vamtb.utils import *
+
+#TODO
+#TODO Use chunk to get filename earlier
+#TODO
+# This https://stackoverflow.com/questions/9967632/python-http-head-dealing-with-redirects-properly
+# This https://requests.readthedocs.io/en/latest/user/advanced/#body-content-workflow
 
 base_url = "https://hub.virtamate.com"
 base_resource_url = f"{base_url}/resources"
@@ -24,55 +31,71 @@ class HubMgr:
     def get(self, url, **kwargs):
         #FIXME this shouldn't be needed
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
-        return HubMgr.__session.get(url, **kwargs)
-
-    def dl_file(self, url):
-        print(f" > Downloading from {url}...")
-
-        response = self.get(url)
-        if 200 <= response.status_code <= 299:
-           pass 
-        else:
-            error(f"Getting url {url} returned status code {response.status_code}")
-            debug(response.text)
-            return
         try:
-            #FIXME
-            #file_name = pyrfc6266.requests_response_to_filename(response)
-            file_name = response.headers['content-disposition'][:-2].split('=')[1][1:]
-        except Exception as e:
-            print(e)
-            print(response.text)
-            return
+            res = HubMgr.__session.get(url, **kwargs)
+        except requests.exceptions.ConnectionError as e:
+            print(f"While getting {url} we got a connection error")
+            raise
+        return res
 
+    def write_var(self, file_name, content):
         if os.path.exists(file_name):
             warn(f"{file_name} already exists, not overwritting")
             return
 
         with open(file_name, 'wb') as fd:
-            fd.write(response.content)
-        print(green(f" > Downloaded {file_name}"))
+            fd.write(content)
+        print(green(f" > Downloaded {file_name} [{toh(os.path.getsize(file_name))}]"))
+
+    def dl_file(self, url):
+        print(f" > Downloading from {url}...")
+
+        response = self.get(url)
+        if 200 <= response.status_code < 300:
+           pass 
+        else:
+            error(f"Getting url {url} returned status code {response.status_code}")
+            debug(response.text)
+            return
+        file_names = []
+        try:
+            #FIXME
+            #file_name = pyrfc6266.requests_response_to_filename(response)
+            file_name = response.headers['content-disposition'][:-2].split('=')[1][1:]
+            self.write_var(file_name, response.content)
+        except KeyError:
+            # No content disposition
+            # Might be multiple downloads
+            # FIXME that's horrible
+            content = response.text
+            mult_links = self.get_links(content)
+            for l in mult_links:
+                self.dl_file(f"{base_url}/{l}")
+            return
+
+    def get_links(self, page_text):
+        bs = BeautifulSoup(page_text, "html.parser")
+        dl_a = [ a for a in bs.find_all('a', href=True) if a.text == "Download" ]
+        res = [ a.get('href') for  a in dl_a if "/download" in a.get('href')]
+        return res
 
     def dl_resource(self, resource_url):
         """
         Download a resource
         """
         page = self.get(resource_url)
-        if 200 <= page.status_code <= 299:
+        if 200 <= page.status_code < 300:
            debug(f"{page.text}") 
         else:
             critical(f"Getting url {resource_url} returned status code {page.status_code}")
         resource_page = page.text
         
-        regexp = re.compile(r"/download" + "$")
-        bs = BeautifulSoup(resource_page, "html.parser")
-        dl_a = [ a for a in bs.find_all('a', href=True) if a.text !="Go to pay site" ]
-        dl_links = sorted(list(set([ a.get('href') for  a in dl_a if a.get('href').endswith('/download')])))
+        dl_links = self.get_links(resource_page)
         if len(dl_links) > 1:
-            critical(f"We got more than one download link for {resource_url}, please check")
+            error(f"We got more than one download link for {resource_url}, please check {','.join(dl_links)}")
         elif not dl_links:
             # Paid link
-            print(f"{resource_url} is a paid link")
+            print(f" > {resource_url} is a paid link")
             return
         else:
             self.dl_file(f"{base_url}/{dl_links[0]}")
@@ -83,13 +106,13 @@ class HubMgr:
         """
         for page in range(1,101):
             url = f"{base_resource_per_author_url}/{creator}/?page={page}"
-            print(f"Fetching resources from {url}")
 
             check_end = self.get(url, allow_redirects=False)
             if check_end.status_code == 303:
                 return
+            print(green(f"Fetching resources from {url}"))
             page = self.get(url)
-            if 200 <= page.status_code <= 299:
+            if 200 <= page.status_code < 300:
                 debug(f"{page.text}") 
             else:
                 critical(f"Getting url {url} returned status code {page.status_code}")
@@ -104,8 +127,7 @@ class HubMgr:
                 try:
                     self.dl_resource(f"{base_url}/{links[idx]}")
                     idx = idx + 1
-                    ntry = 3
-                except requests.exceptions.ConnectTimeout:
+                except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError) as e:
                     ntry = ntry - 1
-                    warn(f"Got timeout, waiting {cooldown_seconds}s, remaining attempts:{ntry}")
+                    warn(f"Got {e}, waiting {cooldown_seconds}s, remaining attempts:{ntry}")
                     time.sleep(cooldown_seconds)
