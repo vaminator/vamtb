@@ -170,7 +170,7 @@ def search_files_indir2(fpath, pattern, ign = False, recurse = False):
         if recurse and thing.is_dir():
             res.extend(search_files_indir2(thing.path, pattern, ign, recurse))
     if not ign and not res:
-        warn("No files found matching pattern")
+        warn(f"No files found matching pattern {pattern}")
     return res
 
 def crc32c(content):
@@ -196,7 +196,7 @@ def toh(val: int) ->str:
     elif val > 1024:
         return f"{round(val/(1024), 3)}KB"
     else:
-        return val
+        return f"{val}B"
 
 def id_is_ref(id:str):
     if id in ("id", "uid"):
