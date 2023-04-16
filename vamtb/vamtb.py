@@ -736,6 +736,34 @@ def anon(ctx):
                 error(f"Var {var.var} could not be uploaded to anonfiles, error is:\n{e}")
     print(green(f"{n_up} vars were uploaded"))
 
+
+@cli.command('exists')
+@click.pass_context
+@catch_exception
+def exists(ctx):
+    """
+    Given a text file with one var per line, check wether var is in database.
+
+
+    vamtb [-vv] [n] [-f <text file>] exists
+    
+    -n: only show non existent var
+    """
+    nonexist_only = ctx.obj['dryrun']
+    varlist = ctx.obj['file']
+
+    with open(varlist, "r") as tvar:
+        for lvar in tvar:
+            lvar = lvar.rstrip()
+            try:
+                lvar = lvar[0:-4]
+                with Var(lvar, dir=ctx.obj['dir'], use_db=True) as var:
+                    if nonexist_only == False:
+                        print(green(f"{lvar} exists"))
+            except VarNotFound:
+                pass
+                #print(red(f"{lvar} does not exists"))
+
 @cli.command('multiup')
 @click.pass_context
 @catch_exception
