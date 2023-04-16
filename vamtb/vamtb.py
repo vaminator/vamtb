@@ -756,7 +756,6 @@ def exists(ctx):
         for lvar in tvar:
             lvar = lvar.rstrip()
             try:
-                lvar = lvar[0:-4]
                 with Var(lvar, dir=ctx.obj['dir'], use_db=True) as var:
                     if nonexist_only == False:
                         print(green(f"{lvar} exists"))
