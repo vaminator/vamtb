@@ -236,7 +236,7 @@ def checkvar(ctx):
                 info(f">Checking {green(var.var):<50}")
                 try:
                     _ = var.meta()
-                    rec_dep_db(var.var, dir)
+                    rec_dep_db(var.var, dir, [ var.var ])
                 except FileNotFoundError:
                     error(f"Var {var.var} does not contain a correct meta json file")
                 else:
@@ -1185,14 +1185,14 @@ def nordep(ctx):
                 info(f"{var.var} : {len(rvars)} vars depending on it:{rvars}")
 
 
-def rec_dep_db(varfile, dir):
+def rec_dep_db(varfile, dir, dep_chain):
     with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
         rvars = var.get_dep()
         for r in rvars:
             try:
-                rec_dep_db(r, dir)
+                rec_dep_db(r, dir, dep_chain.extends(r))
             except RecursionError:
-                error(f"Dependency loop detected on {varfile} !!")
+                error(f"Dependency loop detected on {varfile}:{','.join(dep_chain)}")
                 return
 
 
@@ -1214,7 +1214,7 @@ def dep(ctx):
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
-        rec_dep_db(varfile, dir)
+        rec_dep_db(varfile, dir, [ varfile ])
 #        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
 #            rvars = var.get_dep()
 #            print (green(f"Depends of {var.var}: ") + ','.join(rvars))
