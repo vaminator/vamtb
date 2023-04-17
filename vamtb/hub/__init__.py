@@ -62,7 +62,8 @@ class HubMgr:
             #FIXME
             #file_name = pyrfc6266.requests_response_to_filename(response)
             file_name = response.headers['content-disposition'][:-2].split('=')[1][1:]
-            self.write_var(file_name, response.content)
+            if not file_name.endswith("depend.txt"):
+                self.write_var(file_name, response.content)
         except KeyError:
             # No content disposition
             # Might be multiple downloads
