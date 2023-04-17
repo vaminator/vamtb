@@ -1006,7 +1006,9 @@ class Var(VarFile):
 
     def get_dep(self):
         sql = f"SELECT DISTINCT DEPVAR FROM DEPS WHERE VAR=?"
-        row = (self.latest(),)
+        # Why was latest searched
+        # row = (self.latest(),)
+        row = (self.var,)
         res = self.db_fetch(sql, row)
         res = sorted([ e[0] for e in res ], key = lambda s: s.casefold())
         return res
