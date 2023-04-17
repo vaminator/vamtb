@@ -217,6 +217,7 @@ def sortvars(ctx):
 def checkvar(ctx):
     """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
+    Also detect dependency loops.
 
     vamtb [-vv] [-p] [-f <file pattern> ] checkvar
 
@@ -235,6 +236,7 @@ def checkvar(ctx):
                 info(f">Checking {green(var.var):<50}")
                 try:
                     _ = var.meta()
+                    rec_dep_db(var.var, dir)
                 except FileNotFoundError:
                     error(f"Var {var.var} does not contain a correct meta json file")
                 else:
@@ -280,7 +282,7 @@ def checkdep(ctx):
 
     When using -m, files considered bad will be moved to directory "00Dep". This directory can then be moved away from the directory.
 
-    When using -b, don't use database but rather file system.
+    When using -b, use database rather than file system.
 
     You can redo the same dependency check later by moving back the directory and correct vars will be moved out of this directory if they are now valid.
     """
@@ -1182,6 +1184,18 @@ def nordep(ctx):
             else:
                 info(f"{var.var} : {len(rvars)} vars depending on it:{rvars}")
 
+
+def rec_dep_db(varfile, dir):
+    with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
+        rvars = var.get_dep()
+        for r in rvars:
+            try:
+                rec_dep_db(r, dir)
+            except RecursionError:
+                error(f"Dependency loop detected on {varfile} !!")
+                return
+
+
 @cli.command('dep')
 @click.pass_context
 @catch_exception
@@ -1200,9 +1214,10 @@ def dep(ctx):
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
-        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
-            rvars = var.get_dep()
-            print (green(f"Depends of {var.var}: ") + ','.join(rvars))
+        rec_dep_db(varfile, dir)
+#        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
+#            rvars = var.get_dep()
+#            print (green(f"Depends of {var.var}: ") + ','.join(rvars))
 
 
 
