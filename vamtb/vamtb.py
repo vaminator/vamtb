@@ -1192,7 +1192,7 @@ def rec_dep_db(varfile, dir, dep_chain):
         rvars = var.get_dep()
         for r in rvars:
             try:
-                rec_dep_db(r, dir, dep_chain.extends(r))
+                rec_dep_db(r, dir, dep_chain + [r])
             except RecursionError:
                 error(f"Dependency loop detected on {varfile}:{','.join(dep_chain)}")
                 return
