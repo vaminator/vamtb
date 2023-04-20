@@ -674,7 +674,7 @@ def ia(ctx):
 
     -n: Dry-run upload, don't do anything.
     
-    -f: Upload all jpg, not only scene jpgs.
+    -s: Upload all jpg, not only scene jpgs.
     
     -c: Only upload CC* license content.
     
