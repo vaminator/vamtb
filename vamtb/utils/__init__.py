@@ -164,6 +164,8 @@ def search_files_indir2(fpath, pattern, ign = False, recurse = False):
     repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
     res = []
     debug(f"Searching for {pattern} in {fpath}")
+    if ign and not os.path.exists(fpath):
+        return res
     for thing in os.scandir(fpath):
         if thing.is_file() and repat.match(thing.name):
             res.append(Path(thing))
