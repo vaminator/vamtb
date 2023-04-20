@@ -1187,15 +1187,17 @@ def nordep(ctx):
                 info(f"{var.var} : {len(rvars)} vars depending on it:{rvars}")
 
 
-def rec_dep_db(varfile, dir, dep_chain):
+def rec_dep_db(varfile, dir, dep_chain, recurse=True, depth=0):
     with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
         rvars = var.get_dep()
-        for r in rvars:
-            try:
-                rec_dep_db(r, dir, dep_chain + [r])
-            except RecursionError:
-                error(f"Dependency loop detected on {varfile}:{','.join(dep_chain)}")
-                return
+        print(f"{' ' * depth}> Dependencies of {var.var}: {green(','.join(rvars) if rvars else 'None')}")
+        if recurse:
+            for r in rvars:
+                try:
+                    rec_dep_db(r, dir, dep_chain + [r], depth+1)
+                except RecursionError:
+                    error(f"Dependency loop detected on {varfile}:{','.join(dep_chain)}")
+                    return
 
 
 @cli.command('dep')
@@ -1206,7 +1208,9 @@ def dep(ctx):
     Depends of a var.
 
 
-    vamtb [-vv] -f file dep
+    vamtb [-vv] [-r] -f file dep
+
+    -r : Don't recurse
 
     """
 
@@ -1216,11 +1220,7 @@ def dep(ctx):
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
-        rec_dep_db(varfile, dir, [ varfile ])
-#        with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
-#            rvars = var.get_dep()
-#            print (green(f"Depends of {var.var}: ") + ','.join(rvars))
-
+        rec_dep_db(varfile, dir, [ varfile ], False if ctx.obj['ref'] else True)
 
 
 # @cli.command('gui')
