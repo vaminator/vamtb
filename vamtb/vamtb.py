@@ -810,6 +810,8 @@ def varlink(ctx):
     file, dir, pattern = get_filepattern(ctx)
 
     ddir = os.getcwd()
+    if Path(ddir).stem != "AddonPackages":
+        _ = input(f"Your current directory is not named AddonPackages. Are you sure you want to proceed? Else hit Ctrl-C now")
 
     for varfile in search_files_indir2(dir, pattern):
         etarget = Path(ddir, os.path.basename(varfile))
