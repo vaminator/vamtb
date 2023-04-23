@@ -22,6 +22,8 @@ python -X utf8 vamtb.py ...
 
 At any time, to interrupt, hit twice ctrl-c.
 
+If you use the already built binary, the tool is called vamtb.exe.
+
 ## Options
 ```text
 Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
