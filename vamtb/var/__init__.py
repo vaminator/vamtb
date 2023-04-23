@@ -590,15 +590,44 @@ class Var(VarFile):
                 continue
             if not Path(globf).is_file():
                 continue
+            debug(f"Searching for images in {globf.name}")
             try:
                 file = FileName(globf)
                 js = file.json
             except (UnicodeDecodeError, json.decoder.JSONDecodeError):
                 continue
             debug(f"> Searching for images in {green(str(globf.relative_to(self.__tmpDir)))}")
-            modified_var = self.opt_images(globf, opt_level)
+            modified_var_for_file = self.opt_images(globf, opt_level)
+            modified_var = modified_var or modified_var_for_file
 
         if modified_var:
+            print(green("Some file types got changed, updating var..."))
+            # The logic is based on scanning json and finding textures.
+            # If we modified an image, it might be referenced in multiple places
+            for globf in search_files_indir2(tdir, ".*", recurse=True):
+                if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
+                    continue
+                if not Path(globf).is_file():
+                    continue
+                try:
+                    file = FileName(globf)
+                    js = file.json
+                except (UnicodeDecodeError, json.decoder.JSONDecodeError):
+                    continue
+                debug(f"Replacing images in {globf.name}")
+
+                for src, dst in optimized.items():
+                    if isinstance(dst, bool):
+                        # unmodified, proceed to next replacement
+                        continue
+
+                    with open(globf, 'r') as f:
+                        json_content = f.read()
+                    debug(f"Replacing {src} with {dst} in {globf}")
+                    replace_string = json_content.replace(src, dst)
+                    with open(globf, "w") as f:
+                        f.write(replace_string)
+
             sopt_level={0: "tc_lossless", 1: "tc_nearlossless", 2: "tc_good"}
             nresource = f"{self.resource}_{sopt_level[opt_level]}"
             nvar = f"{self.creator}.{nresource}.{self.version}"
