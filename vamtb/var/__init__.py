@@ -487,7 +487,10 @@ class Var(VarFile):
         debug(f"Image mode is : {red(picture.mode)}")
         if optlevel:
             if picture.mode in ("RGBA", "P", "I"):
-                warn(f"Image {fname} is of mode {picture.mode} and we'll convert it to RGB")
+                #warn(f"Image {fname} is of mode {picture.mode} and we'll convert it to RGB")
+                # Heuristics on Normal / Decal having transparency is flawed as creator don't use them properly
+                # Never convert I to RGB
+                return False
                 picture = picture.convert("RGB")
             new_image = str(Path(fname).with_suffix(".jpg"))
             jpeg_qual = 90 if optlevel == 1 else 75
