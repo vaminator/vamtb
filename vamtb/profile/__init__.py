@@ -88,16 +88,16 @@ class ProfileMgr:
             print("Some files or directory exists but not all, only nonexisting will be replaced")
 
         # Create empty directories
-        # If Profile is "Full", we want AddonPackages being a link to exedir/AddonPackages        
+        # If Profile is "Full", we want AddonPackages being a link to Pool/AddonPackages        
         for d in dirs:
             try:
                 if ProfileMgr.__np == "Full" and d == "AddonPackages":
                     if Path(self.__base, d).exists():
                         if not Path(self.__base, d).is_symlink():
-                            critical(f"{self.__base}/{d} should be a link to {self.__exedir}/{d}, Please remove that dir.")
+                            critical(f"{self.__base}/{d} should be a link to {self.__vardir}/{d}, Please remove that dir.")
                     else:
-                        xlink( f"{self.__base}/AddonPackages/", f"{ProfileMgr.__dst}/AddonPackages/" )
-                        print(f"Linked {self.__base}/AddonPackages/ to {ProfileMgr.__dst}/AddonPackages/")
+                        xlink( f"{self.__base}", f"{ProfileMgr.__vardir}" )
+                        print(f"Linked {self.__base}/AddonPackages/ to {ProfileMgr.__vardir}")
                 else:
                     os.mkdir(f"{self.__base}/{d}")
                     print(f"Created dir {self.__base}/{d}")
