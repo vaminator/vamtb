@@ -501,7 +501,7 @@ class Var(VarFile):
         pfname = os.path.relpath(fname, self.__tmpDir)
         pdname = os.path.relpath(new_image, self.__tmpDir)
         # Conversion of png to jpg ?
-        has_changed_format = True if fname != new_image else False
+        has_changed_format = True if Path(fname).name != Path(new_image).name else False
         picture.save(new_image, optimize = True, quality = jpeg_qual, compress_level=9, progressive=False)
         nsize = FileName(new_image).size
         persize = int(100*(1-nsize/osize))
