@@ -8,6 +8,8 @@ Build from source and install dependencies:
 python setup.py install
 ````
 
+Or use a prebuilt binary release (see Releases)
+
 ## Usage
 Open windows terminal (rather than cmd.exe) and run the batch file:
 ```
