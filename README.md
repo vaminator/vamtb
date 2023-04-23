@@ -65,6 +65,7 @@ Commands:
   dep            Depends of a var.
   dumpvar        Dump meta.json from var.
   dupinfo        Return duplication information.
+  exists         Check wether vars exist in database.
   graph          Generate graph of deps, one per var.
   hub_resources  Get resources for creator.
   ia             Upload var to Internet Archive item.
