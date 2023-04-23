@@ -585,7 +585,7 @@ class Var(VarFile):
         ImageFile.MAXBLOCK = 2**20
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         osize = self.size
-        for globf in search_files_indir(tdir, ".*"):
+        for globf in search_files_indir2(tdir, ".*", recurse=True):
             if globf.name == "meta.json" or globf.suffix in (".vmi", ".vam", ".vab", ".assetbundle", ".scene", ".tif", ".jpg", ".png", ".dll"):
                 continue
             if not Path(globf).is_file():
