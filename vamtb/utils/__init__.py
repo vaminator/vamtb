@@ -64,6 +64,7 @@ C_REF_VARS = [
     "AshAuryn.Expressions",
     "AshAuryn.Sexpressions",
     "DoesNotCat.RealFakeLabias",
+    "Do_Not_Distribute.Import_Reloaded_Full_Addon",
     "dub.AudioMate",
     "Chokaphi.DecalMaker",
     "ClockwiseSilver.SilverExpressionTool",
@@ -98,6 +99,7 @@ C_REF_VARS = [
     "MacGruber.Life",
     "MacGruber.Essentials",
     "MeshedVR.PresetsPack",
+    "MonsterShinkai.AnusDecals",
     "n00rp.Lighting_Rigs",
     "PluginIdea.ContexMenuSystem(Free)",
     "PluginIdea.GizmosSystem",
@@ -124,6 +126,7 @@ C_REF_VARS = [
     "via5.Cue",
     "Vinput.AutoThruster",
     "VRAdultFun.E-motion",
+    "WeebU.My_morphs",
     ]
 
 C_NEXT_CREATOR = 127
