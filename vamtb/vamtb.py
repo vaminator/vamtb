@@ -530,6 +530,10 @@ def dupinfo(ctx):
     vamtb [-vv] [-r] [-f <file pattern> ] dupinfo
 
     -r : only scan vars from creators not part of "references"
+
+    -c : don't show duplicates within same creator
+
+    Set debug level to info to see individual files and duplicated vars.
     """
     onlyref = ctx.obj['ref']
     file, dir, pattern = get_filepattern(ctx)
@@ -538,7 +542,7 @@ def dupinfo(ctx):
             if not file and onlyref:
                 if var.get_ref == "YES":
                     continue
-            dups = var.dupinfo()
+            dups = var.dupinfo(ctx.obj['cc'])
             ndup, sdup = dups['numdupfiles'], dups['dupsize']
             if not file and not ndup:
                 continue 

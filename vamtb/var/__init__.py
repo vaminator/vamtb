@@ -442,7 +442,7 @@ class Var(VarFile):
         rec(self)
         return td_vars
 
-    def dupinfo(self):
+    def dupinfo(self, hide_same_creator=False):
         """
         Returns dict about duplication of files with other creators vars
         """
@@ -458,6 +458,8 @@ class Var(VarFile):
             ckdup_creator = []
             for v, f in ckdup:
                 tvar = VarFile(v, use_db=True)
+                if ( hide_same_creator and tvar.creator == self.creator ):
+                    continue
                 if not( tvar.creator == self.creator and tvar.resource == self.resource ):
                     ckdup_creator.append((v, f))
 
@@ -467,7 +469,7 @@ class Var(VarFile):
                 for dupvar, dupfile in ckdup:
                     info(f"{self.var}:/{file} is dup of {dupvar}:/{dupfile}")
             else:
-                info(f"No dup for {self.var}:/{file}")
+                debug(f"No dup for {self.var}:/{file}")
         return dups
 
     def opt_image(self, fname, optlevel):
@@ -642,16 +644,16 @@ class Var(VarFile):
             self.write_meta(tdir, ometa)
 
             zipdir(tdir, new_var.path)
-            
+
             #Check it
             res = ZipFile(new_var.path).testzip()
             if res != None:
                 critical(f"Warning, reconstructed zip {new_var.path} has CRC problem on file {res}.")
-            
+
             warn(f"Modified {new_var.path}")
             new_var.store_update(confirm=False)
             info(f"Updated DB for {new_var.var}")
-            
+
             nsize = new_var.size
             persize = int(100*(1-nsize/osize))
             warn(f"{toh(osize)}->{toh(nsize)}: {persize}% less")
