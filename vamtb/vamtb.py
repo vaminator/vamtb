@@ -744,7 +744,9 @@ def anon(ctx):
 @catch_exception
 def exists(ctx):
     """
-    Given a text file with one var per line, check wether var is in database.
+    Check wether vars exist in database.
+
+    Takes a text file with one var name per line.
 
 
     vamtb [-vv] [n] [-f <text file>] exists
