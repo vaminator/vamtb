@@ -32,29 +32,10 @@ Usage: vamtb.py [OPTIONS] COMMAND [ARGS]...
   (* can be replaced by %)
 
 Options:
-  -a, --force / --no-force        Do not ask for confirmation.
-  -b, --usedb / --no-usedb        Use DB.
-  -c, --cc / --no-cc              Only upload CC license content
   -d TEXT                         Use a specific VAM directory.
-  -e, --meta / --no-meta          Only reset subject metadata.
   -f TEXT                         Var file to act on.
-  -g TEXT                         Input directory for var creation.
-  -i TEXT                         Internet Archive identifier prefix (defaults
-                                  to vam1__).
-  -j, --optimize                  Image Optimize level (none:No png to jpg
-                                  that is lossless, 1: Jpeg qual 90%, 2: Jpeg
-                                  qual 75%).
-  -m, --move / --no-move          When checking dependencies move vars with
-                                  missing dep in 00Dep.
-  -n, --dryrun / --no-dryrun      Dry run on what would be uploaded.
   -p, --progress / --no-progress  Add progress bar.
-  -q, --remove / --no-remove      Remove var from DB.
-  -r, --ref / --no-ref            Only select non reference vars for dupinfo.
-  -s, --full / --no-full          For scenes, upload not only scene jpg but
-                                  all jpg to IA.
   -v, --verbose                   Verbose (twice for debug).
-  -x TEXT                         Only dedup this file.
-  -z, --setref / --no-setref      Set var as reference.
   --help                          Show this message and exit.
 
 Commands:
