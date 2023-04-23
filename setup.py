@@ -7,7 +7,7 @@ def _read(fn):
 
 setup(
       name='vamtb',
-      version='0.12',
+      version='0.9.4',
       author_email='foo@bar.com',
       long_description=_read('README.rst'),
       test_suite='vamtb.test.testall.suite',
