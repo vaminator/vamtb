@@ -793,6 +793,16 @@ def varlink(ctx):
 
     -m : Don't recurse dependencies.
 
+    If profiles are detected and var (not a link) is found in current profile:
+
+    *  It will be moved to var pool
+
+    *  Added to database
+
+    *  Finally varlink executed
+    
+    This is usefull when you're in a profile, go to the hub download the toplevel var and want to link deps you already have without cluttering your profile.
+
     """
     ddir = ""
 
@@ -813,7 +823,10 @@ def varlink(ctx):
     if Path(ddir).stem != "AddonPackages":
         _ = input(f"Your current directory is not named AddonPackages. Are you sure you want to proceed? Else hit Ctrl-C now")
 
+    found = False
+
     for varfile in search_files_indir2(dir, pattern):
+        found = True
         etarget = Path(ddir, os.path.basename(varfile))
         if etarget.exists() and etarget.is_file():
             info(f"{etarget} already exists")
@@ -822,6 +835,30 @@ def varlink(ctx):
             linkfile(var)
             if not ctx.obj['move']:
                 var.rec_dep(stop=False, dir=dir, func = linkfile)
+    if found:
+        return
+
+    # No var was found. Do we run profile and maybe var just got downloaded?
+    confmgr = ConfigMgr()
+    if confmgr.get("multidir"):
+        efile = Path(confmgr.get("exedir")) / "AddonPackages" / file
+        if efile.exists() and efile.is_file():
+            destdir = Path(confmgr.get("multidir")) / "Full" / "AddonPackages"
+            destdir = os.path.realpath(destdir)
+            try:
+                os.rename(efile.name, os.path.join(destdir, file))
+                print(f"File moved to {destdir}")
+            except FileExistsError:
+                # We already moved file, proceed
+                pass
+        else:
+            # File not found, user asked impossible
+            warn(f"Did not find file {file}")
+    print("Adding  to database")
+    ctx.invoke(dbscan)
+    #Re-exec
+    ctx.invoke(varlink)
+
 
 @cli.command('link')
 @click.pass_context
