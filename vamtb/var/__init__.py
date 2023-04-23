@@ -541,28 +541,36 @@ class Var(VarFile):
 
             img = FileName(f"{self.tmpDir}\{m.group(2)}")
             debug(f">> {m.group(1)} image {m.group(2)} ")
-            if img.size > minsize:
-                if backed == False:
-                    #Backups are for sissies
-                    #if Path(self.path).with_suffix(".orig").exists():
-                    #    critical(f"File {Path(self.path).with_suffix('.orig')} already exists, remove backup")
-                    #shutil.copyfile(self.path, Path(self.path).with_suffix('.orig'))
-                    backed = True
-                # We default to conversion
-                l_optlevel = optlevel
-                if "Normal" in m.group(1) or "Decal" in m.group(1):
-                    # TODO
-                    # If that's a normal, we don't want to convert to jpg
-                    # If that's a decal, it should have transparency (png mode) and we shouldn't convert to RGB
-                    # For other png which don't require transparency, we should be able to convert to RGB and gain a lot
-                    l_optlevel = 0
-                debug(f">> size {toh(img.size)}, loss_level={l_optlevel}")
-                has_changed_format = self.opt_image(f"{self.tmpDir}\{m.group(2)}", l_optlevel)
-                if has_changed_format:
-                    debug(f"Replacing with {str(Path(m.group(2)).with_suffix('.jpg').as_posix())}")
-                    replace_string = json_content.replace(m.group(2), str(Path(m.group(2)).with_suffix(".jpg").as_posix()))
-                    with open(json_file, "w") as f:
-                        f.write(replace_string)
+            try:
+                if img.size > minsize:
+                    if backed == False:
+                        #Backups are for sissies
+                        #if Path(self.path).with_suffix(".orig").exists():
+                        #    critical(f"File {Path(self.path).with_suffix('.orig')} already exists, remove backup")
+                        #shutil.copyfile(self.path, Path(self.path).with_suffix('.orig'))
+                        backed = True
+                    # We default to conversion
+                    l_optlevel = optlevel
+
+                    # Logic is flawed as creator don't use them properly it seems.
+                    # Alpha is sometimes used on Spec / GLoss rather than Decal
+                    # We still avoid Normals
+    #                if "Normal" in m.group(1) or "Decal" in m.group(1):
+                    if "Normal" in m.group(1):
+                        # TODO
+                        # If that's a normal, we don't want to convert to jpg
+                        # If that's a decal, it should have transparency (png mode) and we shouldn't convert to RGB
+                        # For other png which don't require transparency, we should be able to convert to RGB and gain a lot
+                        l_optlevel = 0
+                    debug(f">> size {toh(img.size)}, loss_level={l_optlevel}")
+                    has_changed_format = self.opt_image(f"{self.tmpDir}\{m.group(2)}", l_optlevel)
+                    if has_changed_format:
+                        # We keep track of modified images for second pass
+                        optimized[m.group(2)] = str(Path(m.group(2)).with_suffix(".jpg").as_posix())
+            except FileNotFoundError:
+                error(f"Var references inexisting file {m.group(2)} ")
+                continue
+
         return backed
 
 
