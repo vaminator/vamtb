@@ -246,6 +246,12 @@ def checkvar(ctx):
                     info(f"{var} is OK")
         except KeyboardInterrupt:
             return
+        except VarMalformed:
+            error(f"{file} doesn't have a correct structure")
+        except VarMetaJson as e:
+            error(f"{file} doesn't have a correct meta.json [{e.args[0]}]")
+        except VarFileNameIncorrect:
+            error(f"{file} doesn't have a correct naming")
         except Exception as e:
             error(f"{file} is not OK [{e}]")
 
