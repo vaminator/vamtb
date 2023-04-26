@@ -187,3 +187,11 @@ class ProfileMgr:
     def list(self):
         adirs = next(os.walk(ProfileMgr.__bsrc))[1]
         return adirs
+    
+    def current(self):
+        addon = os.path.join(ProfileMgr.__dst, "AddonPackages")
+        if os.path.islink(addon):
+            daddon = os.path.realpath(addon)
+            return os.path.basename(os.path.dirname(daddon))
+        else:
+            return None
