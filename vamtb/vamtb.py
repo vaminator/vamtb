@@ -982,8 +982,10 @@ def profile(ctx):
     profmgr = ProfileMgr(multidir, exedir, cachedir, confmgr.get("dir"), refvars)
     adirs = profmgr.list()
 
+    curprof = profmgr.current()
+
     for i, d in enumerate(adirs):
-        print(f"{i} : {d}")
+        print(f"{i} : {d}{'   <-- current' if d == curprof else ''}")
 
     if "Full" not in adirs:
         print("First we need to create the Full profile: AddonPackages links to your vam installation") 
