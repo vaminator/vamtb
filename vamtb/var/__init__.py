@@ -35,10 +35,11 @@ class Var(VarFile):
         # AddonDir if specified
         if dir:
             dir = Path(dir)
-            if dir.name == "AddonPackages":
-                self.__AddonDir = dir
-            else:
-                self.__AddonDir = dir / "AddonPackages"
+            self.__AddonDir = dir
+#            if dir.name == "AddonPackages":
+#                self.__AddonDir = dir
+#            else:
+#                self.__AddonDir = dir / "AddonPackages"
         else:
             self.__AddonDir = None
 

@@ -79,9 +79,9 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
         if not dir:
             confmgr = ConfigMgr()
             dir = confmgr.get("dir", "Directory where vars are centralized")
-        if not Path(dir).stem == "AddonPackages":
-            confmgr.delete("dir")
-            critical(f"{dir} isn't a directory ending with AddonPackages.")
+#        if not Path(dir).stem == "AddonPackages":
+#            confmgr.delete("dir")
+#            critical(f"{dir} isn't a directory ending with AddonPackages.")
         if not Path(dir).exists():
             confmgr.delete("dir")
             critical(f"{dir} doesn't exists.")
