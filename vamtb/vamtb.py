@@ -74,22 +74,24 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     ctx.obj['dir']         = dir
     conf = {}
 
+    sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
+
+def setdir(ctx):
     # Don't make any checks if user provided a dir
     if not ctx.obj['dir']:
-        if not dir:
-            confmgr = ConfigMgr()
-            dir = confmgr.get("dir", "Directory where vars are centralized")
+        confmgr = ConfigMgr()
+        dir = confmgr.get("dir", "Directory where vars are centralized")
 #        if not Path(dir).stem == "AddonPackages":
 #            confmgr.delete("dir")
 #            critical(f"{dir} isn't a directory ending with AddonPackages.")
         if not Path(dir).exists():
             confmgr.delete("dir")
             critical(f"{dir} doesn't exists.")
+    else:
+        dir = ctx.obj['dir']
     dir = Path(dir)
-
     ctx.obj['dir'] = str(dir)
 
-    sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
 
 @cli.command('printdep')
 @catch_exception
@@ -102,6 +104,7 @@ def printdep(ctx):
 
     Recursive (will print deps of deps etc)"""
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir) as var:
@@ -130,6 +133,7 @@ def printrealdep(ctx):
     -m: print as json
 
     """
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     json = ctx.obj['move']
     for varfile in search_files_indir(dir, pattern):
@@ -173,6 +177,7 @@ def dumpvar(ctx):
     vamtb [-vv] -f <file pattern> dumpvar
     
     """
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter")
     with Var(file, dir) as var:
@@ -188,6 +193,7 @@ def noroot(ctx):
     vamtb [-vv] -f <file pattern> noroot
 
     """
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter")
     with Var(file, dir) as var:
@@ -204,6 +210,7 @@ def sortvars(ctx):
     
     Crc is checked before erasing duplicates"""
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     info(f"Sorting var in {dir}")
     for file in search_files_indir(dir, pattern):
@@ -227,6 +234,8 @@ def checkvar(ctx):
     -p: progress bar
     """
 
+    setdir(ctx)
+
     file, dir, pattern = get_filepattern(ctx)
     vars_list = search_files_indir(dir, pattern)
     if ctx.obj['progress'] == False or ctx.obj['debug_level']:
@@ -240,6 +249,8 @@ def checkvar(ctx):
                 try:
                     _ = var.meta()
                     rec_dep_db(var.var, dir, [ var.var ])
+                # TODO why is handling here? For missing dep?
+                # Error message seems unrelated
                 except FileNotFoundError:
                     error(f"Var {var.var} does not contain a correct meta json file")
                 else:
@@ -266,6 +277,7 @@ def statsvars(ctx):
 
     """
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     info(f"Checking vars in {dir}")
     creators_file = defaultdict(list)
@@ -299,6 +311,7 @@ def checkdep(ctx):
     move = ctx.obj['move']
     usedb = ctx.obj['usedb']
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     if move:
         full_bad_dir = Path(dir) / C_BAD_DIR
@@ -356,6 +369,7 @@ def dbscan(ctx):
 
     stored = 0
     quiet = False if ctx.obj['debug_level'] else True
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     vars_list = search_files_indir(dir, pattern)
     if not quiet or ctx.obj['progress'] == False:
@@ -413,6 +427,7 @@ def dbclean(ctx):
     -c: Only list missing files, don't do anything.
     """
     nmiss = 0
+    setdir(ctx)
     files = search_files_indir(ctx.obj['dir'], f".*\.var", ign=True)
     varnames = set([ e.with_suffix("").name for e in files ])
     dbvars = set(Dbs.get_vars())
@@ -447,6 +462,7 @@ def graph(ctx):
     if shutil.which(C_DOT) is None:
         critical(f"Make sure you have graphviz installed in {C_DOT}.")
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
@@ -470,6 +486,7 @@ def reref(ctx):
     -x: will remove only this embedded content
     """
     dup = ctx.obj['dup']
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     creator = ""
     critical("Be cautious with what you accept (Y). If some bundled content was modified, you might get some split content.", doexit=False)
@@ -511,6 +528,7 @@ def imageopt(ctx):
     """
     oldsz = 0
     opt_level = ctx.obj['optimize']
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
@@ -545,6 +563,7 @@ def dupinfo(ctx):
     Set debug level to info to see individual files and duplicated vars.
     """
     onlyref = ctx.obj['ref']
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True) as var:
@@ -575,6 +594,7 @@ def zinfo(ctx):
     vamtb [-vv] [-f <file pattern> ] zinfo
 
     """
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir) as var:
@@ -593,6 +613,7 @@ def dbdel(ctx):
 
     """
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter")
     varfile = VarFile(file, use_db=True)
@@ -617,6 +638,7 @@ def setref(ctx):
     -r: Set as noref.
     """
     isref = False if ctx.obj['ref'] else True
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     file or critical("Need a file parameter")
     for varfile in search_files_indir(dir, pattern):
@@ -657,6 +679,7 @@ def orig(ctx):
 
     """
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     for mfile in search_files_indir(dir, pattern.replace(".var", ".orig")):
         varfile = mfile.with_suffix(".var")
@@ -694,6 +717,7 @@ def ia(ctx):
     -i: Change prefix used for the identifier on IA (use only when you are sure the default identifer is already used).
     """
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     n_up = 0
     for varfile in search_files_indir(dir, pattern):
@@ -736,6 +760,7 @@ def anon(ctx):
     confmgr = ConfigMgr()
     anon_apikey = confmgr.get("anon_apikey", "Enter Anonfiles apikey")
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     n_up = 0
     for varfile in search_files_indir(dir, pattern):
@@ -769,6 +794,7 @@ def exists(ctx):
     nonexist_only = ctx.obj['dryrun']
     varlist = ctx.obj['file']
 
+    setdir(ctx)
     with open(varlist, "r") as tvar:
         for lvar in tvar:
             lvar = lvar.rstrip()
@@ -793,6 +819,7 @@ def multiup(ctx):
     -n : Dry-run upload, don't do anything.
 
     """
+    setdir(ctx)
     for func in (ia, anon):
         ctx.invoke(func)
 
@@ -832,6 +859,7 @@ def varlink(ctx):
             except FileExistsError:
                 warn(f"{linkdir}/{basefile} already linked")
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
 
     ddir = os.getcwd()
@@ -894,6 +922,7 @@ def link(ctx):
     This is just a helper command to manage your vars in a central directory out of VaM installation directory.
 
     """
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
     repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
     for file in os.scandir(os.getcwd()):
@@ -926,6 +955,7 @@ def latest(ctx):
     if not ctx.obj['file']:
         critical("Need a file name")
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
 
     try:
@@ -969,6 +999,7 @@ def profile(ctx):
 
     """
 
+    setdir(ctx)
     confmgr = ConfigMgr()
 
     multidir = confmgr.get("multidir", "Directory where profiles are/will be located")
@@ -1034,6 +1065,7 @@ def pluginpreset(ctx):
     modify = False if ctx.obj['progress'] else True
     rpath = Path("Custom/PluginPresets/Plugins_UserDefaults.vap")
     confmgr = ConfigMgr()
+    setdir(ctx)
     dir = confmgr.get('dir')
     multidir = confmgr.get("multidir")
     exedir = None
@@ -1212,7 +1244,7 @@ def rdep(ctx):
     vamtb [-vv] [-f file] rdep
 
     """
-
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
@@ -1234,6 +1266,7 @@ def nordep(ctx):
 
     """
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
@@ -1280,6 +1313,7 @@ def dep(ctx):
     if not ctx.obj['file']:
         critical("Need a file name")
 
+    setdir(ctx)
     file, dir, pattern = get_filepattern(ctx)
 
     for varfile in search_files_indir2(dir, pattern):
