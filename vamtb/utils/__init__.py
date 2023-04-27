@@ -63,6 +63,7 @@ C_REF_VARS = [
     "AshAuryn.AshAuryn's_Tears_and_Pain_Pack",
     "AshAuryn.Expressions",
     "AshAuryn.Sexpressions",
+    "Community.PosePack",
     "DoesNotCat.RealFakeLabias",
     "Do_Not_Distribute.Import_Reloaded_Full_Addon",
     "dub.AudioMate",
