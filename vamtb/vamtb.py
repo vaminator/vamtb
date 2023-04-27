@@ -227,6 +227,8 @@ def sortvars(ctx):
 def checkvar(ctx):
     """Check all var files for consistency. All vars content found on disk are extracted for verification.
 
+    Dependencies are fetch from database. If the file is not in DB, dependencies are Unknown.
+    
     Also detect dependency loops.
 
     vamtb [-vv] [-p] [-f <file pattern> ] checkvar
@@ -1285,8 +1287,15 @@ def nordep(ctx):
 
 def rec_dep_db(varfile, dir, dep_chain, recurse=True, depth=0):
     with Var(varfile, dir, use_db=True, check_exists=False, check_file_exists=False, check_naming=True) as var:
-        rvars = var.get_dep()
-        print(f"{' ' * depth}> Dependencies of {var.var}: {green(','.join(rvars) if rvars else 'None')}")
+        rvars = []
+        if var.exists():
+            rvars = var.get_dep()
+            status = ",".join(rvars) if rvars else "None"
+            status = green(status)
+        else:
+            status = "Unknown"
+            status = red(status)
+        print(f"{' ' * depth}> Dependencies of {var.var}: {status}")
         if recurse:
             for r in rvars:
                 try:
