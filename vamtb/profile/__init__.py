@@ -143,41 +143,42 @@ class ProfileMgr:
     
         # Now link ref vars unlesss we are in Profile Full
         if ProfileMgr.__np != "Full":
-            for refvar in self.__refvars:
-                debug(f"Refvar {refvar}")
-                version = None
-                try:
-                    creator, asset, version = refvar.split('.', 3)
-                except ValueError:
-                    creator, asset = refvar.split('.', 2)
-                if not version:
-                    ln = f"{creator}.{asset}.latest"
-                else:
-                    ln = f"{creator}.{asset}.{version}"
-                debug(f"Searching for {ln}")
-                try:
-                    with Var(ln, ProfileMgr.__vardir, use_db=True) as mvar:
-                        refvarpath = mvar.path
-                        debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
-                        try:
-                            ddir = f"{self.__base}/AddonPackages"
+            if refvar and input(f"Add your {len(refvar)} refvar [Y]N ?:").upper != "N":
+                for refvar in self.__refvars:
+                    debug(f"Refvar {refvar}")
+                    version = None
+                    try:
+                        creator, asset, version = refvar.split('.', 3)
+                    except ValueError:
+                        creator, asset = refvar.split('.', 2)
+                    if not version:
+                        ln = f"{creator}.{asset}.latest"
+                    else:
+                        ln = f"{creator}.{asset}.{version}"
+                    debug(f"Searching for {ln}")
+                    try:
+                        with Var(ln, ProfileMgr.__vardir, use_db=True) as mvar:
+                            refvarpath = mvar.path
+                            debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
                             try:
-                                xlink( ddir, refvarpath )
-                                print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
+                                ddir = f"{self.__base}/AddonPackages"
+                                try:
+                                    xlink( ddir, refvarpath )
+                                    print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
+                                except OSError:
+                                    pass
                             except OSError:
+                                # Already linked but keep on going for dependencies
                                 pass
-                        except OSError:
-                            # Already linked but keep on going for dependencies
-                            pass
-                except VarNotFound:
-                    warn(f"We did not find {refvar} to link")
-                    continue
-                try:
-                    with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
-                        debug(f"Searching dep of {mlatest.var}")
-                        mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
-                except OSError:
-                    pass
+                    except VarNotFound:
+                        warn(f"We did not find {refvar} to link")
+                        continue
+                    try:
+                        with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
+                            debug(f"Searching dep of {mlatest.var}")
+                            mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
+                    except OSError:
+                        pass
 
     def select(self, profilename):
         ProfileMgr.__np = profilename
