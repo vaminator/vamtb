@@ -815,7 +815,7 @@ def varlink(ctx):
     *  Added to database
 
     *  Finally varlink executed
-    
+
     This is usefull when you're in a profile, go to the hub download the toplevel var and want to link deps you already have without cluttering your profile.
 
     """
@@ -856,12 +856,17 @@ def varlink(ctx):
     # No var was found. Do we run profile and maybe var just got downloaded?
     confmgr = ConfigMgr()
     if confmgr.get("multidir"):
+        if ".var" not in file:
+            file = f"{file}.var"
         efile = Path(confmgr.get("exedir")) / "AddonPackages" / file
+        print(f"Checking if {efile} exists and is not a link")
         if efile.exists() and efile.is_file():
+            print(f"We found {efile}")
             destdir = Path(confmgr.get("multidir")) / "Full" / "AddonPackages"
             destdir = os.path.realpath(destdir)
             try:
-                os.rename(efile.name, os.path.join(destdir, file))
+                print(f"Moving {efile} to {destdir}")
+                os.rename(efile, os.path.join(destdir, file))
                 print(f"File moved to {destdir}")
             except FileExistsError:
                 # We already moved file, proceed
@@ -869,7 +874,7 @@ def varlink(ctx):
         else:
             # File not found, user asked impossible
             warn(f"Did not find file {file}")
-    print("Adding  to database")
+    print("Adding to database")
     ctx.invoke(dbscan)
     #Re-exec
     ctx.invoke(varlink)
