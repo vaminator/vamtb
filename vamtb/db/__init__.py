@@ -21,7 +21,6 @@ class Dbs:
         """
         if not Dbs.__instance:
             #print(f"Opened database {dbfilename}")
-            #debug(f"Opened database {dbfilename}")
             Dbs.__conn = sqlite3.connect(dbfilename)
             Dbs.init_dbs()
             Dbs.__instance = self
