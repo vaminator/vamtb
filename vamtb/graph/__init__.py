@@ -79,7 +79,7 @@ class Graph:
             error(f"Graphiz returned: {e.stderr.rstrip()}")
             error([line.strip() for line in open("deps.dot")])
             os.unlink("deps.dot")
-            exit(0)
+            sys.exit(0)
         os.unlink("deps.dot")
         info("Graph generated")
 

@@ -1000,10 +1000,11 @@ def profile(ctx):
         print("First we need to create the Full profile: AddonPackages links to your vam installation") 
         profmgr.new("Full")
         print("Profile Full initialized, you can now run the tool again to create a personal profile")
-        exit(0)
+        sys.exit(0)
     answer = input("Choose Profile [N for new profile]: ")
 
     if answer.upper() == "N":
+        print("Initializing profile with references vars...")
         profmgr.new()
     else:
         adir = adirs[int(answer)]

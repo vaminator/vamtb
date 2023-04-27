@@ -1,5 +1,6 @@
 import colorama
 import logging
+import sys
 
 class __Color:
     
@@ -114,7 +115,7 @@ class Log():
             level = levels[{0: "WARNING", 1: "INFO", 2: "DEBUG"}[level]]
         else:
             print(f"Can set log level to {level}")
-            exit(0)
+            sys.exit(0)
         return level
 
     def setLevel(self,level):
@@ -153,7 +154,7 @@ def warning(message):
 def critical(message, doexit=True):
     __log.critical(message)
     if doexit:
-        exit(0)
+        sys.exit(0)
 
 def debug(message):
      __log.debug(message)
