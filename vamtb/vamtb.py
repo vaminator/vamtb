@@ -251,9 +251,7 @@ def checkvar(ctx):
                 try:
                     _ = var.meta()
                     rec_dep_db(var.var, dir, [ var.var ])
-                # TODO why is handling here? For missing dep?
-                # Error message seems unrelated
-                except FileNotFoundError:
+                except NoMetaJson:
                     error(f"Var {var.var} does not contain a correct meta json file")
                 else:
                     info(f"{var} is OK")
@@ -261,12 +259,12 @@ def checkvar(ctx):
             return
         except VarMalformed:
             error(f"{file} doesn't have a correct structure")
-        except VarMetaJson as e:
+        except (VarMetaJson, NoMetaJson) as e:
             error(f"{file} doesn't have a correct meta.json [{e.args[0]}]")
         except VarFileNameIncorrect:
             error(f"{file} doesn't have a correct naming")
         except Exception as e:
-            error(f"{file} is not OK [{e}]")
+            error(f"Something went wrong with {file} : [{e}]")
 
 @cli.command('statsvar')
 @click.pass_context
