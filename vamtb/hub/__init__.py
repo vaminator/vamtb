@@ -96,7 +96,7 @@ class HubMgr:
             error(f"We got more than one download link for {resource_url}, please check {','.join(dl_links)}")
         elif not dl_links:
             # Paid link
-            print(f" > {resource_url} is a paid link")
+            print(f" > {resource_url} can't be downloaded (offsite)")
             return
         else:
             self.dl_file(f"{base_url}/{dl_links[0]}")
