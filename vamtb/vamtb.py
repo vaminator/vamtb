@@ -1160,7 +1160,7 @@ def repack(ctx):
     creator = ctx.obj['file']
 
     #FIXME
-    assert move, "Sorry but copy is broken on windows shit. Files/Dirs can only be moved from the source dir. Add -x"
+    assert move, "Sorry but copy is broken on windows shit. Files/Dirs can only be moved from the source dir. Add -m"
     try:
         shutil.rmtree(custom)
     except:
