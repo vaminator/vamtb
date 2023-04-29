@@ -1214,23 +1214,26 @@ def renamevar(ctx):
     file, _, pattern = get_filepattern(ctx)
     for varfile in search_files_indir2(os.getcwd(), pattern):
 
-        with Var(varfile, check_exists=False, check_naming=False) as mvar:
-            if ctx.obj['progress']:
-                password = input("Password:")
-                mvar.set_password(password)
-            js = mvar.meta()
-            rcreator, rasset = js['creatorName'],js['packageName']
-
         try:
-            creator, asset, version, _ = mvar.path.name.split('.', 4)
-        except ValueError:
-            creator = ""
-            asset = ""
-            version = 1
-        if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
-                rfile = mvar.path.parents[0] / f"{rcreator}.{rasset}.{version}.var".replace(" ", "_")
-                print(f"Renaming {mvar.path} to {rfile}")
-                os.rename(mvar.path, rfile)
+            with Var(varfile, check_exists=False, check_naming=False) as mvar:
+                if ctx.obj['progress']:
+                    password = input("Password:")
+                    mvar.set_password(password)
+                js = mvar.meta()
+                rcreator, rasset = js['creatorName'],js['packageName']
+
+            try:
+                creator, asset, version, _ = mvar.path.name.split('.', 4)
+            except ValueError:
+                creator = ""
+                asset = ""
+                version = 1
+            if creator.replace(" ", "_") != rcreator.replace(" ", "_") or asset.replace(" ", "_") != rasset.replace(" ", "_"):
+                    rfile = mvar.path.parents[0] / f"{rcreator}.{rasset}.{version}.var".replace(" ", "_")
+                    print(f"Renaming {mvar.path} to {rfile}")
+                    os.rename(mvar.path, rfile)
+        except NoMetaJson:
+            pass
 
 
 @cli.command('rdep')
