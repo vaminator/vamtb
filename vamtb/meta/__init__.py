@@ -229,7 +229,7 @@ def make_var(in_dir, in_zipfile, creatorName=None, packageName=None, packageVers
     if in_zipfile:
         shutil.rmtree(tempzipdir)
 
-def repack_reref(self, mfile):
+def repack_reref(mfile):
     orig = mfile.with_suffix(f"{mfile.suffix}.orig")
     mfile.rename(orig)
     with open(mfile, "w", encoding='utf-8') as dest:
