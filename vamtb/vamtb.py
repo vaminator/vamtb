@@ -1211,7 +1211,8 @@ def renamevar(ctx):
     if not ctx.obj['file']:
         critical("Need a file name")
 
-    file, _, pattern = get_filepattern(ctx)
+#    file, _, pattern = get_filepattern(ctx)
+    pattern = ctx.obj['file'].replace("%", ".*")
     for varfile in search_files_indir2(os.getcwd(), pattern):
 
         try:
