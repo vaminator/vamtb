@@ -907,7 +907,7 @@ def varlink(ctx):
                 pass
         else:
             # File not found, user asked impossible
-            warn(f"Did not find file {file}")
+            critical(f"Did not find file {file}")
     print("Adding to database")
     ctx.invoke(dbscan)
     #Re-exec
