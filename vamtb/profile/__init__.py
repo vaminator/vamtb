@@ -150,7 +150,7 @@ class ProfileMgr:
     
         # Now link ref vars unlesss we are in Profile Full
         if ProfileMgr.__np != "Full":
-            if refvar and input(f"Add your {len(refvar)} refvar [Y]N ?:").upper != "N":
+            if self.__refvars and input(f"Add your {len(self.__refvars)} reference vars [Y]N ?:").upper != "N":
                 for refvar in self.__refvars:
                     debug(f"Refvar {refvar}")
                     version = None
