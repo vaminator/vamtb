@@ -87,14 +87,6 @@ class Dbs:
         return res
 
     @staticmethod
-    def execute(sql, row):
-        """ 
-        Execute query and don't return anything
-        """
-        cur = Dbs.getConn().cursor()
-        cur.execute(sql, row)
-
-    @staticmethod
     def get_db_deps():
         return Dbs.fetchall("SELECT DISTINCT VAR, DEPVAR FROM DEPS", None)
 
