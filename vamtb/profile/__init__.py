@@ -5,6 +5,7 @@ from vamtb.vamex import *
 from vamtb.utils import *
 from vamtb.log import *
 from vamtb.var import Var
+import errno
 
 dirs = ("AddonPackages", "Assets", "Custom", "Saves", "Custom/SubScene")
 files = ("prefs.json",)
@@ -14,8 +15,14 @@ def linkfile2ddir(mvar):
     global ddir
 
     srcfile = mvar.path
-    xlink(ddir, srcfile)
-    print(f">> Linked dependency {srcfile}")
+    try:
+        xlink(ddir, srcfile)
+        print(f">> Linked dependency {srcfile}")
+    except OSError as e:
+        if e.errno == errno.EEXIST :
+            pass
+        else:
+            raise
 
 class ProfileMgr:
 
