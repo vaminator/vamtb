@@ -151,6 +151,7 @@ def printrealdep(ctx):
                     #print(f"Didnt find {depvarfile}")
                     xlicense="Questionable"
                 if json:
+                    xlicense = list(set(xlicense))
                     s=( f'"{xvar}.latest":{{\n'
                         f'    "licenseType" : "{xlicense}",\n'
                         '    "dependencies" : {}\n'
