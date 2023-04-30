@@ -7,10 +7,10 @@ def _read(fn):
 
 setup(
       name='vamtb',
-      version='0.9.6',
+      version='0.9.7',
       author_email='foo@bar.com',
       long_description=_read('README.rst'),
-      test_suite='vamtb.test.testall.suite',
+ #     test_suite='vamtb.test.testall.suite',
       packages=[
         'vamtb',
         'vamtb.config',
@@ -36,15 +36,15 @@ setup(
         "pyyaml",
         "colorama",
         "requests",
-        "pyrfc6266",
+#        "pyrfc6266",
         "beautifulsoup4",
         "internetarchive"
       ],
-      extras_require={
-         'test': [
-            'pytest',
-        ],     
-      },   
+#      extras_require={
+#         'test': [
+#            'pytest',
+#        ],     
+#      },   
       entry_points={
         'console_scripts': [
           'vamtb = vamtb.vamtb:cli'
