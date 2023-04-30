@@ -860,8 +860,8 @@ def varlink(ctx):
         linkdir = ddir
         if not os.path.islink(f"{linkdir}/{basefile}"):
             try:
-                info(f"{linkdir}/{basefile}  ->  {srcfile}")
                 os.symlink(f"{srcfile}", f"{linkdir}/{basefile}")
+                print(green(f"{linkdir}/{basefile}  ->  {srcfile}"))
             except FileExistsError:
                 warn(f"{linkdir}/{basefile} already linked")
 
