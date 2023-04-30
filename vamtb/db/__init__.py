@@ -64,6 +64,14 @@ class Dbs:
          ANON TEXT NOT NULL);''')
 
     @staticmethod
+    def execute(sql, row):
+        """ 
+        Execute query and don't return anything
+        """
+        cur = Dbs.getConn().cursor()
+        cur.execute(sql, row)
+
+    @staticmethod
     def fetchall(sql, row):
         """
         Execute query and fetch all results
