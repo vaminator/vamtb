@@ -3,7 +3,7 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
-import pyrfc6266
+#import pyrfc6266
 
 from vamtb.log import *
 from vamtb.utils import *

@@ -1,19 +1,18 @@
 import os
 import sys
-import yaml
 import zlib
 import click
 import shutil
-from collections import defaultdict
-from pathlib import Path
 from tqdm import tqdm
+from pathlib import Path
+from collections import defaultdict
 #import PySimpleGUI as sg
 
 from vamtb.graph import Graph
 from vamtb.var import Var
 from vamtb.file import FileName
 from vamtb.vamex import *
-from vamtb.meta import *
+from vamtb.meta import prep_tree, make_var
 from vamtb.log import *
 from vamtb.utils import *
 from vamtb.varfile import VarFile
