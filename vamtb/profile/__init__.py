@@ -180,12 +180,9 @@ class ProfileMgr:
                     except VarNotFound:
                         warn(f"We did not find {refvar} to link")
                         continue
-                    try:
-                        with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
-                            debug(f"Searching dep of {mlatest.var}")
-                            mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
-                    except OSError:
-                        pass
+                    with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
+                        debug(f"Searching dep of {mlatest.var}")
+                        mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
 
     def select(self, profilename):
         ProfileMgr.__np = profilename
