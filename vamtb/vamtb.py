@@ -644,8 +644,13 @@ def setref(ctx):
     file or critical("Need a file parameter")
     for varfile in search_files_indir(dir, pattern):
         with Var(varfile, dir, use_db=True, check_exists=False) as var:
-            print(green(f"Setting var {var} as {'' if isref else 'not '}reference"))
-            var.db_var_setref(isref=isref, files=True)
+            if isref and var.get_ref == "YES":
+                critical(f"Var {var.var} is already a reference")
+            elif not isref and var.get_ref != "YES":
+                critical(f"Var {var.var} is already a non reference")
+            else:
+                print(green(f"Setting var {var} as {'' if isref else 'not '}reference"))
+                var.db_var_setref(isref=isref, files=True)
 
 @cli.command('hub_resources')
 @click.pass_context
