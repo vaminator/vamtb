@@ -70,6 +70,7 @@ class FileName:
         """
         Get  dependency from inspecting json
         FIXME "MeshedVR.PresetsPack.latest:MeshedVR/PresetsPack/Ren_Tina" is also correct
+        FIXME "UserLUT" : "Oeshii.Hani.1:/Custom/Assets/MacGruber/PostMagic/LUT32/PhotoStudio_LUT02.png" as parameter of plugin#1_MacGruber.PostMagic.UserLUT 
         """
         deps = { 'embed': [], 'var': [] , 'self': [] }
         def _decode_dict(a_dict):

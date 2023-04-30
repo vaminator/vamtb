@@ -125,8 +125,9 @@ class ProfileMgr:
             else:
                 try:
                     xlink( f"{self.__base}/Custom/", f"{ProfileMgr.__basedir}/Custom/{mdir}" )
-                except OSError:
-                    pass
+                except OSError as e:
+                    if e.errno == errno.EEXIST :
+                        pass
 
         # SubScenes/Anonymous is a link to allow sharing subscenes
         for mdir in ("Anonymous", ):
@@ -135,8 +136,9 @@ class ProfileMgr:
             else:
                 try:
                     xlink( f"{self.__base}/Custom/SubScene", f"{ProfileMgr.__basedir}/Custom/SubScene/{mdir}" )
-                except OSError:
-                    pass
+                except OSError as e:
+                    if e.errno == errno.EEXIST :
+                        pass
 
         # Share pluginData.
         for mdir in ("PluginData", ):
@@ -145,8 +147,9 @@ class ProfileMgr:
             else:
                 try:
                     xlink( f"{self.__base}/Saves/", f"{ProfileMgr.__basedir}/Saves/{mdir}" )
-                except OSError:
-                    pass
+                except OSError as e:
+                    if e.errno == errno.EEXIST :
+                        pass
     
         # Now link ref vars unlesss we are in Profile Full
         if ProfileMgr.__np != "Full":
@@ -167,16 +170,14 @@ class ProfileMgr:
                         with Var(ln, ProfileMgr.__vardir, use_db=True) as mvar:
                             refvarpath = mvar.path
                             debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
+                            ddir = f"{self.__base}/AddonPackages"
                             try:
-                                ddir = f"{self.__base}/AddonPackages"
-                                try:
-                                    xlink( ddir, refvarpath )
-                                    print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
-                                except OSError:
+                                xlink( ddir, refvarpath )
+                                print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
+                            except OSError as e:
+                                if e.errno == errno.EEXIST :
+                                    # Already linked but keep on going for dependencies
                                     pass
-                            except OSError:
-                                # Already linked but keep on going for dependencies
-                                pass
                     except VarNotFound:
                         warn(f"We did not find {refvar} to link")
                         continue

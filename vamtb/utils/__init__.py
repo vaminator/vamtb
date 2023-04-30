@@ -215,6 +215,8 @@ def id_is_ref(id:str):
         return True
     if id == "simTexture":
         return True
+    if id == "UserLUT":
+        return True
     return False
 
 def ensure_binaryfiles(refi, prefix):
