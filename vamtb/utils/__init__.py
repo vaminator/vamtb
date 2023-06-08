@@ -4,6 +4,8 @@ import os
 import zipfile
 import binascii
 import sys
+import errno
+import ctypes
 import glob
 from functools import wraps
 from pathlib import Path
@@ -26,6 +28,7 @@ C_TMPDIR = os.path.join(exec_dir, "tmp")
 
 TPL_BASE = os.path.join(file_path, "tpl")
 C_BAD_DIR = "00Dep"
+C_NO_LATEST = "00Old"
 
 C_REF_CREATORS = (
 "50shades", "AcidBubbles", "AmineKunai", "AnythingFashionVR","AshAuryn",
@@ -63,6 +66,9 @@ C_REF_VARS = [
     "AshAuryn.AshAuryn's_Tears_and_Pain_Pack",
     "AshAuryn.Expressions",
     "AshAuryn.Sexpressions",
+    "AWWalker.Genital_Multi-Pass",
+    "Blazedust.SessionPlugin_CUAManager",
+    "CheesyFX.ShakeIt",
     "Community.PosePack",
     "DoesNotCat.RealFakeLabias",
     "Do_Not_Distribute.Import_Reloaded_Full_Addon",
@@ -73,10 +79,12 @@ C_REF_VARS = [
     "everlaster.BootyMagic",
     "everlaster.FloatParamRandomizerEE",
     "everlaster.Lumination",
+    "everlaster.Naturalis.19",
     "everlaster.RenVR_Originals_Bonus",
     "everlaster.RenVR_Originals_Pack1",
     "everlaster.RenVR_Originals_Pack2",
     "everlaster.RenVR_Originals_Pack3",
+    "everlaster.VarLicenseFilter",
     "everlaster.TittyMagic",
     "hazmhox.fluids101",
     "hazmhox.vamatmosphere",
@@ -102,6 +110,7 @@ C_REF_VARS = [
     "MeshedVR.PresetsPack",
     "MonsterShinkai.AnusDecals",
     "n00rp.Lighting_Rigs",
+    "ParticlePinnacle.ppthighcompressorandvibrations",
     "PluginIdea.ContexMenuSystem(Free)",
     "PluginIdea.GizmosSystem",
     "PluginIdea.MouseWheelToSlider",
@@ -109,6 +118,8 @@ C_REF_VARS = [
     "PluginIdea.VamInputServer",
     "prestigitis.script-HeelAdjust",
     "ProjectCanyon.MorphMerger",
+    "Redeyes.DiviningForeskin.9",
+    "Redeyes.DiviningLipsAndHands",
     "Redeyes.GiveMeFPS",
     "Ruvik.PosingHelper",
     "SPQR.ExtraTriggers",
@@ -128,6 +139,9 @@ C_REF_VARS = [
     "Vinput.AutoThruster",
     "VRAdultFun.E-motion",
     "WeebU.My_morphs",
+    "WrongTamago.WardrobeClothingPresetsPack1",
+    "WrongTamago.WardrobeClothingPresetsPack2",
+    "WrongTamago.WardrobeClothingPresetsPack3"
     ]
 
 C_NEXT_CREATOR = 127
