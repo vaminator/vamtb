@@ -44,16 +44,16 @@ class VarFile:
                     try:
                         self.__iMinVer = int(self.__sVersion[3:])
                     except ValueError:
-                        raise VarExtNotCorrect(f"var version is incorrect({self.__sVersion})")
+                        raise VarExtNotCorrect(f"{inputName} version is incorrect({self.__sVersion})")
                 else:
-                    raise VarExtNotCorrect(f"var version is incorrect({self.__sVersion})")
+                    raise VarExtNotCorrect(f"{inputName} version is incorrect({self.__sVersion})")
             try:
                 _, _, _, ext = f_basename.split('.',4)
             except ValueError:
                 pass
             else:
                 if ext != "var":
-                    raise VarExtNotCorrect(f"var extension is not correct({f_basename})")
+                    raise VarExtNotCorrect(f"{inputName} extension is not correct({f_basename})")
         # debug(f"Var {inputName} is compliant")
 
     @property
