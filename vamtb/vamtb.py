@@ -1197,6 +1197,39 @@ def repack(ctx):
         logging.error(f'While handing directory {Path(custom).resolve()}, caught exception {e}')
         raise
 
+
+# If the var is a link, we need to find its target and move there
+def move_var_to_dir(mpath, dest_subpath):
+    srcpath = Path(mpath)
+    if os.path.islink(mpath):
+        srcpath = Path(mpath).resolve()
+        os.remove(mpath)
+    
+    dstpath = srcpath.parent / dest_subpath    
+    dstpath.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy(srcpath, dstpath)
+    os.remove(srcpath)
+
+@cli.command('klatest')
+@click.pass_context
+@catch_exception
+def klatest(ctx):
+    """Keep only latest.
+
+    vamtb [-vv] [-m] [-f <file pattern> ] checkdep
+
+    The rest is moved in 00Old/
+
+    """
+    setdir(ctx)
+    file, dir, pattern = get_filepattern(ctx)
+    for varfile in search_files_indir2(dir, pattern):
+        with Var(varfile, use_db=True) as mvar:
+            if mvar.var != mvar.latest():
+                print(f"{mvar.var} is not latest ({mvar.latest()} is)")
+                move_var_to_dir(mvar.path, C_NO_LATEST)    
+
 @cli.command('renamevar')
 @click.pass_context
 @catch_exception
