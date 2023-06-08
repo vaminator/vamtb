@@ -1230,6 +1230,31 @@ def klatest(ctx):
                 print(f"{mvar.var} is not latest ({mvar.latest()} is)")
                 move_var_to_dir(mvar.path, C_NO_LATEST)    
 
+@cli.command('pmorph')
+@click.pass_context
+@catch_exception
+def pmorph(ctx):
+    """
+    Check or change preloadMorphs custom Option.
+
+    Modified var will be place in current directory.
+
+    vamtb [-vv] [-r] [-f file] pmorph
+
+    -r : change flag to False
+
+    """
+    setdir(ctx)
+    do_remove = ctx.obj['ref']
+    file, dir, pattern = get_filepattern(ctx)
+
+    for varfile in search_files_indir2(dir, pattern):
+        try:
+            with Var(varfile, check_exists=False) as mvar:
+                mvar.remmorphpreload(do_remove)
+        except NoMetaJson:
+            pass
+
 @cli.command('renamevar')
 @click.pass_context
 @catch_exception

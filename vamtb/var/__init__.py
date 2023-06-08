@@ -366,6 +366,35 @@ class Var(VarFile):
                     zout.writestr(rel_file, file.read())
         shutil.move( tmpname, self.file )
 
+    @unzip
+    def remmorphpreload(self, remove=False):
+        
+        debug(f"Move to preload=False for {self.var}")
+        js = self.meta()
+        try:
+            if js['customOptions']['preloadMorphs'] == "false":
+                return
+        except KeyError:
+            return
+        
+        print(f"{self.var} has Preloaded Morphs")
+        if not remove:
+            return
+        js['customOptions']['preloadMorphs'] = "false"
+        self.write_meta(self.tmpDir, js)
+
+#        tmpfd, tmpname = tempfile.mkstemp(dir=self.__AddonDir)
+        tmpfd, tmpname = tempfile.mkstemp(dir=os.getcwd())
+        os.close(tmpfd)
+        print(f"Setting to false")
+
+        with ZipFile(tmpname, 'w') as zout:
+            zout.comment = b""
+            for file in self.files(with_meta=True):
+                rel_file = str(file.path.relative_to(self.__tmpDir).as_posix())
+                zout.writestr(rel_file, file.read())
+        shutil.move( tmpname, self.file )
+
     def move_creator(self):
         files_to_move = [ self.path ]
         if self.__thumb:
@@ -924,6 +953,7 @@ class Var(VarFile):
         thumbs = self.get_thumbs()
         if not thumbs:
             warn(f"No thumbs, not uploading.")
+            # Comment this for uploading images not linked to jsons for example
             return False
 
         debug(f"var {self.var} contains: {types}")
