@@ -323,8 +323,16 @@ def linkdir(dirsrc, dst):
         print(f"Linking   : {f} --> {dst}")
         try:
             xlink(dst,f)
-        except OSError:
-            pass
+        except OSError as e:
+            # TODO Remove prefs.json if target exists
+            #print(e.errno)
+            if e.errno == errno.EINVAL:
+                try:
+                    isadmin = os.getuid() == 0
+                except AttributeError:
+                    isadmin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+                if not isadmin:
+                    critical("You need to run as admin to make links")
 
 def replace_json(fname, key, newvalue):
     with open(fname, 'r') as file:
