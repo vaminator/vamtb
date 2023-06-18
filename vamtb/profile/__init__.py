@@ -189,11 +189,19 @@ class ProfileMgr:
         ProfileMgr.__np = profilename
         print(f"Selecting {ProfileMgr.__np}")
         linkdir(self.__base, ProfileMgr.__dst)
+        self.verify()
 
     def list(self):
         adirs = next(os.walk(ProfileMgr.__bsrc))[1]
         return adirs
     
+    def verify(self):
+        addon = os.path.join(ProfileMgr.__dst, "AddonPackages")
+        try:
+            mfiles = search_files_indir2(addon, "%")
+        except OSError as e:
+            critical(f"You have a broken link {e}")
+            
     def current(self):
         addon = os.path.join(ProfileMgr.__dst, "AddonPackages")
         if os.path.islink(addon):
