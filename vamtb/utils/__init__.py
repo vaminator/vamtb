@@ -127,7 +127,7 @@ C_REF_VARS = [
     "PluginIdea.VamInputServer",
     "prestigitis.script-HeelAdjust",
     "ProjectCanyon.MorphMerger",
-    "Redeyes.DiviningForeskin.9",
+    "Redeyes.DiviningForeskin",
     "Redeyes.DiviningLipsAndHands",
     "Redeyes.GiveMeFPS",
     "Ruvik.PosingHelper",
