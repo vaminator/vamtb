@@ -196,11 +196,13 @@ class ProfileMgr:
         return adirs
     
     def verify(self):
+        info("Verifying dead links...")
         addon = os.path.join(ProfileMgr.__dst, "AddonPackages")
         try:
             mfiles = search_files_indir2(addon, "%")
         except OSError as e:
             critical(f"You have a broken link {e}")
+        info("Looks good")
             
     def current(self):
         addon = os.path.join(ProfileMgr.__dst, "AddonPackages")
