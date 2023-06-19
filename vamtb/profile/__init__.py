@@ -17,7 +17,7 @@ def linkfile2ddir(mvar):
     srcfile = mvar.path
     try:
         xlink(ddir, srcfile)
-        print(f">> Linked dependency {srcfile}")
+        print(f">> Linked dependency {srcfile} to {ddir}")
     except OSError as e:
         if e.errno == errno.EEXIST :
             pass
@@ -173,7 +173,7 @@ class ProfileMgr:
                             ddir = f"{self.__base}/AddonPackages"
                             try:
                                 xlink( ddir, refvarpath )
-                                print(f">Linked  {refvarpath} to {self.__base}/AddonPackages")
+                                print(f">Linked {refvarpath} to {self.__base}/AddonPackages")
                             except OSError as e:
                                 if e.errno == errno.EEXIST :
                                     # Already linked but keep on going for dependencies
