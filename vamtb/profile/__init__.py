@@ -181,7 +181,9 @@ class ProfileMgr:
                     except VarNotFound:
                         warn(f"We did not find {refvar} to link")
                         continue
-                    with Var(refvarpath, ProfileMgr.__vardir, use_db=True) as mlatest:
+                    # Localdir set to false because we only want to search in __AddonPackages and not in current directory
+                    # In case vtb profile is run in a directory where a dependency file exists
+                    with Var(refvarpath, ProfileMgr.__vardir, use_db=True, localdir=False) as mlatest:
                         debug(f"Searching dep of {mlatest.var}")
                         mlatest.rec_dep(stop=False, dir=ProfileMgr.__vardir, func=linkfile2ddir)
 
