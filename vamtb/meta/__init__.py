@@ -266,7 +266,7 @@ def get_type(infile):
     if infile.is_dir():
         return T_DIR
     suffix = infile.suffix
-    if suffix == ".assetbundle" or suffix == ".scene":
+    if suffix == ".assetbundle" or suffix == ".scene" or suffix == ".AssetBundle":
         return T_ASSET
     if suffix == ".cs":
         return T_SCRIPT
