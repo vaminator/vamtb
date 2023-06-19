@@ -167,7 +167,7 @@ class ProfileMgr:
                         ln = f"{creator}.{asset}.{version}"
                     debug(f"Searching for {ln}")
                     try:
-                        with Var(ln, ProfileMgr.__vardir, use_db=True) as mvar:
+                        with Var(ln, ProfileMgr.__vardir, use_db=True, localdir=False) as mvar:
                             refvarpath = mvar.path
                             debug(f"Linking  {refvarpath} to {self.__base}/AddonPackages")
                             ddir = f"{self.__base}/AddonPackages"

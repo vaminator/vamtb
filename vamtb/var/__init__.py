@@ -21,7 +21,7 @@ from vamtb.log import *
 
 class Var(VarFile):
 
-    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True, check_file_exists=True, check_naming=True):
+    def __init__(self, multiFileName, dir=None, use_db = False, checkVar=False, check_exists = True, check_file_exists=True, check_naming=True, localdir=True):
         """
         multiFileName can be a.b.c, a.b.c.var, c:/tmp/a.b.c or c:/tmp/a.b.c.var
         in the two first cases, dir is required to find the var on disk
@@ -36,10 +36,6 @@ class Var(VarFile):
         if dir:
             dir = Path(dir)
             self.__AddonDir = dir
-#            if dir.name == "AddonPackages":
-#                self.__AddonDir = dir
-#            else:
-#                self.__AddonDir = dir / "AddonPackages"
         else:
             self.__AddonDir = None
 
@@ -54,7 +50,7 @@ class Var(VarFile):
 
         # Verify and resolve var on disk
         if check_file_exists:
-            self._path = Path(self.__resolvevar(multiFileName))
+            self._path = Path(self.__resolvevar(multiFileName, localdir=localdir))
         else:
             self._path = None
 
@@ -174,10 +170,14 @@ class Var(VarFile):
     def search(self, pattern)-> Path:
         return search_files_indir2(self.__AddonDir, pattern)
 
-    def __resolvevar(self, multiname):
-        """This will return the real var as an existing Path"""
-        #debug(f"__resolvar({multiname})")
-        for p in (multiname, f"{multiname}.var", f"{self.__AddonDir}/{multiname}", f"{self.__AddonDir}/{multiname}.var"):
+    def __resolvevar(self, multiname, localdir=True):
+        """This will return the real var as an existing Path
+        By default, it will also search in local directory unless localdir is False        
+        """
+        dirs_to_search = [ f"{self.__AddonDir}/{multiname}", f"{self.__AddonDir}/{multiname}.var" ]
+        if localdir:
+            dirs_to_search.extend([multiname, f"{multiname}.var"])
+        for p in dirs_to_search:
             if Path(p).exists() and Path(p).is_file():
                 return Path(p)
 
