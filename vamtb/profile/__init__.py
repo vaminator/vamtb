@@ -192,6 +192,9 @@ class ProfileMgr:
         print(f"Selecting {ProfileMgr.__np}")
         linkdir(self.__base, ProfileMgr.__dst)
         self.verify()
+        print(red("///// WARNING \\\\\\\\\\"))
+        print(red("Do not erase on disk the currently selected profile or you will loose original files (restore from trashbin)"))
+        print(red("///// WARNING \\\\\\\\\\"))
 
     def list(self):
         adirs = next(os.walk(ProfileMgr.__bsrc))[1]
