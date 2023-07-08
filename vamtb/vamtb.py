@@ -1396,6 +1396,29 @@ def dep(ctx):
     for varfile in search_files_indir2(dir, pattern):
         rec_dep_db(varfile, dir, [ varfile ], False if ctx.obj['ref'] else True)
 
+@cli.command('parsevamlog')
+@click.pass_context
+@catch_exception
+def parsevamlog(ctx):
+    """
+    Parse vam log.
+
+    vamtb [-vv] parsevamlog
+
+    """
+    check_no_exist = True
+
+    if check_no_exist:
+        r_check_no_exist = re.compile("Plugin file (.*):.*does not exist*")
+
+    current_user = os.environ.get('USER', os.environ.get('USERNAME'))
+    with open(f"C:/Users/{current_user}/AppData/LocalLow/MeshedVR/VaM/output_log.txt") as f:
+        for line  in f:
+            if check_no_exist:
+                res = r_check_no_exist.search(line)
+                if res:
+                    print(f"Missing {res.group(1)}")
+
 
 # @cli.command('gui')
 # @click.pass_context
