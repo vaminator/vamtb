@@ -131,6 +131,7 @@ C_REF_VARS = [
     "Redeyes.DiviningLipsAndHands",
     "Redeyes.GiveMeFPS",
     "Ruvik.PosingHelper",
+    "Spacedog.Import_Reloaded_Lite",
     "SPQR.ExtraTriggers",
     "SPQR.Fraemework",
     "SPQR.Footsteps",
