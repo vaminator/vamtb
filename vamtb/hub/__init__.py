@@ -38,6 +38,16 @@ class HubMgr:
             raise
         return res
 
+    def post(self, url, **kwargs):
+        #FIXME this shouldn't be needed
+        HubMgr.__session.cookies['vamhubconsent'] = "yes"
+        try:
+            res = HubMgr.__session.post(url, **kwargs)
+        except requests.exceptions.ConnectionError as e:
+            print(f"While posting {url} we got a connection error")
+            raise
+        return res
+
     def write_var(self, file_name, content):
         if os.path.exists(file_name):
             warn(f"{file_name} already exists, not overwritting")
@@ -80,6 +90,45 @@ class HubMgr:
         res = [ a.get('href') for  a in dl_a if "/download" in a.get('href')]
         return res
 
+    def get_token(self):
+        resource_url = f"https://hub.virtamate.com/members/"
+        page = self.get(resource_url)
+        if 200 <= page.status_code < 300:
+           debug(f"{page.text}") 
+        else:
+            critical(f"Getting url {resource_url} returned status code {page.status_code}")
+        page_text = page.text
+        bs = BeautifulSoup(page_text, "html.parser")
+        tk_el = bs.find(attrs={"name": "_xfToken"})
+        return tk_el.get("value", None)
+
+    def get_creator_uid(self, creator):
+        """
+        Get creator uid from creator name
+        """
+        info(f"Getting creator uid for {creator}")
+        tk = self.get_token()
+        if not tk:
+            critical("Couldn't get token from members page")
+        else:
+            debug(f"Got hub token {tk}")
+
+        resource_url = "https://hub.virtamate.com/members"
+        page = self.post(resource_url, data = {"username": creator, "_xfToken": tk} )
+        if 200 <= page.status_code < 300:
+           debug(f"{page.text}") 
+        else:
+            critical(f"Getting url {resource_url} returned status code {page.status_code}")
+        resource_page = page.text
+        soup = BeautifulSoup(resource_page, "html.parser")
+        #TODO quick and dirty
+        res = soup.find(href=re.compile("/search/member\\?user_id=.*"))
+        if res:
+            uid = res.get("href").replace("/search/member?user_id=", "")
+            return f"{creator.lower()}.{uid}"
+        else:
+            critical(f"Didn't find member {creator}")
+
     def dl_resource(self, resource_url):
         """
         Download a resource
@@ -101,7 +150,7 @@ class HubMgr:
         else:
             self.dl_file(f"{base_url}/{dl_links[0]}")
 
-    def get_resources_from_author(self, creator, cooldown_seconds=60):
+    def get_resources_from_author(self, creator, cooldown_seconds=60, resource_name=None):
         """
         Get resources links from creator
         """
@@ -122,6 +171,9 @@ class HubMgr:
             regexp = re.compile(r"/resources/[^/]*/$")
             links = [ f.get('href') for f in bs.find_all('a', href=True) ]
             links = list(set([ f[1:] for  f in links if re.match(regexp, f)]))
+            if resource_name:
+                reduced_list = [ l for l in links if resource_name.lower() in l.lower() ]
+                links = reduced_list
             idx = 0
             ntry = 3
             while idx < len(links) and ntry:

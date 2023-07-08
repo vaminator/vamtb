@@ -662,18 +662,44 @@ def hub_resources(ctx):
     Get resources for creator.
 
 
-    vamtb [-vv] -f <creator> hub_resources
+    vamtb [-vv] -g <creator.resource.version> hub_resources
 
-    -f <creator> where creator is the creator identifier, example virtaartiemitchel.40335
+    vamtb [-vv] -f <creator_uid> [-i resource_name] hub_resources
 
+    vamtb [-vv] -g <creator> [-i resource_name] hub_resources
+
+    -f <creator uid> where creator uid is the creator identifier, example virtaartiemitchel.40335
+
+    -g <creator> where creator is the creator name when there's only one existing example virtaartiemitchel
+
+    -i <resource_name> will only download resources matching this for the mentionned creator otherwise will fetch all from creator
+        
     """
-    creator = ctx.obj['file']
-    if not creator:
-        critical("You need to pass a creator id")
+    creatoruid = ctx.obj['file']
+    creator = ctx.obj['inp']
+    resource_name = ctx.obj['iaprefix']
 
+    if ".var" in creator:
+        creator = creator.replace(".var","")
     hub = HubMgr()
-    hub.get_resources_from_author(creator)
-
+    if creator:
+        (c_t, r_t, v_t) = (None, None, None)
+        try:
+            c_t, r_t, v_t = creator.split(".")
+            creator = c_t
+            resource_name = r_t
+        except ValueError:
+            try:
+                c_t, r_t = creator.split(".")
+                creator = c_t
+                resource_name = r_t
+            except ValueError:
+                pass
+        creatoruid = hub.get_creator_uid(creator)
+    if not creatoruid:
+        critical("You need to pass a creator id")
+    info(f"Fetching resources from creator uid {creatoruid}")
+    hub.get_resources_from_author(creatoruid, resource_name=resource_name)
 
 @cli.command('orig')
 @click.pass_context

@@ -55,13 +55,16 @@ Commands:
   hub_resources  Get resources for creator.
   ia             Upload var to Internet Archive item.
   imageopt       Optimize images in vars.
+  klatest        Keep only latest.
   latest         Show "latest" version of var as an absolute filename.
   link           Link var in current directory to vam directory.
   multiup        Upload var to multiple place.
   nordep         Prints all var which don't have a reverse dependent.
   noroot         Remove root node stored in pose presets.
   orig           Revert to orig files.
+  parsevamlog    Parse vam log.
   pluginpreset   Update Plugin presets to latest plugins found.
+  pmorph         Check or change preloadMorphs custom Option.
   printdep       Print dependencies of a var from reading meta.
   printrealdep   Print dependencies of a var from inspecting all json files.
   profile        Creates or selects a new VaM installation instance.
