@@ -150,17 +150,21 @@ class HubMgr:
         else:
             self.dl_file(f"{base_url}/{dl_links[0]}")
 
-    def get_resources_from_author(self, creator, cooldown_seconds=60, resource_name=None):
+    def get_resources_from_author(self, creator, creatoruid=None, cooldown_seconds=60, resource_name=None):
         """
         Get resources links from creator
         """
+        resource_found = False
+        if not creatoruid:
+            hubname = get_hub_name(creator)
+            creator = self.get_creator_uid(hubname or creator)
         for page in range(1,101):
             url = f"{base_resource_per_author_url}/{creator}/?page={page}"
 
             check_end = self.get(url, allow_redirects=False)
             if check_end.status_code == 303:
-                return
-            print(green(f"Fetching resources from {url}"))
+                break
+            info(f"Fetching resources from {url}")
             page = self.get(url)
             if 200 <= page.status_code < 300:
                 debug(f"{page.text}") 
@@ -174,6 +178,8 @@ class HubMgr:
             if resource_name:
                 reduced_list = [ l for l in links if resource_name.lower() in l.lower() ]
                 links = reduced_list
+                if links:
+                    resource_found = True
             idx = 0
             ntry = 3
             while idx < len(links) and ntry:
@@ -184,3 +190,5 @@ class HubMgr:
                     ntry = ntry - 1
                     warn(f"Got {e}, waiting {cooldown_seconds}s, remaining attempts:{ntry}")
                     time.sleep(cooldown_seconds)
+        if resource_name and not resource_found:
+            print(f"Resource {resource_name} not found")

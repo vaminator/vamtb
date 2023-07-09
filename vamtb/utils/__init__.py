@@ -156,6 +156,10 @@ C_REF_VARS = [
     "WrongTamago.WardrobeClothingPresetsPack3"
     ]
 
+creator2hub = {
+    "AcidBubbles": "Acid Bubbles"
+}
+
 C_NEXT_CREATOR = 127
 C_DOT = "c:\\Graphviz\\bin\\dot.exe"
 C_MAX_FILES = 50
@@ -167,6 +171,8 @@ IA_COLL = "opensource_media"
 IA_BASETAGS = [ "virtamate" ]
 IA_IDENTIFIER_PREFIX = "vam1__"
 
+def get_hub_name(creator):
+    return creator2hub.get(creator, None)
 
 def files_in_dir(folder):
     try:
@@ -185,6 +191,28 @@ def files_in_dir(folder):
 
 def prettyjson(obj):
     return json.dumps(obj, indent = 4)
+
+def search_files_indir3(fpath, pattern, ign = False, recurse = False):
+    if pattern[0] == "/" and pattern[-1] == "/":
+        #regexp
+        pass
+    else:
+        #noregexp
+        pass
+    pattern = pattern.replace("%", ".*")
+    repat = re.compile(fr"{pattern}", flags=re.IGNORECASE)
+    res = []
+    debug(f"Searching for {pattern} in {fpath}")
+    if ign and not os.path.exists(fpath):
+        return res
+    for thing in os.scandir(fpath):
+        if thing.is_file() and repat.match(thing.name):
+            res.append(Path(thing))
+        if recurse and thing.is_dir():
+            res.extend(search_files_indir2(thing.path, pattern, ign, recurse))
+    if not ign and not res:
+        warn(f"No files found matching pattern {pattern}")
+    return res
 
 def search_files_indir(fpath, pattern, ign = False):
     return search_files_indir2(fpath, pattern, ign)

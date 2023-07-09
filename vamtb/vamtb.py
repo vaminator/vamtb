@@ -31,6 +31,7 @@ from vamtb.hub import HubMgr
 @click.option('inp', '-g',                                      help='Input directory for var creation.')
 @click.option('iaprefix','-i',                                  help=f'Internet Archive identifier prefix (defaults to {IA_IDENTIFIER_PREFIX}).')
 @click.option('-j', '--optimize', count=True,                   help="Image Optimize level (none:No png to jpg that is lossless, 1: Jpeg qual 90%, 2: Jpeg qual 75%).")
+@click.option('ofile','-k',                                     help=f'Other file.')
 @click.option('-m', '--move/--no-move', default=False,          help="When checking dependencies move vars with missing dep in 00Dep.")
 @click.option('-n', '--dryrun/--no-dryrun', default=False,      help="Dry run on what would be uploaded.")
 @click.option('-p', '--progress/--no-progress', default=False,  help="Add progress bar.")
@@ -41,7 +42,7 @@ from vamtb.hub import HubMgr
 @click.option('dup', '-x',                                      help='Only dedup this file.')
 @click.option('-z', '--setref/--no-setref', default=False,      help="Set var as reference.")
 @click.pass_context
-def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
+def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, ofile, remove, setref, force, meta, progress, dryrun, full, cc, iaprefix):
     # pylint: disable=anomalous-backslash-in-string
     """
     For specific command help use vamtb <command> --help
@@ -71,6 +72,7 @@ def cli(ctx, verbose, inp, optimize, move, ref, usedb, dir, file, dup, remove, s
     ctx.obj['iaprefix']    = iaprefix
     ctx.obj['inp']         = inp
     ctx.obj['dir']         = dir
+    ctx.obj['ofile']       = ofile
     conf = {}
 
     sys.setrecursionlimit(100)  # Vars with a dependency depth of 100 are skipped
@@ -661,7 +663,6 @@ def hub_resources(ctx):
     """
     Get resources for creator.
 
-
     vamtb [-vv] -g <creator.resource.version> hub_resources
 
     vamtb [-vv] -f <creator_uid> [-i resource_name] hub_resources
@@ -678,12 +679,20 @@ def hub_resources(ctx):
     creatoruid = ctx.obj['file']
     creator = ctx.obj['inp']
     resource_name = ctx.obj['iaprefix']
+    list_file = ctx.obj['ofile']
+    is_uid  = False # is parameter name.uid or name
 
-    if ".var" in creator:
-        creator = creator.replace(".var","")
     hub = HubMgr()
+    if list_file:
+        if creator or creatoruid:
+            critical("-k cannot be used with -f/-g")
+        with open(list_file, "r") as f:
+            for var in f:
+                creator, resource, _ = var.split('.')
+                hub.get_resources_from_author(creator = creator, resource_name=resource)
+        return
+  
     if creator:
-        (c_t, r_t, v_t) = (None, None, None)
         try:
             c_t, r_t, v_t = creator.split(".")
             creator = c_t
@@ -694,12 +703,10 @@ def hub_resources(ctx):
                 creator = c_t
                 resource_name = r_t
             except ValueError:
+                # Use input creator
                 pass
-        creatoruid = hub.get_creator_uid(creator)
-    if not creatoruid:
-        critical("You need to pass a creator id")
     info(f"Fetching resources from creator uid {creatoruid}")
-    hub.get_resources_from_author(creatoruid, resource_name=resource_name)
+    hub.get_resources_from_author(creator=creator, creatoruid=creatoruid, resource_name=resource_name)
 
 @cli.command('orig')
 @click.pass_context
@@ -1439,11 +1446,12 @@ def parsevamlog(ctx):
 
     current_user = os.environ.get('USER', os.environ.get('USERNAME'))
     with open(f"C:/Users/{current_user}/AppData/LocalLow/MeshedVR/VaM/output_log.txt") as f:
-        for line  in f:
-            if check_no_exist:
+        if check_no_exist:
+            print("Missing:")
+            for line  in f:
                 res = r_check_no_exist.search(line)
                 if res:
-                    print(f"Missing {res.group(1)}")
+                    print(f"{res.group(1)}")
 
 
 # @cli.command('gui')
