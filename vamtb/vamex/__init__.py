@@ -112,4 +112,13 @@ class UnknownContent(Exception):
     def __init__(self, varname):
         super().__init__(varname, "UnknownContent")
 
+class HubResponse(Exception):
+    """Exception raised when hub responds with bad http status code.
+
+    """
+
+    def __init__(self):
+        super().__init__("HubResponse")
+
+
 VarFileNameIncorrect = (VarExtNotCorrect, VarNameNotCorrect, VarVersionNotCorrect)

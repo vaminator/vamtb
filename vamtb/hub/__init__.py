@@ -3,6 +3,8 @@ import os
 import time
 import requests
 from bs4 import BeautifulSoup
+from tenacity import wait_random_exponential, stop_after_delay, retry, retry_if_not_exception_type
+from vamtb.vamex import HubResponse
 #import pyrfc6266
 
 from vamtb.log import *
@@ -22,23 +24,33 @@ class HubMgr:
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
         HubMgr.__session.headers.update({'User-Agent': 'Vamtb see https://github.com/vaminator/vamtb'})
 
+    @retry(wait=wait_random_exponential(multiplier=2, max=30), stop=stop_after_delay(60), retry=retry_if_not_exception_type(KeyboardInterrupt))
     def get(self, url, **kwargs):
         #FIXME this shouldn't be needed
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
         try:
             res = HubMgr.__session.get(url, **kwargs)
+            if not( 
+                200 <= res.status_code < 300 or
+                (res.status_code in (301,303) and kwargs.get("allow_redirects") == False)):
+                warn(f"Getting url {url} returned status code {res.status_code}")
+                raise HubResponse
         except requests.exceptions.ConnectionError as e:
-            print(f"While getting {url} we got a connection error")
+            warn(f"While getting {url} we got a connection error")
             raise
         return res
 
+    @retry(wait=wait_random_exponential(multiplier=2, max=30), stop=stop_after_delay(60), retry=retry_if_not_exception_type(KeyboardInterrupt))
     def post(self, url, **kwargs):
         #FIXME this shouldn't be needed
         HubMgr.__session.cookies['vamhubconsent'] = "yes"
         try:
             res = HubMgr.__session.post(url, **kwargs)
+            if not( 200 <= res.status_code < 300 ):
+                warn(f"Getting url {url} returned status code {res.status_code}")
+                raise HubResponse
         except requests.exceptions.ConnectionError as e:
-            print(f"While posting {url} we got a connection error")
+            warn(f"While posting {url} we got a connection error")
             raise
         return res
 
@@ -86,11 +98,12 @@ class HubMgr:
 
     def get_token(self):
         resource_url = f"https://hub.virtamate.com/members/"
-        page = self.get(resource_url)
-        if 200 <= page.status_code < 300:
-           debug(f"{page.text}") 
-        else:
-            critical(f"Getting url {resource_url} returned status code {page.status_code}")
+        try:
+            page = self.get(resource_url)
+        except:
+            error(f"Couldn't get token from hub")
+            return None
+
         page_text = page.text
         bs = BeautifulSoup(page_text, "html.parser")
         tk_el = bs.find(attrs={"name": "_xfToken"})
@@ -103,16 +116,18 @@ class HubMgr:
         info(f"Getting creator uid for {creator}")
         tk = self.get_token()
         if not tk:
-            critical("Couldn't get token from members page")
+            error("Couldn't get token from hub")
+            return None
         else:
             debug(f"Got hub token {tk}")
 
         resource_url = "https://hub.virtamate.com/members"
-        page = self.post(resource_url, data = {"username": creator, "_xfToken": tk} )
-        if 200 <= page.status_code < 300:
-           debug(f"{page.text}") 
-        else:
-            critical(f"Getting url {resource_url} returned status code {page.status_code}")
+        try:
+            page = self.post(resource_url, data = {"username": creator, "_xfToken": tk} )
+        except: 
+            error(f"Couln't get member {creator} from hub")
+            return None
+
         resource_page = page.text
         soup = BeautifulSoup(resource_page, "html.parser")
         #TODO quick and dirty
@@ -121,20 +136,20 @@ class HubMgr:
             uid = res.get("href").replace("/search/member?user_id=", "")
             return f"{creator.lower()}.{uid}"
         else:
-            critical(f"Didn't find member {creator}")
+            error(f"Didn't find member {creator}")
+            return None
 
     def dl_resource(self, resource_url):
         """
         Download a resource
         """
-        page = self.get(resource_url)
-        if 200 <= page.status_code < 300:
-           debug(f"{page.text}") 
-        else:
-            critical(f"Getting url {resource_url} returned status code {page.status_code}")
-        resource_page = page.text
-        
-        dl_links = self.get_links(resource_page)
+        try:
+            page = self.get(resource_url)
+        except:
+            error(f"Couln't download resource from {resource_url}")
+            return
+
+        dl_links = self.get_links(page.text)
         if len(dl_links) > 1:
             error(f"We got more than one download link for {resource_url}, please check {','.join(dl_links)}")
         elif not dl_links:
@@ -152,20 +167,26 @@ class HubMgr:
         if not creatoruid:
             hubname = get_hub_name(creator)
             creator = self.get_creator_uid(hubname or creator)
+            if not creator:
+                return
         for page in range(1,101):
             url = f"{base_resource_per_author_url}/{creator}/?page={page}"
 
-            check_end = self.get(url, allow_redirects=False)
+            try:
+                check_end = self.get(url, allow_redirects=False)
+            except:
+                error(f"Couldn't fetch page {page} for resource of member {creator}")
+                return
             if check_end.status_code == 303:
                 break
             info(f"Fetching resources from {url}")
-            page = self.get(url)
-            if 200 <= page.status_code < 300:
-                debug(f"{page.text}") 
-            else:
-                critical(f"Getting url {url} returned status code {page.status_code}")
-            text = page.text
-            bs = BeautifulSoup(text, "html.parser")
+            try:
+                page = self.get(url)
+            except:
+                error(f"Couldn't fetch page {page} for resource of member {creator}")
+                return
+
+            bs = BeautifulSoup(page.text, "html.parser")
             regexp = re.compile(r"/resources/[^/]*/$")
             links = [ f.get('href') for f in bs.find_all('a', href=True) ]
             links = list(set([ f[1:] for  f in links if re.match(regexp, f)]))

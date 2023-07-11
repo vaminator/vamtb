@@ -36,6 +36,7 @@ setup(
         "pyyaml",
         "colorama",
         "requests",
+        "tenacity",
 #        "pyrfc6266",
         "beautifulsoup4",
         "internetarchive"
