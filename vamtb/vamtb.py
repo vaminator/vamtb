@@ -688,7 +688,11 @@ def hub_resources(ctx):
             critical("-k cannot be used with -f/-g")
         with open(list_file, "r") as f:
             for var in f:
-                creator, resource, _ = var.split('.')
+                var = var.rstrip()
+                try:
+                    creator, resource, _ = var.split('.')
+                except ValueError:
+                    creator, resource = var.split('.')
                 hub.get_resources_from_author(creator = creator, resource_name=resource)
         return
   
