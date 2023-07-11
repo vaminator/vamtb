@@ -8,12 +8,6 @@ from bs4 import BeautifulSoup
 from vamtb.log import *
 from vamtb.utils import *
 
-#TODO
-#TODO Use chunk to get filename earlier
-#TODO
-# This https://stackoverflow.com/questions/9967632/python-http-head-dealing-with-redirects-properly
-# This https://requests.readthedocs.io/en/latest/user/advanced/#body-content-workflow
-
 base_url = "https://hub.virtamate.com"
 base_resource_url = f"{base_url}/resources"
 base_resource_per_author_url = f"{base_resource_url}/authors"
